@@ -50,6 +50,13 @@ jobs:
       contents: read
       pull-requests: read
       issues: read
+      # `id-token: write` is the GitHub Actions permission to request an OIDC
+      # token from GitHub's identity provider. It does NOT grant write access
+      # to repository content. The Claude GitHub App uses the OIDC token to
+      # authenticate to Anthropic and mint a short-lived, app-scoped
+      # installation token — the token Claude actually uses for repo
+      # operations is scoped by the GitHub App's installation permissions,
+      # not by this workflow's permissions block.
       id-token: write
 
     steps:
