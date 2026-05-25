@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
@@ -10,7 +11,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
-    files: ['**/*.ts'],
+    files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -21,6 +22,10 @@ export default tseslint.config(
   {
     files: ['**/*.{js,mjs,cjs}'],
     ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    files: ['**/*.{jsx,tsx}'],
+    ...jsxA11y.flatConfigs.strict,
   },
   prettier,
 );

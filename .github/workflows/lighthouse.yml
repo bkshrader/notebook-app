@@ -1,0 +1,31 @@
+name: Lighthouse CI
+
+# Scaffolded ahead of the UI. `workflow_dispatch` only for now — flip to
+# `pull_request` once there's a buildable preview to audit.
+#
+# Targets to assert in lighthouserc when this goes live:
+#   - accessibility >= 100  (WCAG 2.1 AA non-negotiable per project charter)
+#   - best-practices >= 95
+#   - performance >= 90  (tentative — ADHD users notice latency)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  lhci:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Run Lighthouse CI
+        run: |
+          echo "TODO: implement once the app has a buildable preview."
+          echo "Expected shape:"
+          echo "  npm run build"
+          echo "  npx lhci autorun --config=./lighthouserc.json"
+          echo "lighthouserc.json sets assertions on the accessibility category."
