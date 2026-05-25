@@ -3,6 +3,7 @@
 Survey of additional libraries that may be useful for the accessibility-first notebook app for college students/academics. Target license is **AGPL-3.0**, so AGPL compatibility (one-way, since AGPL is "stronger" than permissive licenses and incompatible with some weak-copyleft variants) is called out for every entry.
 
 **AGPL-compatibility verdict legend:**
+
 - **Compatible** — permissive (MIT/BSD/ISC/Apache-2.0/MPL-2.0/LGPL) or AGPL/GPL-3.0+ itself
 - **Incompatible** — GPL-2.0-only, SSPL, BSL/BUSL, "source-available", custom commercial, or no license at all
 - **Conditional** — needs further explanation (e.g., dual licensing, dependencies with stricter terms, trademark/watermark conditions)
@@ -12,18 +13,18 @@ Survey of additional libraries that may be useful for the accessibility-first no
 ## 1. Desktop App Shells
 
 - **[Electron](https://github.com/electron/electron)** — Mature Chromium+Node shell; the safe, batteries-included path with the largest ecosystem and best accessibility story (Chromium's a11y tree is the most battle-tested anywhere). Heavy on disk/RAM, but accessibility-first projects benefit from Chromium's mature screen-reader support. **License: MIT — Compatible.**
-- **[Tauri](https://github.com/tauri-apps/tauri)** — Rust-backed shell using each OS's native webview (WebView2/WKWebView/WebKitGTK). Smaller bundles than Electron but webview a11y parity is *not* equivalent across platforms — Linux WebKitGTK in particular has known accessibility gaps that matter for a WCAG AAA target. **License: MIT OR Apache-2.0 (dual) — Compatible.**
+- **[Tauri](https://github.com/tauri-apps/tauri)** — Rust-backed shell using each OS's native webview (WebView2/WKWebView/WebKitGTK). Smaller bundles than Electron but webview a11y parity is _not_ equivalent across platforms — Linux WebKitGTK in particular has known accessibility gaps that matter for a WCAG AAA target. **License: MIT OR Apache-2.0 (dual) — Compatible.**
 - **[Wails](https://github.com/wailsapp/wails)** — Go-backed Tauri analogue. Same webview-a11y caveat as Tauri; smaller ecosystem; Go vs. Rust is mostly a preference. **License: MIT — Compatible.**
 - **[Neutralino.js](https://github.com/neutralinojs/neutralinojs)** — Tiny C++ shell, system-webview-based. Lightest option but the smallest community and most a11y unknowns; not recommended for an a11y-first product. **License: MIT — Compatible.**
 - **[Slint](https://github.com/slint-ui/slint)** — Rust-native UI toolkit (not webview-based). Triple-licensed: royalty-free proprietary, GPLv3, or paid commercial. AGPL projects can use under GPLv3, but Slint's a11y story is much less mature than Chromium's and would force a custom a11y architecture. **License: GPL-3.0 / royalty-free / commercial (triple). Under GPL-3.0 — Compatible** (AGPL-3.0 can link GPL-3.0 code per FSF compatibility matrix).
 
 ## 2. Rich Text / Markdown Editors
 
-- **[TipTap](https://github.com/ueberdosis/tiptap)** — Headless editor framework on ProseMirror; huge extension catalogue, very flexible, good a11y when configured carefully. The most popular "structured editor" choice in 2026. **License: MIT — Compatible.** (Note: TipTap *Cloud/Pro* features are commercial; the open-source core is MIT.)
+- **[TipTap](https://github.com/ueberdosis/tiptap)** — Headless editor framework on ProseMirror; huge extension catalogue, very flexible, good a11y when configured carefully. The most popular "structured editor" choice in 2026. **License: MIT — Compatible.** (Note: TipTap _Cloud/Pro_ features are commercial; the open-source core is MIT.)
 - **[ProseMirror](https://github.com/ProseMirror/prosemirror)** — Lower-level than TipTap; the engine underneath it. Use directly if you want maximum control over the document model (worth it for academic-grade structured docs). **License: MIT — Compatible.**
 - **[Lexical](https://github.com/facebook/lexical)** — Meta's modern editor framework (powers Facebook/Workplace). Strong a11y focus, fast, but smaller ecosystem and the React-first DX is heavier than TipTap. **License: MIT — Compatible.**
 - **[Slate](https://github.com/ianstormtaylor/slate)** — React-native editor framework. Mature but historically rough edges around a11y/IME — has improved, but TipTap/Lexical are easier wins for an a11y-first product. **License: MIT — Compatible.**
-- **[CodeMirror 6](https://github.com/codemirror/dev)** — Best-in-class code editor; modular, accessible, lightweight. Worth using as the *code-block* editor inside a richer document editor. **License: MIT — Compatible.**
+- **[CodeMirror 6](https://github.com/codemirror/dev)** — Best-in-class code editor; modular, accessible, lightweight. Worth using as the _code-block_ editor inside a richer document editor. **License: MIT — Compatible.**
 - **[Monaco Editor](https://github.com/microsoft/monaco-editor)** — VS Code's editor extracted. Heavier than CodeMirror 6 and historically weaker a11y; CodeMirror 6 is the better fit here. **License: MIT — Compatible.**
 - **[BlockNote](https://github.com/TypeCellOS/BlockNote)** — Notion-style block editor built on TipTap. **License: MPL-2.0 for core, but `packages/xl-*` are GPL-3.0 — Conditional.** MPL/GPL are both AGPL-compatible, but be aware the GPL-3.0 XL packages require open-sourcing your whole app under (A)GPL — fine for this project, problematic for downstream forks that want different licensing.
 - **[Milkdown](https://github.com/Milkdown/milkdown)** — Plugin-driven WYSIWYG markdown editor on ProseMirror; lighter conceptual surface than BlockNote. **License: MIT — Compatible.**
@@ -42,7 +43,7 @@ Survey of additional libraries that may be useful for the accessibility-first no
 - **[Yjs](https://github.com/yjs/yjs)** — The de-facto CRDT for collaborative editors; first-class TipTap/ProseMirror/CodeMirror bindings. Battle-tested. **License: MIT — Compatible.**
 - **[Automerge](https://github.com/automerge/automerge)** — Alternative CRDT with cleaner JSON-document semantics. Rust core, WASM bindings. Slightly heavier runtime than Yjs but easier mental model for non-text data. **License: MIT — Compatible.**
 - **[ElectricSQL](https://github.com/electric-sql/electric)** — Postgres-to-SQLite sync engine for local-first apps. Promising but architecturally heavyweight (requires a Postgres backend) — overkill unless multi-device sync is a P0 feature. **License: Apache-2.0 — Compatible.**
-- **[RxDB](https://github.com/pubkey/rxdb)** — Offline-first reactive database with sync replication. **License: Apache-2.0 — Compatible.** Note: many of the *interesting* RxDB plugins (encryption, server, GraphQL, etc.) are paid "premium" — verify what you need before committing.
+- **[RxDB](https://github.com/pubkey/rxdb)** — Offline-first reactive database with sync replication. **License: Apache-2.0 — Compatible.** Note: many of the _interesting_ RxDB plugins (encryption, server, GraphQL, etc.) are paid "premium" — verify what you need before committing.
 - **[PouchDB](https://github.com/pouchdb/pouchdb)** — CouchDB-compatible local DB; mature but project velocity has slowed. **License: Apache-2.0 — Compatible.**
 - **[Dexie.js](https://github.com/dexie/Dexie.js)** — Best-in-class IndexedDB wrapper; great DX for purely-local storage. **License: Apache-2.0 — Compatible.**
 - **[SQLite](https://github.com/sqlite/sqlite)** — Public domain; the obvious local store for academic notes. **License: Public Domain — Compatible.**
@@ -61,6 +62,7 @@ Survey of additional libraries that may be useful for the accessibility-first no
 ## 6. Accessibility Tooling
 
 ### Audits / dev tools
+
 - **[axe-core](https://github.com/dequelabs/axe-core)** — The accessibility test engine that backs nearly every other tool in this space. Use directly in CI and at runtime. **License: MPL-2.0 — Compatible.**
 - **[jest-axe](https://github.com/nickcolley/jest-axe)** — Jest matcher wrapping axe-core; trivially added to component tests. **License: MIT — Compatible.**
 - **[Storybook a11y addon](https://github.com/storybookjs/storybook)** (`@storybook/addon-a11y`) — Live axe-core panel inside Storybook; pairs naturally with `@storybook/addon-vitest` to fail PRs on a11y regressions. **License: MIT — Compatible.**
@@ -68,12 +70,14 @@ Survey of additional libraries that may be useful for the accessibility-first no
 - **[Lighthouse](https://github.com/GoogleChrome/lighthouse)** — Google's audit suite (includes a11y). Useful for one-off audits. **License: Apache-2.0 — Compatible.**
 
 ### Headless / accessible components
+
 - **[Radix UI Primitives](https://github.com/radix-ui/primitives)** — Unstyled, accessible React primitives (dialog, menu, tabs, etc.). Industry-standard a11y-first component library. **License: MIT — Compatible.**
-- **[React Aria / React Aria Components](https://github.com/adobe/react-spectrum)** — Adobe's headless a11y hooks and components; arguably the *most* a11y-rigorous option in React, with explicit support for assistive tech across platforms. Strong fit for a WCAG AAA target. **License: Apache-2.0 — Compatible.**
+- **[React Aria / React Aria Components](https://github.com/adobe/react-spectrum)** — Adobe's headless a11y hooks and components; arguably the _most_ a11y-rigorous option in React, with explicit support for assistive tech across platforms. Strong fit for a WCAG AAA target. **License: Apache-2.0 — Compatible.**
 - **[Headless UI](https://github.com/tailwindlabs/headlessui)** — Tailwind's accessible primitives; smaller scope than Radix/React Aria. **License: MIT — Compatible.**
 - **[Reach UI](https://github.com/reach/reach-ui)** — **Unmaintained as of 2026 — avoid.** Listed for completeness; use Radix or React Aria instead. **License: MIT — Compatible** (but moot).
 
 ### Focus / keyboard
+
 - **[focus-trap](https://github.com/focus-trap/focus-trap)** — Robust focus trap library (modals, dialogs). Used by many a11y component libraries internally. **License: MIT — Compatible.**
 - **[tinykeys](https://github.com/jamiebuilds/tinykeys)** — Tiny modern keybinding library with chord support; good API for a configurable-hotkeys-first app. **License: MIT — Compatible.**
 - **[react-hotkeys-hook](https://github.com/JohannesKlauss/react-hotkeys-hook)** — Hook-based shortcut registration with scopes/modifiers; ~3 KB. **License: MIT — Compatible.**
@@ -82,7 +86,7 @@ Survey of additional libraries that may be useful for the accessibility-first no
 
 ## 7. PDF Rendering
 
-- **[PDF.js](https://github.com/mozilla/pdf.js)** — Mozilla's canonical PDF viewer/renderer. Built-in viewer supports basic highlights/annotations in newer versions but does *not* persist them inside the PDF — you'd need to manage annotation state in your own data layer. **License: Apache-2.0 — Compatible.**
+- **[PDF.js](https://github.com/mozilla/pdf.js)** — Mozilla's canonical PDF viewer/renderer. Built-in viewer supports basic highlights/annotations in newer versions but does _not_ persist them inside the PDF — you'd need to manage annotation state in your own data layer. **License: Apache-2.0 — Compatible.**
 - **[react-pdf (wojtekmaj)](https://github.com/wojtekmaj/react-pdf)** — React bindings to PDF.js for rendering. No annotation support. **License: MIT — Compatible.**
 - **[react-pdf-highlighter](https://github.com/agentcooper/react-pdf-highlighter)** — Text + rectangle highlighting on top of PDF.js, viewport-independent annotation format. Closest open-source thing to "Zotero-style" PDF reading in React. **License: MIT — Compatible.** (Note: original repo's last release was 8.0.0-rc.0 ~2 years ago — verify maintenance or check forks like `react-pdf-highlighter-plus`.)
 
@@ -93,7 +97,7 @@ Survey of additional libraries that may be useful for the accessibility-first no
 - **[OpenAI Whisper (original)](https://github.com/openai/whisper)** — Reference Python implementation. Slow but the upstream truth. **License: MIT — Compatible.**
 - **[Vosk](https://github.com/alphacep/vosk-api)** — Kaldi-based, tiny models, real-time, CPU-friendly. Much lower accuracy than Whisper on accented/technical speech — but the best option for low-resource devices or real-time streaming. **License: Apache-2.0 — Compatible.**
 - **[sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)** — Next-gen Kaldi via ONNX Runtime; STT + TTS + diarization + VAD, supports 12 languages of bindings (Node included). Strong all-in-one local pipeline candidate. **License: Apache-2.0 — Compatible.**
-- **Web Speech API (browser)** — Available inside Electron's Chromium; *requires Google's cloud servers* on Chrome/Chromium for recognition — **not actually local**. Don't rely on it for a local-first app.
+- **Web Speech API (browser)** — Available inside Electron's Chromium; _requires Google's cloud servers_ on Chrome/Chromium for recognition — **not actually local**. Don't rely on it for a local-first app.
 
 ## 9. Text-to-Speech
 
@@ -102,7 +106,7 @@ Survey of additional libraries that may be useful for the accessibility-first no
 - **[Coqui TTS (idiap fork)](https://github.com/idiap/coqui-ai-TTS)** — The original Coqui project shut down; this is the actively-maintained fork. Python-only, much heavier than Piper. **License: MPL-2.0 — Compatible.** (Note: some voice models bundled by upstream had restrictive non-commercial terms — verify per-model before shipping.)
 - **[sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)** — Also does TTS via ONNX models; mentioned above. **License: Apache-2.0 — Compatible.**
 - **Web Speech Synthesis API** — Works in Chromium; voices vary by OS. Good zero-cost baseline for accessibility "read aloud" but voice quality is OS-dependent.
-- **OpenAI / ElevenLabs SDKs (cloud)** — Cloud TTS; their *client SDKs* are MIT/Apache (e.g., openai-node Apache-2.0), but the **service itself is non-free** — fine to call from an AGPL app, just gates feature behind a paid API key. **SDK licenses: Compatible.**
+- **OpenAI / ElevenLabs SDKs (cloud)** — Cloud TTS; their _client SDKs_ are MIT/Apache (e.g., openai-node Apache-2.0), but the **service itself is non-free** — fine to call from an AGPL app, just gates feature behind a paid API key. **SDK licenses: Compatible.**
 
 ## 10. OCR
 
@@ -113,14 +117,14 @@ Survey of additional libraries that may be useful for the accessibility-first no
 
 - **[citation.js](https://github.com/citation-js/citation-js)** — Parse/convert/format citations across BibTeX/CSL-JSON/RIS/etc. The convenient front-door for any citation feature. **License: MIT — Compatible.**
 - **[citeproc-js](https://github.com/Juris-M/citeproc-js)** — Reference CSL renderer (used by Zotero, citation.js). **License: AGPL-3.0 OR CPAL (dual) — Conditional.** AGPL path is fine for this project; if a downstream user/fork wants a different license they'd need CPAL, which has its own attribution requirements. AGPL-3.0 itself is the obvious choice for an AGPL app.
-- **[CSL Styles repo](https://github.com/citation-style-language/styles)** — 10k+ citation style definitions used by every citation processor. **License: CC-BY-SA 3.0 — Compatible for *use*, but redistributing modified styles requires preserving CC-BY-SA terms** (different license layer from the app code — not a problem for shipping; *is* something to surface to users who edit styles).
+- **[CSL Styles repo](https://github.com/citation-style-language/styles)** — 10k+ citation style definitions used by every citation processor. **License: CC-BY-SA 3.0 — Compatible for _use_, but redistributing modified styles requires preserving CC-BY-SA terms** (different license layer from the app code — not a problem for shipping; _is_ something to surface to users who edit styles).
 - **Zotero connectors / API** — Zotero core is **AGPLv3** — directly compatible with this project. The web API is documented and free to call.
 
 ## 12. LaTeX / Math Rendering
 
 - **[KaTeX](https://github.com/KaTeX/KaTeX)** — Fast, server-renderable math; smaller subset than MathJax but easier to integrate and faster. **License: MIT — Compatible.**
 - **[MathJax](https://github.com/mathjax/MathJax)** — Most-complete LaTeX support, slower. **License: Apache-2.0 — Compatible.**
-- **[MathLive](https://github.com/arnog/mathlive)** — Math *input* widget with full a11y (spoken-math support, screen reader integration) — uniquely relevant for an accessibility-first academic app. **License: MIT — Compatible.**
+- **[MathLive](https://github.com/arnog/mathlive)** — Math _input_ widget with full a11y (spoken-math support, screen reader integration) — uniquely relevant for an accessibility-first academic app. **License: MIT — Compatible.**
 
 ## 13. Diagrams
 
@@ -146,7 +150,7 @@ Survey of additional libraries that may be useful for the accessibility-first no
 ## 16. Embeddings / Vector Search (for local RAG)
 
 - **[sqlite-vec](https://github.com/asg017/sqlite-vec)** — Modern, actively-maintained SQLite vector extension; replaces sqlite-vss. The clear pick if you're using SQLite. **License: Apache-2.0 OR MIT (dual) — Compatible.**
-- **[sqlite-vss](https://github.com/asg017/sqlite-vss)** — Older predecessor of sqlite-vec; *deprecated by the same author* in favor of sqlite-vec. **License: MIT — Compatible** (but use sqlite-vec).
+- **[sqlite-vss](https://github.com/asg017/sqlite-vss)** — Older predecessor of sqlite-vec; _deprecated by the same author_ in favor of sqlite-vec. **License: MIT — Compatible** (but use sqlite-vec).
 - **[hnswlib](https://github.com/nmslib/hnswlib)** — Fast in-memory HNSW vector index; Node bindings exist. **License: Apache-2.0 — Compatible.**
 - **[LanceDB](https://github.com/lancedb/lancedb)** — Embedded vector DB with Node/Python bindings; good for larger local corpora. **License: Apache-2.0 — Compatible.**
 - **[Faiss](https://github.com/facebookresearch/faiss)** — Meta's industry-standard ANN library; Node bindings exist but are less polished. **License: MIT — Compatible.**
@@ -170,22 +174,25 @@ Survey of additional libraries that may be useful for the accessibility-first no
 ## Summary
 
 **Licensing surprises / "looks open, isn't" traps:**
-- **tldraw** — Custom "tldraw license"; **production use requires a paid license**. The most common mistake people make in this space — it *was* Apache-2.0 long ago, then watermark-encumbered, now fully commercial. **Use Excalidraw or roll your own canvas instead.**
+
+- **tldraw** — Custom "tldraw license"; **production use requires a paid license**. The most common mistake people make in this space — it _was_ Apache-2.0 long ago, then watermark-encumbered, now fully commercial. **Use Excalidraw or roll your own canvas instead.**
 - **BlockNote `xl-*` packages** — GPL-3.0 (commercial license sold separately). Fine for this AGPL project, but the GPL viral scope is wider than the MPL-2.0 core; if you fork BlockNote you must keep `xl-*` AGPL/GPL or buy a license.
 - **citeproc-js** — Dual AGPL-3.0 / CPAL; both have requirements. The AGPL path is the right one here; just know you can't relicense.
 - **RxDB premium plugins** — The interesting features (encryption, server, etc.) are commercial — verify what's actually OSS before depending on them.
 - **CSL styles** — CC-BY-SA 3.0 (the style files themselves, not the engine). Not a code-compatibility issue, but a user-facing one if you let users edit styles.
-- **Coqui TTS** — Engine is MPL-2.0 (Compatible), but some shipped *voice models* historically had non-commercial restrictions. Audit per-model.
+- **Coqui TTS** — Engine is MPL-2.0 (Compatible), but some shipped _voice models_ historically had non-commercial restrictions. Audit per-model.
 - **Slint** — Triple-licensed; you can use it under GPL-3.0 in an AGPL project, but most users assume "MIT" when they see the website.
 
 **Categories with no good AGPL-compatible option:**
+
 - **Production-grade vector-tile/whiteboard SDK with the polish of tldraw** — Excalidraw is the only meaningful open alternative and is less feature-dense; this is a genuine gap.
 - **First-class local "real-time" web-speech recognition** — Chromium's built-in API sends audio to Google; "local" really means whisper.cpp/Vosk/sherpa-onnx and you're shipping native binaries.
-- **PDF annotation that *writes back into the PDF*** — open-source viewers (PDF.js + react-pdf-highlighter) display and overlay highlights but don't persist them as native PDF annotations. Commercial SDKs (Nutrient, Apryse) own this niche.
+- **PDF annotation that _writes back into the PDF_** — open-source viewers (PDF.js + react-pdf-highlighter) display and overlay highlights but don't persist them as native PDF annotations. Commercial SDKs (Nutrient, Apryse) own this niche.
 
 **Strongest differentiators for this project specifically:**
+
 - **React Aria / React Aria Components** — Highest-rigor a11y component library; directly serves the WCAG AAA target. Strongly recommended over Radix for the most-critical accessible interactions.
-- **MathLive** — Spoken-math + screen-reader-integrated equation input is *uniquely* relevant for academic + accessibility-first; very few math editors get this right.
+- **MathLive** — Spoken-math + screen-reader-integrated equation input is _uniquely_ relevant for academic + accessibility-first; very few math editors get this right.
 - **TipTap + Yjs + sqlite-vec + remark** — The combination that gives you structured documents, real CRDT collab if you want it later, hybrid search/RAG, and a transformable AST for tools (citations, exports). All MIT/Apache.
 - **whisper.cpp + Piper + sherpa-onnx** — Fully-offline STT/TTS/diarization, all permissive, no cloud dependency. Aligns with both the privacy and accessibility values of the project.
 - **Cherry Studio** (mentioned as reference) — Itself AGPL-3.0 with a commercial-license escape hatch; a useful prior-art reference for how an AGPL desktop app handles dual-licensing in this category.

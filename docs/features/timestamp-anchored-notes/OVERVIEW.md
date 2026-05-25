@@ -33,7 +33,7 @@ Notes typed during an audio (or video) recording are anchored to their position 
 
 ## What v2.0+ may add
 
-- Cross-session anchors: a note typed *after* the lecture can still be anchored to a moment in the recording via a "match this to audio" action.
+- Cross-session anchors: a note typed _after_ the lecture can still be anchored to a moment in the recording via a "match this to audio" action.
 - AI-suggested anchors: an LLM compares note text to transcript text and proposes anchors.
 
 ## Relevant references

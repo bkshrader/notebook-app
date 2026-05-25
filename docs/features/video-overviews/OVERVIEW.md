@@ -21,7 +21,7 @@ Per the Remotion research:
 ## Recommended scope for v3.0
 
 - **Ship "Audio Walkthrough"**: AI-generated overview of a project's content, rendered as a structured Markdown document with TTS narration sequenced to match. Built on existing [agentic-workflows](../agentic-workflows/OVERVIEW.md) (summarization) and [text-to-speech](../text-to-speech/OVERVIEW.md) infrastructure.
-- **Defer Cinematic Video to v4+** as a Revideo-backed *export* option for users who want the social-shareable thing. Only if there's user demand.
+- **Defer Cinematic Video to v4+** as a Revideo-backed _export_ option for users who want the social-shareable thing. Only if there's user demand.
 
 ## What "Audio Walkthrough" ships
 

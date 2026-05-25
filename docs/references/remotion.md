@@ -2,7 +2,7 @@
 
 > Research target: evaluate whether Remotion can power a NotebookLM-style "Video Overview" feature in a v3 release of our accessibility-first, AGPL-licensed, Electron-based notebook app for students.
 >
-> Bottom line up front (BLUF): **Remotion's license is source-available, NOT an OSI-approved open-source license, and it is NOT compatible with AGPL distribution in the strict copyleft sense.** It can however be used by individuals and ≤3-employee for-profits and by non-profits *for free*. If our app ends up as a for-profit org of >3 employees (including contractors as of Remotion 5.0), or if we want to ship a clean AGPL artifact, we need either a Company License or an alternative. **MIT-licensed alternatives exist (Motion Canvas, Revideo, Manim) and are AGPL-compatible.**
+> Bottom line up front (BLUF): **Remotion's license is source-available, NOT an OSI-approved open-source license, and it is NOT compatible with AGPL distribution in the strict copyleft sense.** It can however be used by individuals and ≤3-employee for-profits and by non-profits _for free_. If our app ends up as a for-profit org of >3 employees (including contractors as of Remotion 5.0), or if we want to ship a clean AGPL artifact, we need either a Company License or an alternative. **MIT-licensed alternatives exist (Motion Canvas, Revideo, Manim) and are AGPL-compatible.**
 
 ---
 
@@ -32,6 +32,7 @@
 > ### Eligibility
 >
 > You are eligible to use Remotion for free if you are:
+>
 > - an individual
 > - a for-profit organization with up to 3 employees
 > - a non-profit or not-for-profit organization
@@ -53,27 +54,27 @@ This is the full license. There is **no SPDX identifier** for it; it is a bespok
 
 Three independently fatal problems for shipping Remotion as part of a strict AGPL artifact:
 
-1. **"Disallowed use cases" forbids relicensing.** The Remotion license says: *"It is not allowed to copy or modify Remotion code for the purpose of selling, renting, licensing, relicensing, or sublicensing your own derivative of Remotion."* AGPL-3.0 requires that the *combined work* be conveyed under AGPL terms (§ 5 of AGPL-3.0). You cannot simultaneously (a) ship Remotion under its own terms and (b) ship the combined work under AGPL while preserving Remotion's "no relicensing" clause. The two are mutually exclusive when Remotion is statically/dynamically linked into the same program. [^agplv3] [^fsf-licenselist]
+1. **"Disallowed use cases" forbids relicensing.** The Remotion license says: _"It is not allowed to copy or modify Remotion code for the purpose of selling, renting, licensing, relicensing, or sublicensing your own derivative of Remotion."_ AGPL-3.0 requires that the _combined work_ be conveyed under AGPL terms (§ 5 of AGPL-3.0). You cannot simultaneously (a) ship Remotion under its own terms and (b) ship the combined work under AGPL while preserving Remotion's "no relicensing" clause. The two are mutually exclusive when Remotion is statically/dynamically linked into the same program. [^agplv3] [^fsf-licenselist]
 2. **The license is not OSI-approved.** AGPL § 7 lists which "additional terms" may be layered onto AGPL distribution. Remotion's terms (eligibility-by-entity, no relicensing) are not on that list and would be treated as "further restrictions" that the AGPL forbids downstream recipients from adding. [^agplv3]
-3. **The eligibility test is on the *user/distributor*, not on the code.** This is unusual. Even if you yourself qualify for the Free License today, you cannot pass that grant downstream to a fork; whoever forks your AGPL app must independently re-qualify for Remotion's Free License. That breaks the AGPL guarantee that downstream recipients receive the same rights you had.
+3. **The eligibility test is on the _user/distributor_, not on the code.** This is unusual. Even if you yourself qualify for the Free License today, you cannot pass that grant downstream to a fork; whoever forks your AGPL app must independently re-qualify for Remotion's Free License. That breaks the AGPL guarantee that downstream recipients receive the same rights you had.
 
 **What this means in practice for our app:**
 
-- If our app entity stays under 3 employees (counting contractors as of v5.0) [^v5-changes] OR registers as a non-profit/not-for-profit, AND we're willing to license our app under terms *other than* AGPL (e.g., a dual-licensed combination where the Remotion-bundled build is *not* AGPL, or where Remotion is loaded as a user-installed optional component), then *we can ship it for free, today*.
+- If our app entity stays under 3 employees (counting contractors as of v5.0) [^v5-changes] OR registers as a non-profit/not-for-profit, AND we're willing to license our app under terms _other than_ AGPL (e.g., a dual-licensed combination where the Remotion-bundled build is _not_ AGPL, or where Remotion is loaded as a user-installed optional component), then _we can ship it for free, today_.
 - A "pure" AGPL ship with Remotion bundled in is not legally clean. We would need either (a) a Remotion Company License + an additional exception from the Remotion team for the AGPL combination clause, or (b) an architecture that doesn't combine Remotion into the same program (see Pattern B in §6).
 
-**There is real ambiguity on one point.** The Remotion FAQ and docs do not directly answer: *"If our app is open-source and our end users (each a separate individual) run the renderer locally on their own machine, does the end-user trigger the license obligation or does the distributor?"* The FAQ acknowledges "edge cases" and points to <https://www.remotion.pro/faq>. Section 6 below decomposes the four plausible answers, but **before committing to Remotion, we should email <hi@remotion.dev> with our exact scenario and get a written answer.** This is the single highest-leverage research action remaining.
+**There is real ambiguity on one point.** The Remotion FAQ and docs do not directly answer: _"If our app is open-source and our end users (each a separate individual) run the renderer locally on their own machine, does the end-user trigger the license obligation or does the distributor?"_ The FAQ acknowledges "edge cases" and points to <https://www.remotion.pro/faq>. Section 6 below decomposes the four plausible answers, but **before committing to Remotion, we should email <hi@remotion.dev> with our exact scenario and get a written answer.** This is the single highest-leverage research action remaining.
 
 ### 1.3 Sub-package licenses — they are NOT all the same
 
 I read `package.json` for several sub-packages via the GitHub API. The `"license"` field varies:
 
-| Package | License field in `package.json` | Notes |
-|---|---|---|
-| `remotion` (core) | `SEE LICENSE IN LICENSE.md` | The custom Remotion License [^pkg-core] |
-| `@remotion/renderer` | `SEE LICENSE IN LICENSE.md` | Same custom license [^pkg-renderer] |
-| `@remotion/lambda` | `SEE LICENSE IN LICENSE.md` | Same custom license [^pkg-lambda] |
-| `@remotion/captions` | `MIT` | Genuinely MIT! Just SRT parse/serialize primitives [^pkg-captions] |
+| Package              | License field in `package.json` | Notes                                                              |
+| -------------------- | ------------------------------- | ------------------------------------------------------------------ |
+| `remotion` (core)    | `SEE LICENSE IN LICENSE.md`     | The custom Remotion License [^pkg-core]                            |
+| `@remotion/renderer` | `SEE LICENSE IN LICENSE.md`     | Same custom license [^pkg-renderer]                                |
+| `@remotion/lambda`   | `SEE LICENSE IN LICENSE.md`     | Same custom license [^pkg-lambda]                                  |
+| `@remotion/captions` | `MIT`                           | Genuinely MIT! Just SRT parse/serialize primitives [^pkg-captions] |
 
 So the **caption utility primitives** (`parseSrt`, `serializeSrt`, the `Caption` type) are MIT and AGPL-compatible standalone. Everything that actually renders frames or drives the headless browser is under the custom license.
 
@@ -81,12 +82,12 @@ So the **caption utility primitives** (`parseSrt`, `serializeSrt`, the `Caption`
 
 From <https://www.remotion.pro/license>: [^pricing]
 
-| Tier | Price | Target |
-|---|---|---|
-| Free License | $0 | Individuals, ≤3-employee for-profits (incl. contractors as of v5.0), non-profits, evaluators |
-| Remotion for Creators | $25/seat/month, **$75/mo minimum (3 seats)** | Low-volume internal video creation by people |
-| Remotion for Automators | $0.01/render, **$100/mo minimum** | Apps that programmatically render for end users (this is us) |
-| Enterprise | From $500/mo | Custom terms, private channel, monthly consulting |
+| Tier                    | Price                                        | Target                                                                                       |
+| ----------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Free License            | $0                                           | Individuals, ≤3-employee for-profits (incl. contractors as of v5.0), non-profits, evaluators |
+| Remotion for Creators   | $25/seat/month, **$75/mo minimum (3 seats)** | Low-volume internal video creation by people                                                 |
+| Remotion for Automators | $0.01/render, **$100/mo minimum**            | Apps that programmatically render for end users (this is us)                                 |
+| Enterprise              | From $500/mo                                 | Custom terms, private channel, monthly consulting                                            |
 
 **The "Automators" tier is the one that would apply to us** if our v3 ships a "click to generate Video Overview" button to end users and we cross the size threshold. At our anticipated scale (academic users, presumably 5+ renders/week per active user), the per-render cost is small in absolute terms but the **$100/mo floor is the real number**, and it's recurring forever as long as the feature ships.
 
@@ -161,20 +162,23 @@ npm i @remotion/captions @remotion/google-fonts @remotion/player
 ```tsx
 // src/remotion/Overview.tsx
 import {
-  AbsoluteFill, Audio, Sequence, useCurrentFrame, useVideoConfig, staticFile,
+  AbsoluteFill,
+  Audio,
+  Sequence,
+  useCurrentFrame,
+  useVideoConfig,
+  staticFile,
 } from 'remotion';
 
 type Slide = {
   heading: string;
   body: string;
   citation?: string;
-  narrationSrc: string;     // path to a Supertonic/Piper TTS .mp3
-  durationFrames: number;   // matches narration length
+  narrationSrc: string; // path to a Supertonic/Piper TTS .mp3
+  durationFrames: number; // matches narration length
 };
 
-export const Overview: React.FC<{ slides: Slide[]; title: string }> = ({
-  slides, title,
-}) => {
+export const Overview: React.FC<{ slides: Slide[]; title: string }> = ({ slides, title }) => {
   let cursor = 0;
   return (
     <AbsoluteFill style={{ background: '#0b0e14', color: '#e6e6e6', fontFamily: 'Inter' }}>
@@ -195,7 +199,7 @@ export const Overview: React.FC<{ slides: Slide[]; title: string }> = ({
 const Slide: React.FC<Slide> = ({ heading, body, citation }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const fadeIn = Math.min(1, frame / (fps * 0.4));   // 0.4s fade-in
+  const fadeIn = Math.min(1, frame / (fps * 0.4)); // 0.4s fade-in
   return (
     <AbsoluteFill style={{ padding: 120, opacity: fadeIn }}>
       <h1 style={{ fontSize: 80, fontWeight: 700 }}>{heading}</h1>
@@ -218,7 +222,7 @@ export const Root = () => (
   <Composition
     id="overview"
     component={Overview}
-    durationInFrames={1800}    // computed from slides at registration time
+    durationInFrames={1800} // computed from slides at registration time
     fps={30}
     width={1920}
     height={1080}
@@ -235,7 +239,9 @@ import { renderMedia, selectComposition } from '@remotion/renderer';
 
 const serveUrl = await bundle({ entryPoint: 'src/remotion/index.ts' });
 const composition = await selectComposition({
-  serveUrl, id: 'overview', inputProps: { slides, title },
+  serveUrl,
+  id: 'overview',
+  inputProps: { slides, title },
 });
 await renderMedia({
   composition,
@@ -257,6 +263,7 @@ await renderMedia({
 ### 4.1 What `@remotion/captions` does
 
 `@remotion/captions` is a small, **MIT-licensed** utility package. [^pkg-captions] It exposes:
+
 - A `Caption` type (`{ text, startMs, endMs, ... }`)
 - `parseSrt()` — parse a `.srt` string into `Caption[]`
 - `serializeSrt()` — turn `Caption[]` back into `.srt` text [^captions-docs]
@@ -266,7 +273,7 @@ It does **not** render anything by itself. You render captions by mapping `Capti
 ### 4.2 Burned-in vs sidecar captions
 
 - **Burned-in (visual only)**: render a `<Caption>` React component that reads the current frame's time and shows the active caption. The text is part of the video's pixels.
-- **Sidecar `.srt`/`.vtt`**: Remotion's `renderMedia()` does *not* automatically emit a sidecar caption file. You generate it yourself by writing `serializeSrt(captions)` to a `.srt` next to the MP4. To make players pick it up, name it `out.mp4.srt` or wrap the MP4 in an MKV.
+- **Sidecar `.srt`/`.vtt`**: Remotion's `renderMedia()` does _not_ automatically emit a sidecar caption file. You generate it yourself by writing `serializeSrt(captions)` to a `.srt` next to the MP4. To make players pick it up, name it `out.mp4.srt` or wrap the MP4 in an MKV.
 - **Embedded soft-subtitle track in MP4**: ffmpeg supports this via `-c:s mov_text`, but Remotion's renderer doesn't expose a built-in flag for it as of v4.x. Would need to post-process with an extra ffmpeg invocation or use Remotion's `audioCodec`/`muxing` extension surfaces.
 
 ### 4.3 Accessibility design implication (critical for our app)
@@ -274,9 +281,10 @@ It does **not** render anything by itself. You render captions by mapping `Capti
 **A "Cinematic Video Overview" that embeds captions only visually is not accessible to screen-reader users**, and partly inaccessible to deafblind users using refreshable braille. Burned-in captions also can't be styled by the user (high-contrast, larger text, dyslexia-friendly font) — which directly conflicts with our WCAG 2.1 AAA target and our ADHD/Autism focus.
 
 **Recommended posture for v3:**
-1. Always ship the video **alongside** a structured, navigable transcript view (storyboard form: slide title, body text, citation, embedded audio per slide). This is *the* primary accessible artifact; the video is the secondary, "cinematic" one.
+
+1. Always ship the video **alongside** a structured, navigable transcript view (storyboard form: slide title, body text, citation, embedded audio per slide). This is _the_ primary accessible artifact; the video is the secondary, "cinematic" one.
 2. Ship a sidecar `.vtt` so platforms (YouTube, native players, accessibility tools) can pull subtitles.
-3. Embed captions visually in the video too, but as a *toggleable* render option — let the user choose to render with or without burned-in captions.
+3. Embed captions visually in the video too, but as a _toggleable_ render option — let the user choose to render with or without burned-in captions.
 4. Author an **audio description track** (see below).
 
 ### 4.4 Audio description tracks
@@ -308,28 +316,28 @@ The official `remotion-dev/template-electron` template confirms this: "may also 
 
 **Bundle-size impact:**
 
-| Component | Approx. size |
-|---|---|
-| Electron base (Chromium + Node) | ~200 MB |
-| Chrome Headless Shell (Remotion's renderer browser) | ~170–200 MB |
-| ffmpeg bundled binaries (per platform) | ~50–80 MB |
-| `@remotion/compositor-*` native binary (per platform) | ~10 MB |
-| Total Remotion overhead on top of Electron | **~230–290 MB** |
+| Component                                             | Approx. size    |
+| ----------------------------------------------------- | --------------- |
+| Electron base (Chromium + Node)                       | ~200 MB         |
+| Chrome Headless Shell (Remotion's renderer browser)   | ~170–200 MB     |
+| ffmpeg bundled binaries (per platform)                | ~50–80 MB       |
+| `@remotion/compositor-*` native binary (per platform) | ~10 MB          |
+| Total Remotion overhead on top of Electron            | **~230–290 MB** |
 
 We can defer this by **downloading Chrome Headless Shell on first use** rather than bundling it. Tradeoff: a noticeable first-render delay + a download dependency at runtime.
 
 ### 5.3 Local vs cloud render — privacy considerations
 
-| | Local render (`@remotion/renderer`) | Remotion Lambda |
-|---|---|---|
-| Where notebook content goes | Stays on user's laptop | Uploaded to user's own AWS account |
-| Bundle/serve URL | Local | Stored in S3 bucket |
-| inputProps (slide content, narration, transcripts) | In-process | Passed to Lambda invocation |
-| Cost | $0 (CPU + electricity) | $ per-render + S3 + invocation [^lambda-cost] |
-| Speed | 5–30s/sec of video on a modern laptop | Wall-clock seconds (massive parallelism) |
-| Works offline | Yes | No |
+|                                                    | Local render (`@remotion/renderer`)   | Remotion Lambda                               |
+| -------------------------------------------------- | ------------------------------------- | --------------------------------------------- |
+| Where notebook content goes                        | Stays on user's laptop                | Uploaded to user's own AWS account            |
+| Bundle/serve URL                                   | Local                                 | Stored in S3 bucket                           |
+| inputProps (slide content, narration, transcripts) | In-process                            | Passed to Lambda invocation                   |
+| Cost                                               | $0 (CPU + electricity)                | $ per-render + S3 + invocation [^lambda-cost] |
+| Speed                                              | 5–30s/sec of video on a modern laptop | Wall-clock seconds (massive parallelism)      |
+| Works offline                                      | Yes                                   | No                                            |
 
-**For an academic notebook app, Lambda is a hard sell.** Even though it's the *user's own* AWS account, getting students to deploy and pay for Lambda infrastructure is unrealistic. And if we instead use *our* Lambda infrastructure as a hosted service, we (a) are sending sensitive academic content (theses, drafts, source citations) through our servers, (b) need a backend we said in our v1/v2 plan we don't want, and (c) pay perpetually for renders.
+**For an academic notebook app, Lambda is a hard sell.** Even though it's the _user's own_ AWS account, getting students to deploy and pay for Lambda infrastructure is unrealistic. And if we instead use _our_ Lambda infrastructure as a hosted service, we (a) are sending sensitive academic content (theses, drafts, source citations) through our servers, (b) need a backend we said in our v1/v2 plan we don't want, and (c) pay perpetually for renders.
 
 **Default recommendation: local render only. Cloud render is a v4+ premium feature, opt-in, with explicit data-residency disclosure.**
 
@@ -346,8 +354,8 @@ We can defer this by **downloading Chrome Headless Shell on first use** rather t
 
 We emit a `remotion-project/` directory (composition.tsx + assets + render script). User runs `npx remotion render` against it themselves.
 
-- **Pros:** Smaller install. License burden may legally shift to user (they are the licensee, an individual eligible for Free License). Closer to AGPL-compatible because Remotion isn't *bundled in* our distributed work.
-- **Cons:** Massive friction — no longer "click to make video." Requires user to have Node.js. Loses the magic. Plausibly violates the Remotion license intent anyway if we're *templating* a Remotion project as part of our product's functionality; we'd want to check this in writing.
+- **Pros:** Smaller install. License burden may legally shift to user (they are the licensee, an individual eligible for Free License). Closer to AGPL-compatible because Remotion isn't _bundled in_ our distributed work.
+- **Cons:** Massive friction — no longer "click to make video." Requires user to have Node.js. Loses the magic. Plausibly violates the Remotion license intent anyway if we're _templating_ a Remotion project as part of our product's functionality; we'd want to check this in writing.
 
 ### Pattern C — Cloud render via Remotion Lambda or our own service
 
@@ -362,22 +370,22 @@ See §7. **My recommendation, given our license constraints.** The strongest can
 
 ## 7. Alternatives
 
-| Tool | License | Renderer | AGPL OK? | Fit for our use case |
-|---|---|---|---|---|
-| Remotion | Custom source-available | Headless Chromium + ffmpeg | **NO** (with caveats) | Excellent technical fit; license is the blocker |
-| Motion Canvas | **MIT** | Browser Canvas API + ffmpeg | **YES** | Good fit, no React though |
-| Revideo (fork of Motion Canvas) | **MIT** | Canvas + Node.js + ffmpeg | **YES** | Best MIT alternative for programmatic Node rendering |
-| Manim Community | **MIT** | Cairo / OpenGL → ffmpeg (Python) | **YES** | Python-only; awkward for Electron+TS app |
-| 3b1b/manim | **MIT** | Cairo / OpenGL → ffmpeg (Python) | **YES** | Personal project of 3blue1brown; ManimCE is the community-maintained one |
-| FFmpeg + headless Chromium (DIY) | LGPL-2.1+ / GPL-2 / mixed [^ffmpeg-license] | DIY | Mostly yes | Maximum flexibility, maximum work |
-| Browser `MediaRecorder` + Canvas/WebCodecs | Free (Web Platform) | In-renderer | Yes | Works in Electron renderer, codec limits |
+| Tool                                       | License                                     | Renderer                         | AGPL OK?              | Fit for our use case                                                     |
+| ------------------------------------------ | ------------------------------------------- | -------------------------------- | --------------------- | ------------------------------------------------------------------------ |
+| Remotion                                   | Custom source-available                     | Headless Chromium + ffmpeg       | **NO** (with caveats) | Excellent technical fit; license is the blocker                          |
+| Motion Canvas                              | **MIT**                                     | Browser Canvas API + ffmpeg      | **YES**               | Good fit, no React though                                                |
+| Revideo (fork of Motion Canvas)            | **MIT**                                     | Canvas + Node.js + ffmpeg        | **YES**               | Best MIT alternative for programmatic Node rendering                     |
+| Manim Community                            | **MIT**                                     | Cairo / OpenGL → ffmpeg (Python) | **YES**               | Python-only; awkward for Electron+TS app                                 |
+| 3b1b/manim                                 | **MIT**                                     | Cairo / OpenGL → ffmpeg (Python) | **YES**               | Personal project of 3blue1brown; ManimCE is the community-maintained one |
+| FFmpeg + headless Chromium (DIY)           | LGPL-2.1+ / GPL-2 / mixed [^ffmpeg-license] | DIY                              | Mostly yes            | Maximum flexibility, maximum work                                        |
+| Browser `MediaRecorder` + Canvas/WebCodecs | Free (Web Platform)                         | In-renderer                      | Yes                   | Works in Electron renderer, codec limits                                 |
 
 ### 7.1 Motion Canvas
 
 - **License:** MIT, verified by reading the actual `LICENSE` file in `motion-canvas/motion-canvas`. [^motion-canvas-license]
 - **What it is:** TypeScript-first, generator-function-based animation library with a real-time editor. Designed for explainer videos. Renders an image sequence (or MP4 via FFmpeg exporter) from the browser.
 - **AGPL-compat:** Yes — MIT is permissive and AGPL-compatible. We can statically link and the combined work can be AGPL.
-- **Fit for us:** Good visually, but **rendering is primarily browser-driven** — not a clean Node-side render pipeline. Has an image-sequence + ffmpeg exporter and the workflow is *"render in the editor app, then post-process"*, which doesn't fit "click to generate" UX cleanly. Not React.
+- **Fit for us:** Good visually, but **rendering is primarily browser-driven** — not a clean Node-side render pipeline. Has an image-sequence + ffmpeg exporter and the workflow is _"render in the editor app, then post-process"_, which doesn't fit "click to generate" UX cleanly. Not React.
 - **Activity (May 2026):** Last pushed Feb 2025, ~18.5k stars. Maintained but not aggressively developed. [^repo-stats]
 
 ### 7.2 Revideo
@@ -393,7 +401,7 @@ See §7. **My recommendation, given our license constraints.** The strongest can
 - **License:** MIT (verified). [^manimce-license] 3b1b/manim is also MIT (verified). [^3b1b-license]
 - **What it is:** Python framework for math/science explainer animations. Famous from 3blue1brown.
 - **AGPL-compat:** Yes.
-- **Fit for us:** Best-in-class for math notation and graph/diagram animations. **Poor fit** as a primary renderer in an Electron+TS app — we'd need to ship Python + Manim's dependency stack (Cairo, LaTeX, FFmpeg) which dwarfs Remotion's overhead. Could be useful as a *secondary, specialized* renderer for the subset of academic notebooks that are math-heavy.
+- **Fit for us:** Best-in-class for math notation and graph/diagram animations. **Poor fit** as a primary renderer in an Electron+TS app — we'd need to ship Python + Manim's dependency stack (Cairo, LaTeX, FFmpeg) which dwarfs Remotion's overhead. Could be useful as a _secondary, specialized_ renderer for the subset of academic notebooks that are math-heavy.
 
 ### 7.4 FFmpeg + headless Chromium (DIY)
 
@@ -443,9 +451,10 @@ Is our org a for-profit with ≥4 employees (counting contractors)?
 
 ### 8.3 Is "video" the right format at all?
 
-Worth questioning the premise. **A Cinematic Video Overview is, in our context, mostly a marketing/engagement feature**, not an accessibility one. The *information* in the video is fully present in the transcript + audio narration + slide visuals — none of which require MP4 encoding.
+Worth questioning the premise. **A Cinematic Video Overview is, in our context, mostly a marketing/engagement feature**, not an accessibility one. The _information_ in the video is fully present in the transcript + audio narration + slide visuals — none of which require MP4 encoding.
 
 Consider this alternative shape:
+
 - **"Audio Walkthrough" mode** — a scrolling document with synchronized highlights, an audio narration track that plays alongside, and per-section navigation. No video file at all.
 - 100% accessible to screen-reader users (it's a document).
 - 100% accessible to keyboard users.
@@ -453,9 +462,9 @@ Consider this alternative shape:
 - Trivially indexable, searchable, copy-pasteable.
 - **Zero video-licensing concerns.** No Remotion, no Motion Canvas, no codec stack.
 - Renders in our existing UI stack.
-- Can still be *exported* to MP4 later via a server-side render or user-installed tool if someone wants to share it on social media.
+- Can still be _exported_ to MP4 later via a server-side render or user-installed tool if someone wants to share it on social media.
 
-**Strong opinion:** Ship "Audio Walkthrough" as the *primary* feature in v3, and treat "Cinematic Video Overview" as a v4+ stretch goal. The video format adds engineering risk, licensing risk, accessibility risk, and bundle weight, in exchange for a marketing-vid demo that few academic users actually need. The walkthrough mode covers 90% of the user benefit at 10% of the cost.
+**Strong opinion:** Ship "Audio Walkthrough" as the _primary_ feature in v3, and treat "Cinematic Video Overview" as a v4+ stretch goal. The video format adds engineering risk, licensing risk, accessibility risk, and bundle weight, in exchange for a marketing-vid demo that few academic users actually need. The walkthrough mode covers 90% of the user benefit at 10% of the cost.
 
 If we eventually do want video export, Revideo (or `MediaRecorder` for in-renderer simple cases) becomes a clean, optional plugin on top of the walkthrough data model.
 
@@ -467,11 +476,11 @@ If we eventually do want video export, Revideo (or `MediaRecorder` for in-render
 
 - Pre-v4: similar two-tier model, lower thresholds, terms have been adjusted multiple times.
 - **v5.0 (2026)**: contractors now count toward the 3-employee threshold; license is now bound to formal Terms & Conditions instead of auto-generated. [^v5-changes]
-- Future changes: Remotion explicitly reserves the right to amend the license between versions. If we pin to v4.0.x, the v4 license terms apply *for that version*; upgrading requires re-checking. **This is a real source of long-term maintenance risk.**
+- Future changes: Remotion explicitly reserves the right to amend the license between versions. If we pin to v4.0.x, the v4 license terms apply _for that version_; upgrading requires re-checking. **This is a real source of long-term maintenance risk.**
 
 ### 9.2 Remotion Lambda render-farm pricing
 
-No flat per-minute number is published. Remotion's docs say *"most users render multiple minutes of video for just a few pennies."* [^lambda-cost] For a 60s 1080p video at typical settings, anecdotal community numbers suggest ~$0.005–$0.05 per render in AWS costs, plus S3 transfer. Plus our Automators tier cost ($0.01/render telemetry). If we render 10,000/mo, that's ~$100 to Remotion + ~$50–$500 to AWS.
+No flat per-minute number is published. Remotion's docs say _"most users render multiple minutes of video for just a few pennies."_ [^lambda-cost] For a 60s 1080p video at typical settings, anecdotal community numbers suggest ~$0.005–$0.05 per render in AWS costs, plus S3 transfer. Plus our Automators tier cost ($0.01/render telemetry). If we render 10,000/mo, that's ~$100 to Remotion + ~$50–$500 to AWS.
 
 ### 9.3 Determinism
 
@@ -482,7 +491,7 @@ Remotion does **not** make an explicit determinism guarantee in its docs. In pra
 - Use `@remotion/google-fonts` for Google Fonts (it wraps `delayRender`/`continueRender` for you). [^fonts]
 - Use `@remotion/fonts` + `staticFile()` for local fonts.
 - **Critical**: only load the specific weights and subsets you need; loading "everything" causes `delayRender` timeouts.
-- Fonts must be loaded *before* the first frame paints, or text will pop in on later frames. The `delayRender` handle is the mechanism.
+- Fonts must be loaded _before_ the first frame paints, or text will pop in on later frames. The `delayRender` handle is the mechanism.
 
 ### 9.5 Browser API quirks during render
 
@@ -512,7 +521,7 @@ Remotion does **not** make an explicit determinism guarantee in its docs. In pra
 ## 10. Open questions to resolve before committing
 
 1. **Direct from Remotion team:** if our entity is non-profit but we ship our software under AGPL to users who are themselves non-profits or individuals, does our app trigger any obligation? Answer should be in writing, not via FAQ. Email <hi@remotion.dev>.
-2. **Direct from Remotion team:** does Pattern B (we generate a Remotion project, user installs Remotion and renders) qualify the *user* as the licensee?
+2. **Direct from Remotion team:** does Pattern B (we generate a Remotion project, user installs Remotion and renders) qualify the _user_ as the licensee?
 3. **For us:** what is our planned legal entity structure — non-profit foundation, for-profit corp, sole proprietor, etc.? This single answer determines whether we even need to ask question 1.
 4. **For us:** do we ship strict AGPL, AGPL + exception, or dual-license? This is a decision we owe ourselves regardless of Remotion.
 5. **Prototype:** build a 30-slide narrated overview in Revideo and one in Remotion; compare DX, render time, bundle size, and accessibility surface. Allocate 1 week of engineering for this spike before locking in.

@@ -2,10 +2,11 @@
 
 Survey of OCR engines and academic-document parsers for an accessibility-first, AGPL-licensed, Electron/Tauri note-taking app for college students and academics. Target accessibility: WCAG 2.1 AAA, AA minimum. Two distinct user journeys drive this research:
 
-1. **PDF ingestion path.** Scanned academic readings (often badly scanned) lacking a text layer → must produce a searchable, screen-reader-accessible PDF/Markdown with preserved math, tables, and reading order. Already routed through a Python sidecar running **Docling** (PDFs) + **markitdown** (everything else); OCR for this path is an engine *inside* Docling.
+1. **PDF ingestion path.** Scanned academic readings (often badly scanned) lacking a text layer → must produce a searchable, screen-reader-accessible PDF/Markdown with preserved math, tables, and reading order. Already routed through a Python sidecar running **Docling** (PDFs) + **markitdown** (everything else); OCR for this path is an engine _inside_ Docling.
 2. **In-note image path.** User drags a photo of a whiteboard, slide, textbook page, or scribbled formula into a note → fast, in-process text extraction with acceptable latency for a single image (sub-second ideal).
 
 **AGPL-compatibility legend** (same as `related-libraries.md`):
+
 - **Compatible** — permissive (MIT/BSD/ISC/Apache-2.0/MPL-2.0/LGPL), AGPL itself, or GPL-3.0 (FSF-compatible upward)
 - **Incompatible** — GPL-2.0-only, SSPL, BSL/BUSL, source-available, custom commercial, model weights with use restrictions
 - **Conditional** — dual-licensed, model-weight restrictions, attribution/watermark requirements
@@ -17,12 +18,15 @@ Survey of OCR engines and academic-document parsers for an accessibility-first, 
 OCR has stratified into three distinct tiers, and choosing the wrong tier for the wrong job is the single biggest mistake:
 
 ### (a) Classical OCR engines — detection + recognition pipelines
+
 Two-stage architectures: a text-detection network finds bounding boxes for lines/words, a recognition network reads each box. Tesseract, PaddleOCR, EasyOCR, RapidOCR, doctr, and Apple Vision all fit here. They output **a list of strings with bounding boxes**, nothing more — no reading order, no layout understanding, no math, no tables. Fast, mature, CPU-friendly. The right answer for "what does this image say?" and the wrong answer for "give me a Markdown version of this academic PDF."
 
 ### (b) Deep-learning end-to-end OCR / vision-language models (VLMs)
+
 A single transformer ingests a page image and emits structured output (Markdown, LaTeX, HTML). olmOCR, GOT-OCR2.0, PaddleOCR-VL, MinerU2.5's VLM backend, Nougat, DeepSeek-OCR, Qwen2.5-VL all fit here. Quality on complex academic content is dramatically better than classical pipelines, but they are **multi-billion-parameter models** that want a GPU (or expensive CPU inference) and ship hundreds of megabytes to a few gigabytes of weights. Some have non-commercial weight licenses despite Apache-2.0 code.
 
 ### (c) Academic-doc-specialized "OCR + layout + math + tables" pipelines
+
 Hybrid systems that combine layout detection, OCR, table-structure recognition, formula recognition, and reading-order detection into a single API. Docling, Marker (on top of Surya), MinerU, and Unstructured fit here. They typically chain (a) and/or (b) under the hood and add the structure-aware glue. This is what we actually need for the PDF-ingestion path.
 
 **This space is moving fast.** OmniDocBench v1.6 (Q1 2026) re-ranked the top of the leaderboard; PaddleOCR-VL didn't exist a year ago; olmOCR went from announcement → v2 → de-facto open-weight baseline in roughly twelve months[^omnidoc-v16][^olmocr2]. Anything written in this doc more than six months ago is suspect; re-check before locking in.
@@ -32,12 +36,13 @@ Hybrid systems that combine layout detection, OCR, table-structure recognition, 
 ## 1. Classical / general OCR engines
 
 ### Tesseract
+
 - **Repo:** <https://github.com/tesseract-ocr/tesseract>
 - **License:** **Apache-2.0** (verified on the repo page; depends on Leptonica which is BSD 2-clause)[^tesseract-license]. **AGPL-compatible.**
 - **Status:** v5.5.2 (Dec 2025), 74.2k stars, 433 open issues, active.[^tesseract-stats]
 - **What it is:** The 25-year-old elder statesman of open-source OCR; originally HP, then Google, now community-maintained. LSTM-based recognizer since v4.
 - **Languages:** 100+ via downloadable `tessdata` files.[^tesseract-langs]
-- **Accuracy reality check:** Strong on clean modern English print; meaningfully weaker than PaddleOCR or any VLM on multi-column layouts, low-resolution scans, or non-Latin scripts. Modal's 2026 round-up calls it "a benchmark for open-source OCR" but explicitly *not* state-of-the-art.[^modal-roundup]
+- **Accuracy reality check:** Strong on clean modern English print; meaningfully weaker than PaddleOCR or any VLM on multi-column layouts, low-resolution scans, or non-Latin scripts. Modal's 2026 round-up calls it "a benchmark for open-source OCR" but explicitly _not_ state-of-the-art.[^modal-roundup]
 - **Math/tables: poor.** No math support whatsoever (renders equations as garbage strings); table layout is not preserved — Tesseract emits text in scan order with optional `hOCR`/`alto` XML for positions, which downstream tools must reconstruct into a table.
 - **Integration patterns:**
   - **CLI** (`tesseract input.png output -l eng`) — easiest for sidecar invocation; what `OCRmyPDF` uses.
@@ -47,6 +52,7 @@ Hybrid systems that combine layout detection, OCR, table-structure recognition, 
 - **When to use it:** As a sidecar fallback when nothing more sophisticated is available, or as the lowest-resource option for a v0 prototype. **Not** the right answer for PDF ingestion in this app.
 
 ### tesseract.js
+
 - **Repo:** <https://github.com/naptha/tesseract.js>
 - **License:** **Apache-2.0**.[^tesseractjs-license] **AGPL-compatible.**
 - **Status:** v7.0.0 (Dec 2025), 38.1k stars, active.[^tesseractjs-stats]
@@ -60,6 +66,7 @@ Hybrid systems that combine layout detection, OCR, table-structure recognition, 
 - **Why it matters here:** **This is the right answer for the in-note image path** if quality is acceptable. Zero sidecar round-trip; works fully offline; one `npm install`; runs anywhere Electron runs (including Linux ARM). Quality ceiling is the same as native Tesseract — i.e., fine for whiteboard/slide photos in English print, mediocre for handwriting, garbage for math.
 
 ### PaddleOCR
+
 - **Repo:** <https://github.com/PaddlePaddle/PaddleOCR>
 - **License:** **Apache-2.0**.[^paddleocr-license] **AGPL-compatible.**
 - **Status:** Latest is **PP-OCRv5** (2025) with +13% accuracy over v4, plus new English/Thai/Greek models with an additional +11% in English scenarios.[^paddleocr-v5]
@@ -71,9 +78,10 @@ Hybrid systems that combine layout detection, OCR, table-structure recognition, 
   - **ONNX / RapidOCR**: PaddleOCR models without the PaddlePaddle runtime — see RapidOCR below.
   - **Browser/JS:** "PaddleOCR.js" SDK exists but is not as mature as `tesseract.js`.
 - **CPU cost:** Slightly heavier than Tesseract (~1–2 s/page); accuracy substantially higher in practice — the most accurate free option in 2026 according to CodeSOTA's benchmarks.[^codesota-tess-paddle]
-- **PaddleOCR-VL (Oct 2025).** Baidu released a 0.9B-parameter VLM extension under **Apache-2.0** for *both* code and weights, with 109 languages, charts, formulas, tables, and SOTA on OmniDocBench v1.5.[^paddleocr-vl-card][^paddleocr-vl-arxiv] **AGPL-compatible.** This is the only top-tier academic-doc VLM with fully permissive weights — important when most peers (Surya, Nougat) come with restrictions.
+- **PaddleOCR-VL (Oct 2025).** Baidu released a 0.9B-parameter VLM extension under **Apache-2.0** for _both_ code and weights, with 109 languages, charts, formulas, tables, and SOTA on OmniDocBench v1.5.[^paddleocr-vl-card][^paddleocr-vl-arxiv] **AGPL-compatible.** This is the only top-tier academic-doc VLM with fully permissive weights — important when most peers (Surya, Nougat) come with restrictions.
 
 ### EasyOCR
+
 - **Repo:** <https://github.com/JaidedAI/EasyOCR>
 - **License:** **Apache-2.0**.[^easyocr-license] **AGPL-compatible.**
 - **Status:** v1.7.2 (Sep 2024) — last release is over a year old at time of writing; 29.5k stars; 475 open issues.[^easyocr-stats] Maintenance signal is weakening compared to peers.
@@ -83,6 +91,7 @@ Hybrid systems that combine layout detection, OCR, table-structure recognition, 
 - **Math/tables:** Poor.
 
 ### RapidOCR
+
 - **Repo:** <https://github.com/RapidAI/RapidOCR>
 - **License:** **Apache-2.0** (code); model weights are PaddleOCR models, copyright Baidu.[^rapidocr-license] **AGPL-compatible.**
 - **Status:** 6.6k stars, 49 releases, healthy activity.[^rapidocr-stats]
@@ -95,6 +104,7 @@ Hybrid systems that combine layout detection, OCR, table-structure recognition, 
 - **The verdict:** For English-first, CPU-bound PDF ingestion, RapidOCR is the right Docling backend override.
 
 ### ocrmac
+
 - **Repo:** <https://github.com/straussmaximilian/ocrmac>
 - **License:** **MIT** (the Python wrapper).[^ocrmac-license] **AGPL-compatible.**
 - **What it wraps:** Apple's **Vision framework** (`VNRecognizeTextRequest`) via `pyobjc-framework-Vision`. The Vision framework itself is part of macOS; no separate license to track for Apple's code as long as the app runs on macOS.
@@ -104,9 +114,10 @@ Hybrid systems that combine layout detection, OCR, table-structure recognition, 
   - LiveText doesn't expose `recognition_level` or `confidence_threshold`.[^ocrmac-livetext]
   - 515 stars, moderate community activity (63 commits on master).[^ocrmac-stats]
 - **Inside Docling:** `OcrMacOptions`. Docling will auto-pick it on macOS if `AUTO` is set.[^docling-pipeline-options]
-- **Strategy:** Worth enabling as the Docling default *on macOS* (the AUTO option already does this); fall back to RapidOCR on Linux/Windows.
+- **Strategy:** Worth enabling as the Docling default _on macOS_ (the AUTO option already does this); fall back to RapidOCR on Linux/Windows.
 
 ### docTR (Mindee)
+
 - **Repo:** <https://github.com/mindee/doctr>
 - **License:** **Apache-2.0**.[^doctr-license] **AGPL-compatible.**
 - **Status:** 6.1k stars, 1016 commits, active.[^doctr-stats]
@@ -119,9 +130,10 @@ Hybrid systems that combine layout detection, OCR, table-structure recognition, 
 
 ## 2. Academic-document specialized pipelines
 
-These are what we actually need for the PDF-ingestion path. They care about *the document*, not just the characters.
+These are what we actually need for the PDF-ingestion path. They care about _the document_, not just the characters.
 
 ### Docling
+
 - **Docs:** <https://docling-project.github.io/docling/>
 - **License:** **MIT** (per `markitdown.md` reference)[^docling-license]. **AGPL-compatible.**
 - **What it is:** IBM's pluggable PDF → structured-document pipeline. Layout detection, table-structure recognition, reading order, figure extraction, plus a swappable OCR layer.
@@ -133,6 +145,7 @@ These are what we actually need for the PDF-ingestion path. They care about *the
   - `RAPIDOCR` — `RapidOcrOptions` with ONNXRuntime or Torch backend.
   - `OCRMAC` — `OcrMacOptions` (macOS only).
 - **Configuration example** (the literal code we'll need):
+
   ```python
   from docling.datamodel.pipeline_options import (
       PdfPipelineOptions, RapidOcrOptions, TableStructureOptions,
@@ -149,12 +162,14 @@ These are what we actually need for the PDF-ingestion path. They care about *the
   )
   converter = DocumentConverter(format_options={...})
   ```
+
 - **Heuristic:** Docling uses a bitmap-coverage threshold of 0.75 to decide whether selective or full-page OCR is needed; this means born-digital PDFs short-circuit OCR entirely.[^docling-deepwiki]
 - **Math/tables:** Built-in table-structure model; math is handed off to layout/OCR (poor unless you swap in a math-aware OCR).
 - **Performance:** Docling's own paper reports ~0.49 s/page on Nvidia L4 GPU end-to-end, ~3 s/page on x86 CPU for non-OCR pages; OCR adds whatever the chosen engine takes per page.[^docling-paper]
-- **The "Docling vs Marker vs MinerU" question:** Docling is the most permissively licensed (MIT), most stable, easiest to embed; Marker and MinerU score higher on raw accuracy benchmarks but bring licensing costs (see below). For our app, **Docling is the right *framework* and we override its default OCR.**
+- **The "Docling vs Marker vs MinerU" question:** Docling is the most permissively licensed (MIT), most stable, easiest to embed; Marker and MinerU score higher on raw accuracy benchmarks but bring licensing costs (see below). For our app, **Docling is the right _framework_ and we override its default OCR.**
 
 ### Marker (Datalab)
+
 - **Repo:** <https://github.com/datalab-to/marker>
 - **License (code):** **GPL-3.0-or-later** (verified directly: `Copyright (C) 2024 Endless Labs, Inc.`).[^marker-license]
 - **License (model weights, via Surya):** "modified AI Pubs Open RAIL-M" — see Surya below for the full text. **Not free for commercial use above the $2M revenue/funding threshold.**[^surya-model-license]
@@ -166,9 +181,10 @@ These are what we actually need for the PDF-ingestion path. They care about *the
 - **Math:** Best-in-class open-source — explicitly preserves inline and display LaTeX. The killer feature.
 - **Performance:** 0.18 s/page single-threaded **on GPU** (H100 projection: ~122 pages/s with batching).[^marker-perf] **On CPU: ~16 s/page** per the Docling paper — five times slower than MinerU's CPU mode.[^docling-paper] This is a real problem for CPU-only users; Marker is fundamentally a GPU tool.
 - **Memory:** ~3.17 GB VRAM per worker on GPU.[^marker-perf]
-- **When to use it:** Math-heavy academic PDFs, *if* the user has a GPU **or** is willing to wait. v1.1 escalation tier for our app, not v1 default.
+- **When to use it:** Math-heavy academic PDFs, _if_ the user has a GPU **or** is willing to wait. v1.1 escalation tier for our app, not v1 default.
 
 ### Surya (Datalab)
+
 - **Repo:** <https://github.com/datalab-to/surya>
 - **License (code):** **GPL-3.0**.[^surya-license]
 - **License (model weights):** **"AI PUBS OPEN RAIL-M LICENSE (MODIFIED)"** — the modifications are restrictive:[^surya-model-license]
@@ -178,7 +194,7 @@ These are what we actually need for the PDF-ingestion path. They care about *the
   - **Competition restriction:** Use is prohibited if your organization "provides or otherwise makes available any product or service that competes with any product or service offered by or made available by Licensor or any of its affiliates" — and Datalab's affiliates include Marker, so any document-parsing tool is at least adjacent here.
 - **AGPL-compatibility verdict:** **Conditional / trap.**
   - GPL-3.0 code is fine for AGPL.
-  - **The model-weight license is *not* an OSI-approved open-source license.** OpenRAIL-M is field-of-use-restricted (the FSF and OSI both reject use-based restrictions as non-free). It's compatible enough for *us* (a small AGPL app), but it's the kind of thing that bites when the project grows or relicenses. Document it carefully.
+  - **The model-weight license is _not_ an OSI-approved open-source license.** OpenRAIL-M is field-of-use-restricted (the FSF and OSI both reject use-based restrictions as non-free). It's compatible enough for _us_ (a small AGPL app), but it's the kind of thing that bites when the project grows or relicenses. Document it carefully.
 - **Status:** v0.17.1 (Jan 2026), 19.8k stars, 1.4k forks, 81 releases, active.[^surya-stats]
 - **What it is:** OCR + layout analysis + reading-order + table-recognition + LaTeX equation OCR in 90+ languages. The engine that powers Marker.
 - **Languages:** 90+ for OCR.
@@ -186,6 +202,7 @@ These are what we actually need for the PDF-ingestion path. They care about *the
 - **Practical implication:** Any time a downstream tool says "uses Surya" — Marker, science-ocr, surya-tabular-ocr — the same model-weight terms apply. **Treat Surya as a single license-tracking concern across multiple wrappers.**
 
 ### olmOCR (Allen AI)
+
 - **Repo:** <https://github.com/allenai/olmocr>
 - **License (code):** **Apache-2.0**.[^olmocr-license] **AGPL-compatible.**
 - **License (model weights):** Apache-2.0 (`allenai/olmOCR-2-7B-1025-FP8` and variants on Hugging Face).[^olmocr-weights] **Fully permissive — the cleanest license story of any top-tier academic OCR.**
@@ -196,21 +213,23 @@ These are what we actually need for the PDF-ingestion path. They care about *the
 - **When to use it:** **Power-user / "max quality" tier** — gated behind GPU detection. Probably not v1; possibly v1.5 as an "advanced quality mode" toggle. Until consumer-GPU FP8 quantizations get smaller, this stays opt-in.
 
 ### MinerU (OpenDataLab)
+
 - **Repo:** <https://github.com/opendatalab/MinerU>
 - **License:** **Custom "MinerU Open Source License" based on Apache-2.0** (changed from AGPL-3.0 in v3.1.0, 2026).[^mineru-license-change] **Conditional.**
   - Apache-2.0 base permissions.
   - **Commercial threshold:** Separate commercial license required if you exceed 100M monthly active users OR $20M monthly revenue.
   - **Attribution obligation:** Online services built on MinerU must "clearly and prominently indicate that MinerU is used."
   - Auto-termination if thresholds or attribution are violated.
-- **AGPL-compatibility verdict:** **Conditional.** Apache-2.0 + commercial-threshold and attribution clauses make this *almost* permissive but not OSI-approved. For our app (well under any conceivable threshold) it's fine; we'd need to surface "Uses MinerU" credit somewhere in the UI/About box. The previous AGPL-3.0 version is still strictly AGPL-compatible if we want to pin an older release.
+- **AGPL-compatibility verdict:** **Conditional.** Apache-2.0 + commercial-threshold and attribution clauses make this _almost_ permissive but not OSI-approved. For our app (well under any conceivable threshold) it's fine; we'd need to surface "Uses MinerU" credit somewhere in the UI/About box. The previous AGPL-3.0 version is still strictly AGPL-compatible if we want to pin an older release.
 - **Status:** 64.6k stars, v3.1.15 (May 2026), 168 releases, **most-starred PDF-parser on GitHub.**[^mineru-stats]
 - **What it is:** A hybrid pipeline backed by an in-house **MinerU2.5-Pro-2604** 1.2B vision-language model. Auto-detects headings, formula → LaTeX, tables → HTML, multi-column layouts, cross-page table merging.[^mineru-features]
 - **Benchmarks:** **MinerU2.5-Pro leads OmniDocBench v1.6 at 95.75 overall** — the #1 model as of Q1 2026.[^omnidoc-v16] On olmOCR-Bench it scores 75.8 (slightly below Marker/olmOCR).
 - **Performance:** **3.3 s/page on x86 CPU** — five times faster than Marker on CPU per the Docling paper.[^docling-paper] 0.21 s/page on Nvidia L4 GPU.
 - **Languages:** 109 supported for OCR.
-- **When to use it:** **Strongest candidate for the v1 PDF ingestion path *if* we want to bypass Docling's OCR layer entirely for difficult/scanned academic PDFs.** Better CPU performance than Marker, math support comparable, attribution requirement is the only license cost. Strong alternative to Docling + RapidOCR for academic content specifically.
+- **When to use it:** **Strongest candidate for the v1 PDF ingestion path _if_ we want to bypass Docling's OCR layer entirely for difficult/scanned academic PDFs.** Better CPU performance than Marker, math support comparable, attribution requirement is the only license cost. Strong alternative to Docling + RapidOCR for academic content specifically.
 
 ### Nougat (Meta)
+
 - **Repo:** <https://github.com/facebookresearch/nougat>
 - **License (code):** **MIT**.[^nougat-license] **AGPL-compatible.**
 - **License (model weights):** **CC-BY-NC** — non-commercial only.[^nougat-license] **Incompatible** for our commercial use even though the app is free (CC-BY-NC restricts even free-as-in-beer commercial offerings).
@@ -219,6 +238,7 @@ These are what we actually need for the PDF-ingestion path. They care about *the
 - **Verdict:** **Skip.** The non-commercial weights license rules it out for the app.
 
 ### GOT-OCR2.0
+
 - **Repo:** <https://github.com/Ucas-HaoranWei/GOT-OCR2.0>
 - **License (code):** Apache-2.0 per badge.[^got-stats]
 - **License (data + checkpoints):** **CC-BY-NC 4.0** per the data badge; README explicitly says "intended and licensed for **research use only**" and restricted to follow the Vary license.[^got-license-trap]
@@ -228,6 +248,7 @@ These are what we actually need for the PDF-ingestion path. They care about *the
 - **Verdict:** Interesting research tool, not shippable here. **Skip.**
 
 ### PaddleOCR-VL
+
 - **Repo / Card:** <https://huggingface.co/PaddlePaddle/PaddleOCR-VL>
 - **License (code + weights):** **Apache-2.0** for both.[^paddleocr-vl-card] **AGPL-compatible — the only top-tier academic VLM with this clean a license story.**
 - **Status:** Released Oct 2025; v1.5 referenced for 2026.[^paddleocr-vl-arxiv]
@@ -237,11 +258,13 @@ These are what we actually need for the PDF-ingestion path. They care about *the
 - **Integration:** `from paddleocr import PaddleOCRVL` — straightforward Python API; pulls the same PaddlePaddle runtime as base PaddleOCR.
 
 ### DeepSeek-OCR
+
 - Apache-2.0 code per the Modal round-up; transformer-based with "token compression" for efficiency.[^modal-roundup]
 - GPU-required in practice; not a fit for our CPU/offline-first floor.
 - **Worth tracking** but not a v1 candidate.
 
 ### Other 2026 entrants worth knowing
+
 - **GLM-OCR (0.9B)** — second on OmniDocBench v1.6 at 95.22.[^omnidoc-v16] Verify license before considering.
 - **Dolphin (ByteDance)** — vision-model layout-fidelity tool, mentioned in 2026 round-ups.[^jimmysong-roundup]
 - **InternVL 2.5, Qwen2.5-VL** — general-purpose VLMs that happen to do OCR. License varies by checkpoint.[^modal-roundup]
@@ -251,20 +274,23 @@ These are what we actually need for the PDF-ingestion path. They care about *the
 ## 3. Math-specific OCR
 
 ### pix2tex / LaTeX-OCR
+
 - **Repo:** <https://github.com/lukas-blecher/LaTeX-OCR>
 - **License:** **MIT**.[^pix2tex-license] **AGPL-compatible.**
 - **Status:** 16.4k stars; activity has slowed; "handwritten formulae" listed as in-progress in TODOs.[^pix2tex-stats]
 - **Accuracy:** BLEU 0.88, normalized edit distance 0.10, token accuracy 0.60 on test data.[^pix2tex-accuracy] Decent on **printed** equations, weak on handwriting, brittle on screenshots that aren't tightly cropped to the equation.
 - **Integration:** Python CLI/library; ships a ViT-based model (~500 MB). Has a GUI.
-- **When to use it:** As a focused "select equation → LaTeX" affordance in the editor — *not* as a primary OCR. Pair with a UI gesture: user lasso-selects a region containing math, we route just that region to pix2tex.
+- **When to use it:** As a focused "select equation → LaTeX" affordance in the editor — _not_ as a primary OCR. Pair with a UI gesture: user lasso-selects a region containing math, we route just that region to pix2tex.
 
 ### Mathpix Snip
+
 - **Pricing:** Free tier; Pro from $4.99/mo; Convert API from $0.002/image; enterprise on-prem available.[^mathpix-pricing]
 - **License:** Proprietary, **cloud by default**.
 - **Quality:** Gold standard for math OCR — handwriting included. Used as the reference benchmark by Nougat, pix2tex, and most academic papers in this area.
 - **Why list it:** Mention as the "if money were no object" baseline and the opt-in cloud option for users who want maximum quality on math. **Privacy:** documents are uploaded to Mathpix servers; must be gated behind explicit consent for FERPA reasons. Do not enable by default.
 
 ### TrOCR (Microsoft)
+
 - **Repo:** <https://github.com/microsoft/unilm/tree/master/trocr>
 - **License:** **MIT** (the parent `unilm` repo).[^trocr-license] **AGPL-compatible.**
 - **What it is:** Transformer OCR with separate **handwritten** (IAM-trained) and **printed** (SROIE-trained) checkpoints in Small/Base/Large sizes (62M / 334M / 558M parameters).[^trocr-models]
@@ -273,7 +299,8 @@ These are what we actually need for the PDF-ingestion path. They care about *the
 - **When to use it:** **Handwriting-focused fallback** if Apple Vision isn't available (i.e., not on macOS). Heavier than pix2tex; not specifically tuned for math.
 
 ### What's new in 2025–2026
-- **PaddleOCR-VL** handles printed *and* handwritten formulas as a side benefit of its general training (see §2).
+
+- **PaddleOCR-VL** handles printed _and_ handwritten formulas as a side benefit of its general training (see §2).
 - **olmOCR**'s `olmOCR-mix` training set includes math scans; math sub-score 82.3% on olmOCR-Bench.[^olmocr-bench]
 - **MinerU2.5-Pro** scores 97.45 CDM on formula recognition.[^omnidoc-v16] If we go MinerU for ingestion, we get top-tier math support for free.
 
@@ -300,6 +327,7 @@ These are what we actually need for the PDF-ingestion path. They care about *the
 The OCR step extracts text; **adding it back into the PDF as a searchable, screen-reader-accessible text layer** is a separate problem. This is what makes scanned PDFs accessible.
 
 ### ocrmypdf
+
 - **Repo:** <https://github.com/ocrmypdf/OCRmyPDF>
 - **License:** **MPL-2.0** (verified on repo README).[^ocrmypdf-license] **AGPL-compatible** (MPL is one-way-compatible into AGPL/GPL).
 - **Status:** 33.7k stars, v17.4.1 (Apr 2026), very active; "battle-tested on millions of PDFs."[^ocrmypdf-stats]
@@ -308,14 +336,15 @@ The OCR step extracts text; **adding it back into the PDF as a searchable, scree
   - **Tesseract** — Apache-2.0 (verified above). Compatible.
   - **Ghostscript** — **AGPL-3.0** (or commercial via Artifex). Compatible with our AGPL app, but Ghostscript is the licensing tripwire: anyone vendoring ocrmypdf into a non-AGPL/non-Artifex-licensed product inherits Ghostscript's AGPL obligations.
   - **qpdf / pikepdf** — Apache-2.0 / MPL-2.0. Compatible.
-- **Why it matters:** **This is the canonical answer to "make this scanned PDF screen-reader-accessible."** It's not just OCR — it's the workflow that turns OCR output into a *real* searchable PDF. Should be in our pipeline.
-- **Alternative:** Docling can also emit Markdown that we render however we want, but if the user wants the original scanned PDF *with* a text layer (the "share back to my prof, who only opens PDFs in Preview" case), ocrmypdf is the right tool.
+- **Why it matters:** **This is the canonical answer to "make this scanned PDF screen-reader-accessible."** It's not just OCR — it's the workflow that turns OCR output into a _real_ searchable PDF. Should be in our pipeline.
+- **Alternative:** Docling can also emit Markdown that we render however we want, but if the user wants the original scanned PDF _with_ a text layer (the "share back to my prof, who only opens PDFs in Preview" case), ocrmypdf is the right tool.
 
 ---
 
 ## 6. Sidecar / integration architecture options
 
 ### A. In-renderer Tesseract.js (WASM)
+
 - **Where it shines:** "Drag an image into a note" — single-image, sub-200KB photos, English print or a known small language set.
 - **Perf:** ~1–3 s for a typical phone photo of a whiteboard on a modern CPU. No process spawn; no IPC; the WASM warm-up cost (~200 ms) is amortized after the first call.
 - **Bundle cost:** WASM core ~2–3 MB; per-language traineddata ~10 MB; we ship English by default and download others on demand.
@@ -324,12 +353,14 @@ The OCR step extracts text; **adding it back into the PDF as a searchable, scree
 - **Verdict for this use case:** **WIN.** The user-experience benefit (zero latency, fully offline, no sidecar at all) outweighs the quality ceiling for the casual image-to-text case.
 
 ### B. Shared Python sidecar (Docling + markitdown + add OCR endpoint)
+
 - **Where it shines:** PDF ingestion — already needed for Docling; adding an `/ocr` FastAPI route is essentially free.
 - **Perf:** Process is long-lived → model weights stay warm; per-call latency is dominated by inference. Sidecar IPC overhead is ~5–20 ms over localhost HTTP.
 - **AGPL-friendliness:** Depends on what's loaded — Docling MIT, RapidOCR Apache-2.0, ocrmypdf MPL-2.0, Marker GPL-3.0 + Surya weights restricted. **As long as we don't load Surya/Marker without thinking, we're fine.**
-- **Verdict:** **The right home for PDF ingestion and "high-quality" image OCR.** Reuse this for the image path *when* the user explicitly asks for high quality.
+- **Verdict:** **The right home for PDF ingestion and "high-quality" image OCR.** Reuse this for the image path _when_ the user explicitly asks for high quality.
 
 ### C. Native binary spawn (Tesseract / paddleocr CLI from main process)
+
 - **Where it shines:** Truly minimal dependency surface — no Python runtime if we're willing to ship the Tesseract binary.
 - **Perf:** Process-spawn cost is significant (~100–300 ms cold start per invocation). Only worth it for batch jobs.
 - **Cross-platform pain:** Have to ship signed binaries per OS; macOS notarization is mandatory; Windows users need MSVCRT.
@@ -337,24 +368,27 @@ The OCR step extracts text; **adding it back into the PDF as a searchable, scree
 - **Verdict:** **Skip.** The Python sidecar already wins.
 
 ### D. HTTP microservice (PaddleOCR-Serving, etc.)
+
 - **Where it shines:** Multi-user shared deployments, not relevant here (single-user desktop app).
 - **Verdict:** **Skip for v1.** Possibly relevant if we ever ship a self-hosted multi-user variant.
 
 ### Architecture decision matrix
-| Use case                       | Recommended         | Why                                                                 |
-|--------------------------------|---------------------|---------------------------------------------------------------------|
-| Drag image into note (default) | (A) Tesseract.js    | Zero latency, fully offline, no sidecar round-trip                  |
-| Drag image, "high quality" opt | (B) Python sidecar  | RapidOCR / PaddleOCR-VL for accuracy when user opts in              |
-| Full-PDF ingestion             | (B) Python sidecar  | Docling pipeline already lives there                                |
-| Make scanned PDF accessible    | (B) Python sidecar  | ocrmypdf wraps the OCR + text-layer-injection workflow              |
-| Math equation lasso            | (B) Python sidecar  | pix2tex; eventually PaddleOCR-VL                                    |
-| Real-time camera (future)      | (A) Tesseract.js    | Lowest latency; quality is secondary for live-preview UX            |
+
+| Use case                       | Recommended        | Why                                                      |
+| ------------------------------ | ------------------ | -------------------------------------------------------- |
+| Drag image into note (default) | (A) Tesseract.js   | Zero latency, fully offline, no sidecar round-trip       |
+| Drag image, "high quality" opt | (B) Python sidecar | RapidOCR / PaddleOCR-VL for accuracy when user opts in   |
+| Full-PDF ingestion             | (B) Python sidecar | Docling pipeline already lives there                     |
+| Make scanned PDF accessible    | (B) Python sidecar | ocrmypdf wraps the OCR + text-layer-injection workflow   |
+| Math equation lasso            | (B) Python sidecar | pix2tex; eventually PaddleOCR-VL                         |
+| Real-time camera (future)      | (A) Tesseract.js   | Lowest latency; quality is secondary for live-preview UX |
 
 ---
 
 ## 7. Recommended stack
 
 ### v1 — PDF ingestion path
+
 - **Framework:** Docling (MIT, already chosen).
 - **OCR engine override:** **RapidOCR (Apache-2.0)** as the cross-platform default in the sidecar. On macOS, **OcrMac** via Docling's `AUTO` so we use Apple's native Vision API where it's both faster and better. On Windows/Linux without a GPU, RapidOCR with ONNXRuntime gives PaddleOCR-class accuracy at ~0.2 s/image vs. EasyOCR's 13 s/page on CPU — **this single override turns a 43-minute 200-page PDF into a ~10–15 minute job.**
 - **Math/tables in the default pipeline:** Docling's built-in table-structure model handles tables; math is whatever the OCR engine emits (typically poor). Acceptable for v1.
@@ -362,21 +396,25 @@ The OCR step extracts text; **adding it back into the PDF as a searchable, scree
 - **License posture for v1 PDF path:** Docling MIT, RapidOCR Apache-2.0, ocrmypdf MPL-2.0 (and its Ghostscript dep is AGPL → fine for us). No GPL/RAIL-M traps. Fully AGPL-compatible.
 
 ### v1 — Single-image-in-note path
+
 - **Default:** **Tesseract.js in the renderer.** Apache-2.0. Zero sidecar dependency. ~1–3 s on a phone photo. Quality ceiling acceptable for the dominant use case (whiteboards, slides, clean print).
 - **"Improve quality" opt-in:** Right-click → "Re-OCR with high quality" routes the image through the sidecar's RapidOCR endpoint (~0.5–2 s extra). UI affordance to set this as the default for users who want it (no privacy/compute cost).
 
 ### v1.1 — Math-heavy / academic-PDF escalation
+
 - **For math-equation lasso in the editor:** **pix2tex** in the sidecar.
 - **For "this entire PDF is math-heavy, please give me LaTeX":** Two routes — (a) **MinerU** in the sidecar (3.3 s/page CPU, attribution requirement, Apache-2.0-based, strong math/tables); (b) **Marker** (heavier, GPU-recommended, GPL-3.0 + Surya restricted weights — only worth shipping if the user has a GPU). Default to MinerU; expose Marker behind a "GPU mode" toggle.
 - **GPU-detected power-user tier:** Expose **olmOCR** behind a feature flag. Apache-2.0 weights, 82.4 on olmOCR-Bench, but the 12 GB VRAM floor is real — refuse to enable without GPU.
 - **Future-watching:** **PaddleOCR-VL** at 0.9B parameters with Apache-2.0 weights is the most interesting late-2025/early-2026 entrant. If its CPU-quantized variants land and prove out, **it becomes the recommended default for v2** — best license, smallest footprint, near-top accuracy.
 
 ### Cloud opt-in
+
 - **Mathpix** for math (esp. handwriting) — explicit consent, per-image counter visible to user, off by default. Document FERPA implications in UI.
 - **Azure Document Intelligence** as a "very high quality, costs money, sends docs to Microsoft" tier — markitdown already supports this path, we expose it as opt-in.
 - **Never** enable any cloud OCR by default. The whole "FERPA / EU AI Act" posture from STT applies identically here.
 
 ### Accessibility justifications
+
 - **Text layer in PDFs:** ocrmypdf produces PDF/A-2u output with hidden text positioned to match images — screen readers (NVDA, VoiceOver, JAWS) can read scanned PDFs as fluently as born-digital ones.
 - **MathML output:** None of the open-source pipelines emit MathML directly. We get LaTeX from Marker/pix2tex/MinerU/PaddleOCR-VL and render to MathML via KaTeX (`renderToString` with `output: 'mathml'`) so screen readers with MathML support (NVDA + MathPlayer, JAWS) can read equations. Document this as a separate pipeline stage.
 - **ADHD/student use cases:**
@@ -389,8 +427,9 @@ The OCR step extracts text; **adding it back into the PDF as a searchable, scree
 ## 8. Things to know / gotchas
 
 ### License traps (all in one place)
+
 - **Surya MODEL_LICENSE (modified OpenRAIL-M)** — $2M revenue/funding cap, competition restriction. Affects Marker, science-ocr, surya-tabular-ocr, and any future tool that bundles Surya weights.[^surya-model-license] **The biggest trap in the academic-OCR ecosystem.**
-- **Marker GPL-3.0 code** — fine for AGPL but be aware the *weights* it loads ride Surya's license.[^marker-license]
+- **Marker GPL-3.0 code** — fine for AGPL but be aware the _weights_ it loads ride Surya's license.[^marker-license]
 - **Nougat CC-BY-NC weights** — non-commercial, **rules it out** for any product (even a free one).[^nougat-license]
 - **GOT-OCR2.0 research-only restriction** — Apache-2.0 in name but the README explicitly limits commercial use.[^got-license-trap]
 - **MinerU custom license** — Apache-2.0 + attribution and MAU/revenue thresholds; well below thresholds for us, but we owe a "Uses MinerU" credit somewhere in the UI.[^mineru-license-change]
@@ -399,31 +438,35 @@ The OCR step extracts text; **adding it back into the PDF as a searchable, scree
 - **Apple Vision (via ocrmac)** — usage is governed by macOS's licence, not the wrapper. Fine for distributing an app that runs on macOS; **don't** try to call it from a non-macOS process.
 
 ### Accuracy benchmarks worth citing
+
 - **OmniDocBench v1.6** (CVPR 2025, OpenDataLab) — the leading academic-PDF benchmark; 1,651 PDF pages, 10 document types. Q1 2026 top results: MinerU2.5-Pro 95.75, GLM-OCR 95.22, PaddleOCR-VL-1.5 94.93, olmOCR 85.74, Marker 78.44, Docling ~78.[^omnidoc-v16]
 - **olmOCR-Bench** (Allen AI, 2025) — challenging real-world PDFs: olmOCR-2 82.4, Marker 76.1, MinerU 75.8.[^olmocr-bench]
 - **FinTabNet** (table reconstruction) — Marker reports 0.816 average score.[^marker-features]
-- **Reality check:** Public benchmarks are dominated by clean modern academic papers. The *bad* scans we'll actually see (1995 photocopies of 1970s journal articles, off-angle phone photos, mixed-font textbook scans) are nowhere on these leaderboards. Plan to do internal eval on **50–200 documents representative of our actual users** — every benchmark resource recommends this.[^codesota-router]
+- **Reality check:** Public benchmarks are dominated by clean modern academic papers. The _bad_ scans we'll actually see (1995 photocopies of 1970s journal articles, off-angle phone photos, mixed-font textbook scans) are nowhere on these leaderboards. Plan to do internal eval on **50–200 documents representative of our actual users** — every benchmark resource recommends this.[^codesota-router]
 
 ### Privacy
+
 - All locally-running engines (Tesseract.js, RapidOCR, MinerU, etc.) are silent — no telemetry, no model fetch after install.
 - **Cloud OCR (Mathpix, Azure Document Intelligence) MUST be opt-in** with clear UI signposting because uploading a student's scanned reading list to a third party is exactly what FERPA and the EU AI Act limit.
 - **First-run model downloads** (EasyOCR, RapidOCR, Surya, olmOCR, PaddleOCR-VL all download weights on first use) need a UI affordance — show progress, allow cancel, allow pre-bundling on offline installs. EasyOCR and PaddleOCR-VL hit Hugging Face by default; document the URLs we hit so users on locked-down networks can mirror them.
 - **No commercial OCR SDK call-home concerns** for any of the recommended engines (this is a Mathpix-class problem, which we keep cloud-by-design).
 
 ### Performance baselines (rough seconds-per-page on a modern x86 CPU)
-| Engine                         | Seconds/page (CPU) | Notes                                                |
-|--------------------------------|-------------------:|------------------------------------------------------|
-| Tesseract (native)             | 0.5–1.0            | Cleanest, fastest, mediocre accuracy.[^codesota-tess-paddle] |
-| PaddleOCR                      | 1.0–2.0            | Best CPU-friendly accuracy.[^codesota-tess-paddle]   |
-| RapidOCR (ONNXRuntime)         | 0.2–1.0            | PaddleOCR models without the runtime overhead.[^intuitionlabs-rapidocr] |
-| EasyOCR                        | ~13                | Docling's benchmark — the reason to override.[^docling-easyocr-perf] |
-| Docling (no OCR, born-digital) | ~3                 | Layout + tables only.[^docling-paper]                |
-| Marker                         | ~16                | CPU-impractical; designed for GPU.[^docling-paper]   |
-| MinerU                         | ~3.3               | Fastest of the academic-doc pipelines on CPU.[^docling-paper] |
-| olmOCR                         | n/a CPU            | GPU-only in practice (12 GB VRAM floor).[^olmocr-hardware] |
-| tesseract.js (WASM, in browser)| 1–3 (typical photo)| Highly variable with image size; warm WASM helps.[^tesseractjs-perf] |
+
+| Engine                          |  Seconds/page (CPU) | Notes                                                                   |
+| ------------------------------- | ------------------: | ----------------------------------------------------------------------- |
+| Tesseract (native)              |             0.5–1.0 | Cleanest, fastest, mediocre accuracy.[^codesota-tess-paddle]            |
+| PaddleOCR                       |             1.0–2.0 | Best CPU-friendly accuracy.[^codesota-tess-paddle]                      |
+| RapidOCR (ONNXRuntime)          |             0.2–1.0 | PaddleOCR models without the runtime overhead.[^intuitionlabs-rapidocr] |
+| EasyOCR                         |                 ~13 | Docling's benchmark — the reason to override.[^docling-easyocr-perf]    |
+| Docling (no OCR, born-digital)  |                  ~3 | Layout + tables only.[^docling-paper]                                   |
+| Marker                          |                 ~16 | CPU-impractical; designed for GPU.[^docling-paper]                      |
+| MinerU                          |                ~3.3 | Fastest of the academic-doc pipelines on CPU.[^docling-paper]           |
+| olmOCR                          |             n/a CPU | GPU-only in practice (12 GB VRAM floor).[^olmocr-hardware]              |
+| tesseract.js (WASM, in browser) | 1–3 (typical photo) | Highly variable with image size; warm WASM helps.[^tesseractjs-perf]    |
 
 ### Model-storage UX
+
 - **EasyOCR**: ~64 MB English models from Hugging Face on first use.
 - **RapidOCR**: ~80 MB total (det + cls + rec) bundled in the wheel; no download needed for English/Chinese.[^intuitionlabs-rapidocr]
 - **Surya / Marker**: Multiple models, ~1.5–2 GB total on first use.
@@ -433,6 +476,7 @@ The OCR step extracts text; **adding it back into the PDF as a searchable, scree
 - **Pre-bundling vs. on-demand:** For an "offline-first" promise, the right answer is **bundle the smallest defaults** (Tesseract.js eng + RapidOCR det+rec) in the installer, **download larger models only on user opt-in**, with a visible progress UI. ~100 MB extra installer is acceptable; ~7 GB is not.
 
 ### GPU expectation reality check
+
 - **olmOCR and Marker are dramatically better on GPU** — Marker is ~90× faster on GPU than CPU (0.18 s vs. 16 s/page); olmOCR is GPU-only.
 - **MinerU and PaddleOCR-VL run on CPU** but get 15–20× speedups on GPU.
 - **Apple Silicon (MPS)** is partially supported: Marker advertises MPS; Docling probes for it; many ONNX models accelerate via CoreML EP. Treat Apple Silicon as "GPU-like" for most of these.

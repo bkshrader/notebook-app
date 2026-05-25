@@ -3,7 +3,7 @@
 - **GitHub repo:** <https://github.com/cjpais/Handy>[^repo]
 - **Project website / docs:** <https://handy.computer> · docs at <https://handy.computer/docs>[^site]
 - **License:** MIT[^license-readme] (verified directly against the `LICENSE` file in the repo root, which contains the standard MIT permission grant and disclaimer of warranty, with `Copyright (c) 2025 CJ Pais`)[^license-file]
-- **AGPL-compatibility verdict:** **Compatible.** MIT is a permissive, OSI-approved license. AGPL-3.0 explicitly allows incorporation of MIT-licensed code: redistributing or relicensing MIT code as part of a larger AGPL work is permitted as long as the MIT copyright notice and permission notice are preserved in the AGPL work's distribution.[^license-file] Note that Handy itself is a *standalone desktop application* — see the "Relevance" section below for whether what you actually want is to embed/fork the codebase versus to drive it as a separate process.
+- **AGPL-compatibility verdict:** **Compatible.** MIT is a permissive, OSI-approved license. AGPL-3.0 explicitly allows incorporation of MIT-licensed code: redistributing or relicensing MIT code as part of a larger AGPL work is permitted as long as the MIT copyright notice and permission notice are preserved in the AGPL work's distribution.[^license-file] Note that Handy itself is a _standalone desktop application_ — see the "Relevance" section below for whether what you actually want is to embed/fork the codebase versus to drive it as a separate process.
 
 ---
 
@@ -130,13 +130,13 @@ This is the strongest fit and what Handy is built for. Concretely:
 This is **a much weaker fit** as-is, but the building blocks are useful:
 
 - **Handy is a Tauri app**, not a library. There is no exposed JavaScript/Node API. The intended integration surface is the CLI, not import statements.[^commands-dir]
-- **The component crates *are* independently usable** from Rust. If your note-taking app is Tauri-based, you could pull in `transcribe-rs`,[^cargo-toml] `whisper-rs`, `vad-rs`, `cpal`, `rubato`, and replicate Handy's pipeline directly inside your app's Rust backend — exactly the "forkability" the project's README invites.[^readme-why] Handy itself is the reference implementation of that stack.
+- **The component crates _are_ independently usable** from Rust. If your note-taking app is Tauri-based, you could pull in `transcribe-rs`,[^cargo-toml] `whisper-rs`, `vad-rs`, `cpal`, `rubato`, and replicate Handy's pipeline directly inside your app's Rust backend — exactly the "forkability" the project's README invites.[^readme-why] Handy itself is the reference implementation of that stack.
 - **If you ship Electron instead of Tauri**: you cannot reuse the Rust backend directly. You would either need to (a) spawn Handy as a sidecar process and control it via CLI flags, or (b) bind to `whisper.cpp` / `transcribe-rs` from Node via N-API yourself.
 - **License is friendly to either path**: MIT permits including the source, modified or unmodified, in an AGPL application as long as the MIT notice is preserved in your distribution.[^license-file]
 
 ### Accessibility caveats to flag
 
-- Handy's *own UI* (the settings window) is built with React + Tailwind. I did not audit its WCAG conformance, and the README/docs make no specific WCAG claim despite the project being framed as accessibility tooling. If you're recommending it to users with WCAG-AAA needs, the settings UI is an unknown.
+- Handy's _own UI_ (the settings window) is built with React + Tailwind. I did not audit its WCAG conformance, and the README/docs make no specific WCAG claim despite the project being framed as accessibility tooling. If you're recommending it to users with WCAG-AAA needs, the settings UI is an unknown.
 - The recording overlay is a separate floating window and is known to cause focus-stealing issues on Linux/Wayland — the documented workaround is to set "Overlay Position" to "None" and use audio feedback instead.[^readme-linux-notes] For users with vestibular sensitivity or screen-reader users, the overlay's visual-only feedback is also a concern; the audio-feedback option is a meaningful alternative.
 
 ---
@@ -163,7 +163,7 @@ This is **a much weaker fit** as-is, but the building blocks are useful:
 ### Does it work inside Electron or Tauri?
 
 - **Electron:** No — Handy is a separate Tauri app, not an embeddable component. You would interact with it as an external process via its CLI. Its Rust crate dependencies (`whisper-rs`, `transcribe-rs`, `cpal`) are not usable from Node without writing N-API bindings yourself.
-- **Tauri:** Same situation at the *application* level (Handy is its own app), but if your own app is also Tauri/Rust, the underlying crates *are* directly reusable in your `src-tauri/Cargo.toml`. `transcribe-rs` is published on crates.io at v0.3.8.[^cargo-toml]
+- **Tauri:** Same situation at the _application_ level (Handy is its own app), but if your own app is also Tauri/Rust, the underlying crates _are_ directly reusable in your `src-tauri/Cargo.toml`. `transcribe-rs` is published on crates.io at v0.3.8.[^cargo-toml]
 
 ### Performance & hardware characteristics[^readme-sysreq][^docs-models]
 
@@ -203,36 +203,69 @@ For an accessibility-focused note-taking app aimed at college students with ADHD
 ---
 
 [^repo]: GitHub API `repos/cjpais/Handy`, retrieved 2026-05-23: `html_url` field.
+
 [^site]: Linked from the README and `repository.homepage` in GitHub metadata.
+
 [^license-readme]: README, "License" section: "MIT License - see [LICENSE](LICENSE) file for details."
+
 [^license-file]: `LICENSE` file at <https://github.com/cjpais/Handy/blob/main/LICENSE>, fetched via the GitHub Contents API and decoded; full text begins "MIT License / Copyright (c) 2025 CJ Pais" followed by the standard MIT permission grant and warranty disclaimer. Verified directly, not from a summary.
+
 [^readme-arch]: README, "Architecture" section.
+
 [^readme-why]: README, "Why Handy?" section.
+
 [^readme-howitworks]: README, "How It Works" section.
+
 [^agents-arch]: `AGENTS.md` in repo root, "Architecture Overview" and "Application Flow" sections.
+
 [^cargo-toml]: `src-tauri/Cargo.toml` in repo root — `[dependencies]` and target-specific dependency tables. Notable: `transcribe-rs = { version = "0.3.8", features = ["whisper-cpp", "onnx"] }` with platform-specific feature variants (`whisper-vulkan` on Windows/Linux, `whisper-metal` on macOS, `ort-directml` on Windows). Several dependencies pinned to git forks: `rdev` (rustdesk-org fork), `vad-rs` (cjpais fork), `rodio` (cjpais fork), `tauri-nspanel` (ahkohd fork). Tauri runtime crates patched via `[patch.crates-io]` to the maintainer's `cjpais/tauri.git` branch `handy-2.10.2`.
+
 [^readme-linux-notes]: README, "Linux Notes" section.
+
 [^paste-docs]: <https://handy.computer/docs/paste-methods> — six methods documented: Clipboard, Ctrl+Shift+V, Shift+Insert, Direct Input, None, External Script (Linux only).
+
 [^postproc-docs]: <https://handy.computer/docs/post-processing>.
+
 [^readme-cli]: README, "CLI Parameters" section.
+
 [^readme-integrations]: README, "Integrations" section — Raycast extension by @mattiacolombomc.
+
 [^readme-quickstart]: README, "Quick Start" → "Installation" section.
+
 [^docs-getting-started]: <https://handy.computer/docs/getting-started>.
+
 [^docs-models]: <https://handy.computer/docs/models>.
+
 [^build-md]: `BUILD.md` in repo root.
+
 [^docs-advanced]: <https://handy.computer/docs/advanced> — custom-words dictionary, overlay configuration, output methods, history management.
+
 [^commands-dir]: GitHub Contents API listing of `src-tauri/src/commands/` — files: `audio.rs`, `history.rs`, `models.rs`, `transcription.rs`, `mod.rs`. These are Tauri command handlers for internal frontend↔backend IPC, not a stable public API.
+
 [^portable-rs]: `src-tauri/src/portable.rs`, retrieved via GitHub Contents API. Doc comment: "When a file named `portable` exists next to the executable, all user data (settings, models, recordings, database, logs) is stored in a `Data/` directory alongside the executable instead of `%APPDATA%`." Includes migration logic for the v0.8.0 empty-marker format.
+
 [^readme-custom-models]: README, "Custom Whisper Models" section.
+
 [^repo-api]: GitHub API `repos/cjpais/Handy`, retrieved 2026-05-23: `stargazers_count` 22172, `forks_count` 1838, `open_issues_count` 158, `pushed_at` 2026-05-23T04:05:16Z, default branch `main`, license `MIT`.
+
 [^contributors]: GitHub API `repos/cjpais/Handy/contributors?per_page=10`, retrieved 2026-05-23. Top contributors by commit count: cjpais (467), vladstudio (22), VirenMohindra (17), xilec (12), jacksongoode (7), ferologics (6), Maicon-Moreira (4), kakapt (4), y0usaf (4), AlexanderYastrebov (3).
+
 [^releases]: GitHub API `repos/cjpais/Handy/releases`. Most recent 16 releases listed run from v0.7.1 (2026-02-01) to v0.8.3 (2026-04-28).
+
 [^readme-issues]: README, "Known Issues & Current Limitations" section — calls out Whisper model crashes on certain configurations and limited Wayland support as "Help Wanted" major issues.
+
 [^open-issues]: GitHub API `repos/cjpais/Handy/issues?state=open`, retrieved 2026-05-23. Sample of recent open issues includes #1428 (Windows Store listing), #1423 (tray icon bug), #1421 (JetBrains Rider compatibility), #1418 (persistent CPU after recording), #1387 (macOS multi-Space overlay focus), #1384 (security: asset protocol scope), #1375 (Wayland multi-monitor overlay), #1371 (overlay CPU on modern standby).
+
 [^readme-platforms]: README, "Platform Support" section: macOS (Intel + Apple Silicon), x64 Windows, x64 Linux.
+
 [^tauri-conf]: `src-tauri/tauri.conf.json` — `bundle.macOS.minimumSystemVersion` is `10.15`; `app.security.assetProtocol.scope.allow` is `["**"]` (relevant to security issue #1384); `bundle.windows.signCommand` uses Azure trusted-signing CLI; `plugins.updater` endpoints point to the GitHub Releases `latest.json`.
+
 [^readme-sysreq]: README, "System Requirements/Recommendations" section.
+
 [^package-json]: `package.json` in repo root — version `0.8.3`, depends on React 18.3.1, Tailwind 4.1.16, Zustand 5.0.8, i18next 25.7.2, Zod 3.25.76, sonner 2.0.7, lucide-react 0.542.0; Tauri JS plugins for autostart, clipboard-manager, dialog, fs, global-shortcut, opener, os, process, sql, store, updater. Build tooling is Bun + Vite + Playwright.
+
 [^readme-verify]: README, "Verify Release Signatures" section — uses Tauri updater's minisign format; verification recipe uses `minisign -Vm` with the pubkey from `src-tauri/tauri.conf.json`.
+
 [^readme-roadmap]: README, "Roadmap & Active Development" → "In Progress" → "Opt-in Analytics".
+
 [^docs-cli]: <https://handy.computer/docs/cli>.

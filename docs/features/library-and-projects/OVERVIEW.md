@@ -13,6 +13,7 @@ Organization model for the user's notes and reference materials. The **Library**
 ## File-type agnosticism
 
 Projects hold any file the app supports, not just markdown:
+
 - v1: `.md` notes, audio recordings + transcripts
 - v1.1: `.tex` notes, ingested PDFs/DOCX/PPTX with their converted markdown
 - v2+: anything else the ingestion pipeline accepts

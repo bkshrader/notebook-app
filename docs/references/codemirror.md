@@ -18,6 +18,7 @@ CodeMirror 6 (hereafter CM6) is a **code editor component for the web**, designe
 **Bus factor:** Real, and worth naming honestly. Haverbeke runs this largely solo. Mitigation: CM6 reached a stable, well-specified API surface in 2022 and has not broken it since. The codebase is not fast-moving; it is mature and has shipped in Obsidian, Replit, Sourcegraph, and Chrome DevTools. A fork or community continuation would be tractable if needed.
 
 **Notable shipping consumers (CM6, not Monaco):**[^notable-users]
+
 - **Obsidian** — both "Source mode" and "Live Preview" mode run CM6 since the 1.0 release. Obsidian's Live Preview is the canonical reference for the inline-decoration live-preview UX pattern.
 - **Replit** — migrated from Monaco in 2022; open-sourced 8 CM6 extensions including `@replit/codemirror-vim`.[^replit-blog]
 - **Sourcegraph** — migrated from Monaco for their search bar and later all editors; cut JS download from 6 MB to 3.4 MB.[^sourcegraph-blog]
@@ -48,12 +49,12 @@ const state = EditorState.create({
 `EditorView` owns a DOM element, renders the current `EditorState` into it, and translates user events (keystrokes, mouse clicks) into transactions that it dispatches back to update state. You interact with the editor through `view.state` (read) and `view.dispatch(transaction)` (write).
 
 ```ts
-import { EditorView } from "@codemirror/view"
+import { EditorView } from '@codemirror/view';
 
 const view = new EditorView({
   state,
-  parent: document.getElementById("editor")!
-})
+  parent: document.getElementById('editor')!,
+});
 ```
 
 ### 2.3 Transactions — the only way to change anything
@@ -65,7 +66,7 @@ A `Transaction` describes one or more changes: document edits, selection moves, 
 CM6 has no plugin/hook system in the traditional sense. Instead, every feature is an **extension value** that can be composed into an array. Extensions are flat — they are collected from all sources (including nested arrays and conditional values) before configuration. Three primitives make up extensions:
 
 - **`Facet`** — a typed slot that aggregates inputs from multiple extensions into a single output (e.g., `EditorView.decorations` collects all decoration sources into one set).
-- **`StateField`**  — persistent, transactional state attached to `EditorState` (e.g., a field tracking which fold ranges are open).
+- **`StateField`** — persistent, transactional state attached to `EditorState` (e.g., a field tracking which fold ranges are open).
 - **`ViewPlugin`** — imperative code that lives on the `EditorView`, can read DOM measurements, and provides decorations or event handlers. Updates are called synchronously after each transaction.
 
 ### 2.5 The Lezer Parser
@@ -78,11 +79,11 @@ The syntax tree is a real AST. You can walk it with `tree.cursor()` or `tree.res
 
 Three decoration types exist in `@codemirror/view`:
 
-| Type | What it does | Live-preview use |
-|------|-------------|-----------------|
-| `Decoration.mark({class})` | Applies CSS classes to a text range — the text remains in the DOM | Render bold/italic/code/link styling on top of raw source |
-| `Decoration.widget({widget, side})` | Injects a DOM element at a point without consuming document characters | Insert a rendered image, a checkbox icon, a rendered-math widget |
-| `Decoration.replace({widget?})` | Hides a text range; optionally shows a widget instead | Hide `**` markers around selected text; hide block-math delimiters; fold headings' leading `#` into a styled prefix |
+| Type                                | What it does                                                           | Live-preview use                                                                                                    |
+| ----------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `Decoration.mark({class})`          | Applies CSS classes to a text range — the text remains in the DOM      | Render bold/italic/code/link styling on top of raw source                                                           |
+| `Decoration.widget({widget, side})` | Injects a DOM element at a point without consuming document characters | Insert a rendered image, a checkbox icon, a rendered-math widget                                                    |
+| `Decoration.replace({widget?})`     | Hides a text range; optionally shows a widget instead                  | Hide `**` markers around selected text; hide block-math delimiters; fold headings' leading `#` into a styled prefix |
 
 The cursor-enters-range interaction (show raw source when cursor is on a decorated range) is not built-in — it is a convention implemented by decoration plugins: when computing decorations, skip any range that overlaps the current selection.
 
@@ -95,14 +96,21 @@ The cursor-enters-range interaction (show raw source when cursor is on a decorat
 **Imports for a minimal markdown editor:**
 
 ```ts
-import { EditorView, ViewPlugin, Decoration, DecorationSet, ViewUpdate, keymap } from "@codemirror/view"
-import { EditorState, RangeSetBuilder } from "@codemirror/state"
-import { syntaxTree } from "@codemirror/language"
-import { markdown, markdownLanguage } from "@codemirror/lang-markdown"
-import { languages } from "@codemirror/language-data"
-import { defaultKeymap, historyKeymap, history } from "@codemirror/commands"
-import { searchKeymap, search } from "@codemirror/search"
-import { oneDark } from "@codemirror/theme-one-dark"
+import {
+  EditorView,
+  ViewPlugin,
+  Decoration,
+  DecorationSet,
+  ViewUpdate,
+  keymap,
+} from '@codemirror/view';
+import { EditorState, RangeSetBuilder } from '@codemirror/state';
+import { syntaxTree } from '@codemirror/language';
+import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
+import { languages } from '@codemirror/language-data';
+import { defaultKeymap, historyKeymap, history } from '@codemirror/commands';
+import { searchKeymap, search } from '@codemirror/search';
+import { oneDark } from '@codemirror/theme-one-dark';
 ```
 
 **Live-preview decoration plugin shape:**
@@ -110,54 +118,59 @@ import { oneDark } from "@codemirror/theme-one-dark"
 ```ts
 // Marks bold syntax: hide ** markers, apply bold CSS when cursor not in range
 function buildDecorations(view: EditorView): DecorationSet {
-  const builder = new RangeSetBuilder<Decoration>()
-  const { from, to } = view.viewport
-  const cursor = view.state.selection.main
+  const builder = new RangeSetBuilder<Decoration>();
+  const { from, to } = view.viewport;
+  const cursor = view.state.selection.main;
 
   syntaxTree(view.state).iterate({
-    from, to,
+    from,
+    to,
     enter(node) {
       // Bold: StrongEmphasis node wraps the content + markers
-      if (node.name === "StrongEmphasis") {
-        const cursorInside = cursor.from <= node.to && cursor.to >= node.from
+      if (node.name === 'StrongEmphasis') {
+        const cursorInside = cursor.from <= node.to && cursor.to >= node.from;
         if (!cursorInside) {
           // Hide the opening **
-          builder.add(node.from, node.from + 2,
-            Decoration.replace({}))
+          builder.add(node.from, node.from + 2, Decoration.replace({}));
           // Apply bold class to inner text
-          builder.add(node.from + 2, node.to - 2,
-            Decoration.mark({ class: "cm-md-strong" }))
+          builder.add(node.from + 2, node.to - 2, Decoration.mark({ class: 'cm-md-strong' }));
           // Hide the closing **
-          builder.add(node.to - 2, node.to,
-            Decoration.replace({}))
+          builder.add(node.to - 2, node.to, Decoration.replace({}));
         }
       }
       // Heading: replace # prefix with a styled widget
-      if (node.name === "ATXHeading1") {
-        builder.add(node.from, node.from + 2,
-          Decoration.replace({ widget: new HeadingMarkerWidget(1) }))
+      if (node.name === 'ATXHeading1') {
+        builder.add(
+          node.from,
+          node.from + 2,
+          Decoration.replace({ widget: new HeadingMarkerWidget(1) }),
+        );
       }
       // ... repeat for Emphasis, InlineCode, Link, ListItem, Task, etc.
-    }
-  })
-  return builder.finish()
+    },
+  });
+  return builder.finish();
 }
 
-const livePreviewPlugin = ViewPlugin.fromClass(class {
-  decorations: DecorationSet
-  constructor(view: EditorView) {
-    this.decorations = buildDecorations(view)
-  }
-  update(update: ViewUpdate) {
-    if (update.docChanged || update.viewportChanged || update.selectionSet)
-      this.decorations = buildDecorations(update.view)
-  }
-}, { decorations: v => v.decorations })
+const livePreviewPlugin = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+    constructor(view: EditorView) {
+      this.decorations = buildDecorations(view);
+    }
+    update(update: ViewUpdate) {
+      if (update.docChanged || update.viewportChanged || update.selectionSet)
+        this.decorations = buildDecorations(update.view);
+    }
+  },
+  { decorations: (v) => v.decorations },
+);
 ```
 
 The Lezer node names for `@lezer/markdown` include: `ATXHeading1`–`ATXHeading6`, `SetextHeading1/2`, `StrongEmphasis`, `Emphasis`, `InlineCode`, `FencedCode`, `Link`, `Image`, `URL`, `ListItem`, `Task`, `Blockquote`, `HorizontalRule`, `HTMLBlock`, `Table`.[^lang-markdown]
 
 Community reference implementations:
+
 - [`kenforthewin/atomic-editor`](https://github.com/kenforthewin/atomic-editor) — MIT-licensed Obsidian-style live preview; handles headings, bold, italic, links, images, tables, task checkboxes, and fenced code with syntax highlighting. Rebuilds decorations only for changed lines, achieving O(change size) update performance. Includes a "mouse-freeze guard" to prevent cursor drift during click events.[^atomic-editor]
 - [`segphault/codemirror-rich-markdoc`](https://github.com/segphault/codemirror-rich-markdoc) — another reference for hiding syntax markers while keeping the source.
 - [`@yuya296/cm6-live-preview-core`](https://www.npmjs.com/package/@yuya296/cm6-live-preview-core) — abstracts per-element render state (inline vs block) without affecting undo/redo.
@@ -167,10 +180,10 @@ Community reference implementations:
 **Option A — `@codemirror/legacy-modes` stex (available now, stable):**
 
 ```ts
-import { StreamLanguage } from "@codemirror/language"
-import { stex } from "@codemirror/legacy-modes/mode/stex"
+import { StreamLanguage } from '@codemirror/language';
+import { stex } from '@codemirror/legacy-modes/mode/stex';
 
-const texExtensions = [StreamLanguage.define(stex)]
+const texExtensions = [StreamLanguage.define(stex)];
 ```
 
 This wraps the CodeMirror 5 stex mode in a CM6 compatibility shim. It provides full LaTeX syntax highlighting. It does **not** produce a Lezer AST, so you cannot hang CM6 AST-driven decorations off it — only highlighting is available. Performance is slightly worse than a native Lezer grammar due to the shim layer.
@@ -189,29 +202,28 @@ TTS playback provides a current word/sentence boundary in real time. The pattern
 // External TTS controller calls this on each word boundary
 function setTTSRange(view: EditorView, from: number, to: number) {
   view.dispatch({
-    effects: setHighlightEffect.of({ from, to })
-  })
+    effects: setHighlightEffect.of({ from, to }),
+  });
 }
 
 // State effect + state field
-const setHighlightEffect = StateEffect.define<{from: number, to: number}>()
+const setHighlightEffect = StateEffect.define<{ from: number; to: number }>();
 
 const ttsHighlightField = StateField.define<DecorationSet>({
   create: () => Decoration.none,
   update(deco, tr) {
-    deco = deco.map(tr.changes) // keep positions valid after edits
+    deco = deco.map(tr.changes); // keep positions valid after edits
     for (const effect of tr.effects) {
       if (effect.is(setHighlightEffect)) {
         deco = Decoration.set([
-          Decoration.mark({ class: "cm-tts-word" })
-            .range(effect.value.from, effect.value.to)
-        ])
+          Decoration.mark({ class: 'cm-tts-word' }).range(effect.value.from, effect.value.to),
+        ]);
       }
     }
-    return deco
+    return deco;
   },
-  provide: f => EditorView.decorations.from(f)
-})
+  provide: (f) => EditorView.decorations.from(f),
+});
 ```
 
 Calling `view.dispatch({ effects: setHighlightEffect.of({from, to}) })` from a `requestAnimationFrame` loop is the correct pattern. CM6's transaction dispatch is synchronous and fast — it will not drop frames at normal TTS speeds (1–3 words/second). For the rare case of 60fps sub-word animation, dispatch is still well within budget.
@@ -222,35 +234,44 @@ The pattern uses `Decoration.replace` with a `WidgetType` that renders KaTeX:
 
 ```ts
 class MathWidget extends WidgetType {
-  constructor(readonly src: string, readonly display: boolean) { super() }
-
-  toDOM(): HTMLElement {
-    const el = document.createElement(this.display ? "div" : "span")
-    el.className = this.display ? "cm-math-display" : "cm-math-inline"
-    try {
-      katex.render(this.src, el, { displayMode: this.display, throwOnError: false })
-    } catch {
-      el.textContent = this.src
-      el.className += " cm-math-error"
-    }
-    return el
+  constructor(
+    readonly src: string,
+    readonly display: boolean,
+  ) {
+    super();
   }
 
-  eq(other: MathWidget) { return other.src === this.src && other.display === this.display }
-  ignoreEvent() { return false } // let clicks through to position cursor
+  toDOM(): HTMLElement {
+    const el = document.createElement(this.display ? 'div' : 'span');
+    el.className = this.display ? 'cm-math-display' : 'cm-math-inline';
+    try {
+      katex.render(this.src, el, { displayMode: this.display, throwOnError: false });
+    } catch {
+      el.textContent = this.src;
+      el.className += ' cm-math-error';
+    }
+    return el;
+  }
+
+  eq(other: MathWidget) {
+    return other.src === this.src && other.display === this.display;
+  }
+  ignoreEvent() {
+    return false;
+  } // let clicks through to position cursor
 }
 
 // In the decoration builder: detect InlineMath / BlockMath nodes
 // (requires a markdown extension that defines these node types,
 // e.g. adding a custom Lezer extension to @lezer/markdown)
-if (node.name === "InlineMath" && !cursorInside) {
-  const src = state.sliceDoc(node.from + 1, node.to - 1) // strip $
-  builder.add(node.from, node.to,
-    Decoration.replace({ widget: new MathWidget(src, false) }))
+if (node.name === 'InlineMath' && !cursorInside) {
+  const src = state.sliceDoc(node.from + 1, node.to - 1); // strip $
+  builder.add(node.from, node.to, Decoration.replace({ widget: new MathWidget(src, false) }));
 }
 ```
 
 `@lezer/markdown` supports custom block/inline node types via its extension API — you add a `InlineMath` inline parser that matches `$...$`. Community packages that cover this:
+
 - [`TeXlyre/codemirror-latex-visual`](https://github.com/TeXlyre/codemirror-latex-visual) — implements Mathlive rendering for math blocks in CM6, supports inline `$...$` and display `$$...$$`, mode-switching between source and visual editing.
 - The Cortex wiki integrates CM6 with KaTeX for `$` and `$$` delimiters.
 
@@ -269,7 +290,7 @@ The contenteditable approach means CM6's text is live in the DOM and accessible 
 **The ARIA label gap (fixed):** In April 2023, Rich Harris (Svelte) filed issue #1127 noting that CM6's input fields lacked accessible names — screen readers would announce "blank" instead of labeling the editor.[^aria-label-issue] The fix (adding `aria-label` support via an `EditorView.contentAttributes` facet) was merged. You should set this in your own editor config:
 
 ```ts
-EditorView.contentAttributes.of({ "aria-label": "Note editor" })
+EditorView.contentAttributes.of({ 'aria-label': 'Note editor' });
 ```
 
 ### 4.2 Screen Reader Behavior by Platform (as of 2026)
@@ -312,15 +333,15 @@ The keymap extension takes a priority-ordered list of bindings. Vim and Emacs ke
 
 ### 4.6 Known Accessibility Gaps Summary
 
-| Issue | Status (May 2026) | Severity for our app |
-|-------|-------------------|---------------------|
-| #1556 Android TalkBack navigate-by-line broken | **Open** | High (mobile users) |
-| #1127 ARIA input fields lacked accessible names | Closed (fixed) | Mitigated by config |
-| #1055 Autocomplete popup not announced | Closed | Medium (fixed, verify) |
-| #1624 VoiceOver Safari autocomplete not announced | Closed | Low (fixed) |
-| Tab key traps keyboard users | Configurable | Medium — must configure `setTabFocusMode` |
-| JAWS testing data | No data found | Unknown risk |
-| `prefers-reduced-motion` | No built-in support | Low — CSS-level fix |
+| Issue                                             | Status (May 2026)   | Severity for our app                      |
+| ------------------------------------------------- | ------------------- | ----------------------------------------- |
+| #1556 Android TalkBack navigate-by-line broken    | **Open**            | High (mobile users)                       |
+| #1127 ARIA input fields lacked accessible names   | Closed (fixed)      | Mitigated by config                       |
+| #1055 Autocomplete popup not announced            | Closed              | Medium (fixed, verify)                    |
+| #1624 VoiceOver Safari autocomplete not announced | Closed              | Low (fixed)                               |
+| Tab key traps keyboard users                      | Configurable        | Medium — must configure `setTabFocusMode` |
+| JAWS testing data                                 | No data found       | Unknown risk                              |
+| `prefers-reduced-motion`                          | No built-in support | Low — CSS-level fix                       |
 
 ### 4.7 axe-core / Automated Audit
 
@@ -334,10 +355,10 @@ No published axe-core audit results for CM6 were found in public sources as of M
 
 From the official [bundling example](https://codemirror.net/examples/bundle/) with Rollup:[^bundle-example]
 
-| Configuration | Minified | Minified + gzip |
-|--------------|----------|----------------|
-| Full `basicSetup` + JavaScript lang | ~1 MB | ~135 KB |
-| `minimalSetup` (core only) | ~700 KB | ~75 KB |
+| Configuration                       | Minified | Minified + gzip |
+| ----------------------------------- | -------- | --------------- |
+| Full `basicSetup` + JavaScript lang | ~1 MB    | ~135 KB         |
+| `minimalSetup` (core only)          | ~700 KB  | ~75 KB          |
 
 For our app (markdown editor, no heavy autocomplete, no lint):
 
@@ -357,6 +378,7 @@ Estimated total:          ~220 KB min / ~60–70 KB gzip
 Adding `@codemirror/legacy-modes/mode/stex` for LaTeX adds ~5–10 KB gzip. Adding a KaTeX math rendering widget adds KaTeX itself (~90 KB gzip) — that's the dominant cost for math support, not the CM6 decoration code.
 
 **Comparison:**
+
 - Monaco: 5–10 MB unpacked, ~1.26 MB gzip for Replit's full CM6+extensions bundle vs. ~5 MB gzip for Monaco.[^replit-blog]
 - TipTap: ProseMirror core + TipTap starter kit ~300 KB minified, ~80 KB gzip (comparable to CM6 for a markdown-capable setup).
 
@@ -424,12 +446,14 @@ Monaco is the VS Code editor. It is **not a candidate** for this app for three r
 ### v1: Minimal CM6 Markdown Editor with Live-Preview Decorations
 
 **Verdict: CM6 is the correct choice.** It is the only option in the realistic alternative set that provides:
+
 - Markdown-source as the file format (no serialization layer)
 - Inline decoration live-preview without a separate rendered pane
 - Good-enough accessibility story for v1 (contenteditable, ARIA labeling, keyboard nav)
 - Small bundle, excellent performance on typical note file sizes (1–500 KB)
 
 **Engineering estimate:**
+
 - Basic editor (EditorState + EditorView + markdown language + history + search + keymap): 1–2 days for a developer new to CM6.
 - Live-preview decoration plugin (headings, bold, italic, inline code, links, task checkboxes): 3–5 days. The hardest part is cursor-inside-range detection and handling all Lezer node names correctly. Reference: `atomic-editor` can be adapted.
 - "Quote from PDF" blockquote insertion: 1 day (it is a standard `view.dispatch` transaction inserting formatted text).
@@ -438,12 +462,12 @@ Monaco is the VS Code editor. It is **not a candidate** for this app for three r
 
 ### v1.1: LaTeX, Math, and Read-Along
 
-| Feature | Approach | Effort |
-|---------|----------|--------|
-| `.tex` file support (highlight only) | `StreamLanguage.define(stex)` | **1 hour** — register on `.tex` extension |
-| `.tex` file support (AST-driven) | `codemirror-lang-latex` (pin to commit) | 1 day setup + ongoing maintenance risk |
-| Inline math `$...$` | Custom `@lezer/markdown` inline parser + `Decoration.replace` + KaTeX widget | **3–5 days** — the KaTeX integration itself is straightforward; the Lezer extension for detecting math delimiters is the work |
-| Read-along TTS highlighting | `StateEffect` + `StateField` pattern from §3.3 above | **1 day** — pattern is straightforward |
+| Feature                              | Approach                                                                     | Effort                                                                                                                        |
+| ------------------------------------ | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `.tex` file support (highlight only) | `StreamLanguage.define(stex)`                                                | **1 hour** — register on `.tex` extension                                                                                     |
+| `.tex` file support (AST-driven)     | `codemirror-lang-latex` (pin to commit)                                      | 1 day setup + ongoing maintenance risk                                                                                        |
+| Inline math `$...$`                  | Custom `@lezer/markdown` inline parser + `Decoration.replace` + KaTeX widget | **3–5 days** — the KaTeX integration itself is straightforward; the Lezer extension for detecting math delimiters is the work |
+| Read-along TTS highlighting          | `StateEffect` + `StateField` pattern from §3.3 above                         | **1 day** — pattern is straightforward                                                                                        |
 
 ### v2: "Rich Markdown Editor" — Stay on CM6 or Swap?
 
@@ -493,7 +517,7 @@ When multiple `ViewPlugin`s provide decorations to the `EditorView.decorations` 
 CM6 has no file system integration. The editor state is in memory. Saving to disk is your responsibility:
 
 ```ts
-view.state.doc.toString() // returns the full document as a string
+view.state.doc.toString(); // returns the full document as a string
 ```
 
 Call this in a debounced listener on `EditorView.updateListener.of(update => { if (update.docChanged) scheduleWrite(view.state.doc.toString()) })`. For `.md` files, write to disk via Electron's `fs.writeFile`. For resilience, implement an autosave with a dirty-document indicator.
@@ -501,6 +525,7 @@ Call this in a debounced listener on `EditorView.updateListener.of(update => { i
 ### 8.7 Funding Model and Bus Factor
 
 The bus factor is genuinely 1. Haverbeke has maintained CM5 and CM6 for 15+ years, so longevity evidence is strong, but a health event or change of interest would leave the project to community stewardship. Concrete mitigations:
+
 - CM6 has a stable, well-documented API that has not had breaking changes since the 2022 stable release.
 - The individual package repos remain on GitHub; the archived `codemirror/dev` only lost the issue tracker (moved to code.haverbeke.berlin).
 - Replit, CodePen, and others have invested in the ecosystem and would have incentive to maintain a fork.

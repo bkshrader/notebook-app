@@ -27,7 +27,7 @@ A browser extension for capturing web content into the user's Library — select
 
 ## Communication with the desktop app
 
-- The extension is *not* the app — it's a capture mechanism that sends content to the desktop app's running instance (or queues for next launch).
+- The extension is _not_ the app — it's a capture mechanism that sends content to the desktop app's running instance (or queues for next launch).
 - Local HTTP server or OS-level deep link or shared file location — decision deferred.
 - If [remote sync](../remote-sync/OVERVIEW.md) is configured, the extension can target the sync layer directly without a local app instance.
 

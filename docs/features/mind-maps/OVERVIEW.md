@@ -2,7 +2,7 @@
 
 **Version:** 2.0
 
-Hierarchical visual organization of ideas. Distinct from the [whiteboard](../whiteboard/OVERVIEW.md) — mind maps are *structured* node-and-link graphs centered on a root concept; whiteboards are *unstructured* spatial canvases.
+Hierarchical visual organization of ideas. Distinct from the [whiteboard](../whiteboard/OVERVIEW.md) — mind maps are _structured_ node-and-link graphs centered on a root concept; whiteboards are _unstructured_ spatial canvases.
 
 ## Why this matters
 

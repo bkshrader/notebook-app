@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 
-A single global hotkey opens a lightweight capture window that writes to `Inbox.md`. The user captures the thought *now*; organization happens later. Designed for ADHD executive-function support: never make the user decide "where does this go?" at the moment of capture.
+A single global hotkey opens a lightweight capture window that writes to `Inbox.md`. The user captures the thought _now_; organization happens later. Designed for ADHD executive-function support: never make the user decide "where does this go?" at the moment of capture.
 
 ## Design intent
 
@@ -15,7 +15,7 @@ A single global hotkey opens a lightweight capture window that writes to `Inbox.
 
 - ADHD users famously lose thoughts that require even one decision before being recorded. The friction of "open app → pick project → start typing" is high enough that thoughts get dropped.
 - Inspired by [files.md](../../references/files-md.md)'s `Chat.md` pattern: everything goes to one capture surface first, sorted later if at all.
-- A successful inbox reduces *both* lost thoughts and the anxiety of "I should organize this now."
+- A successful inbox reduces _both_ lost thoughts and the anxiety of "I should organize this now."
 
 ## What v1 ships
 

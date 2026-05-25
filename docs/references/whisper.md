@@ -4,7 +4,7 @@ Survey of OpenAI's Whisper family **plus competing speech-to-text engines** for 
 
 The word **"Whisper"** is now ambiguous. It refers, in different contexts, to:
 
-1. **OpenAI's original PyTorch reference implementation** (`openai/whisper`), released alongside the paper *Robust Speech Recognition via Large-Scale Weak Supervision*.[^paper] The reference codebase is essentially a research artifact — slow on CPU, no streaming, Python+PyTorch dependency stack.
+1. **OpenAI's original PyTorch reference implementation** (`openai/whisper`), released alongside the paper _Robust Speech Recognition via Large-Scale Weak Supervision_.[^paper] The reference codebase is essentially a research artifact — slow on CPU, no streaming, Python+PyTorch dependency stack.
 2. **The model weights themselves**, redistributed by countless re-implementations. The weights have their own license (Apache-2.0 for `large-v3` and later)[^lic-largev3] separate from any code license.
 3. **An optimized C/C++ port — `whisper.cpp`** — which is what nearly everyone actually ships in desktop apps.[^whispercpp-repo]
 4. **GPU-accelerated re-implementations** (`faster-whisper` via CTranslate2;[^fw-repo] `whisper-jax` on TPU;[^jax-readme] `Const-me/Whisper` for Windows DirectCompute[^constme-repo]).
@@ -14,7 +14,7 @@ The word **"Whisper"** is now ambiguous. It refers, in different contexts, to:
 
 This document walks through each of those families, then lays out an opinionated recommendation against the app's specific constraints.
 
-> **Sibling docs:** see [`handy.md`](./handy.md) for the Tauri-based desktop dictation app *Handy*, which uses `whisper.cpp` + `transcribe-rs` + Parakeet — a useful concrete reference implementation of the stack this document recommends. See [`markitdown.md`](./markitdown.md) for the existing Python sidecar (Docling/MarkItDown) we already pay the runtime cost for.
+> **Sibling docs:** see [`handy.md`](./handy.md) for the Tauri-based desktop dictation app _Handy_, which uses `whisper.cpp` + `transcribe-rs` + Parakeet — a useful concrete reference implementation of the stack this document recommends. See [`markitdown.md`](./markitdown.md) for the existing Python sidecar (Docling/MarkItDown) we already pay the runtime cost for.
 
 ---
 
@@ -28,20 +28,20 @@ This document walks through each of those families, then lays out an opinionated
 
 ### What it is
 
-The reference research codebase from the *Robust Speech Recognition via Large-Scale Weak Supervision* paper.[^paper] Pure Python on top of PyTorch; the audio is mel-spectrogrammed, fed into a 32-layer transformer encoder, and decoded autoregressively into text tokens.
+The reference research codebase from the _Robust Speech Recognition via Large-Scale Weak Supervision_ paper.[^paper] Pure Python on top of PyTorch; the audio is mel-spectrogrammed, fed into a 32-layer transformer encoder, and decoded autoregressively into text tokens.
 
 ### Models shipped[^whisper-card]
 
-| Model | Params | Disk (FP16) | English-only | Multilingual |
-|---|---|---|---|---|
-| `tiny` | 39 M | ~75 MiB | ✓ | ✓ |
-| `base` | 74 M | ~142 MiB | ✓ | ✓ |
-| `small` | 244 M | ~466 MiB | ✓ | ✓ |
-| `medium` | 769 M | ~1.5 GiB | ✓ | ✓ |
-| `large` / `large-v2` / `large-v3` | 1550 M | ~2.9 GiB | — | ✓ (99 langs) |
-| `large-v3-turbo` | 809 M | ~1.5 GiB | — | ✓ (99 langs, English-leaning) |
+| Model                             | Params | Disk (FP16) | English-only | Multilingual                  |
+| --------------------------------- | ------ | ----------- | ------------ | ----------------------------- |
+| `tiny`                            | 39 M   | ~75 MiB     | ✓            | ✓                             |
+| `base`                            | 74 M   | ~142 MiB    | ✓            | ✓                             |
+| `small`                           | 244 M  | ~466 MiB    | ✓            | ✓                             |
+| `medium`                          | 769 M  | ~1.5 GiB    | ✓            | ✓                             |
+| `large` / `large-v2` / `large-v3` | 1550 M | ~2.9 GiB    | —            | ✓ (99 langs)                  |
+| `large-v3-turbo`                  | 809 M  | ~1.5 GiB    | —            | ✓ (99 langs, English-leaning) |
 
-`large-v3-turbo` shares the full 32-layer encoder with `large-v3` but compresses the decoder from 32 → 4 layers, giving ~6× speedup on the *decoder* side at <5% accuracy regression for English.[^turbo-page] On music or sung content, the trimmed decoder degrades quality noticeably.[^turbo-music]
+`large-v3-turbo` shares the full 32-layer encoder with `large-v3` but compresses the decoder from 32 → 4 layers, giving ~6× speedup on the _decoder_ side at <5% accuracy regression for English.[^turbo-page] On music or sung content, the trimmed decoder degrades quality noticeably.[^turbo-music]
 
 **Language coverage:** trained on 99 languages, with strong-to-usable performance on roughly the top 30; the long tail is much weaker.[^whisper-card]
 
@@ -80,7 +80,7 @@ GPU: **Metal** (Apple Silicon), **CUDA** + cuBLAS (NVIDIA), **Vulkan** (cross-ve
 
 On Apple Silicon with Metal: `large-v3-turbo` lands at roughly **10× real-time on an M1**, **21× on an M2 Pro** (1 min audio → ~2.8 s).[^apple-bench] On Windows/Linux x64 with Vulkan, similar order-of-magnitude wins on RTX/Radeon discrete GPUs.[^whispercpp-issue-1127]
 
-**CPU-only on the kind of laptop a student actually owns** (mid-range Intel/AMD U-series, no discrete GPU): `small` runs comfortably at real-time, `medium` is roughly real-time, `large-v3-turbo` is ~1–3× real-time depending on AVX support, `large-v3` is *slower than real-time* — fine for batch re-transcription, not OK for live captioning. faster-whisper is meaningfully quicker on **pure CPU** thanks to its Intel oneMKL/oneDNN integration (often ~2× whisper.cpp on the same Intel chip).[^promptquorum-bench]
+**CPU-only on the kind of laptop a student actually owns** (mid-range Intel/AMD U-series, no discrete GPU): `small` runs comfortably at real-time, `medium` is roughly real-time, `large-v3-turbo` is ~1–3× real-time depending on AVX support, `large-v3` is _slower than real-time_ — fine for batch re-transcription, not OK for live captioning. faster-whisper is meaningfully quicker on **pure CPU** thanks to its Intel oneMKL/oneDNN integration (often ~2× whisper.cpp on the same Intel chip).[^promptquorum-bench]
 
 ### Quantized models
 
@@ -97,6 +97,7 @@ Whisper.cpp implements **DTW (Dynamic Time Warping) alignment** on the model's c
 ### Maturity / community
 
 `whisper.cpp` is the gravitational center of the local-STT ecosystem in 2026:
+
 - 50 k stars, very high commit cadence, well over 100 contributors.
 - Bindings in nearly every language: Rust (`whisper-rs`), Go, Python (`pywhispercpp`, `whisper-cpp-python`), Java/Kotlin, Swift, .NET (`whisper.net`),[^whispernet-license] React Native.
 - Official **WASM build** (`whisper.wasm`, `stream.wasm`, `command.wasm`) — runs in any browser.[^whispercpp-readme]
@@ -104,14 +105,14 @@ Whisper.cpp implements **DTW (Dynamic Time Warping) alignment** on the model's c
 
 ### Node.js bindings — current health (2026)
 
-| Package | Latest | Last published | License | Notes |
-|---|---|---|---|---|
-| **`nodejs-whisper`** | 0.3.0 | **2026-04-11** | MIT | Active, the current default. Wraps whisper.cpp CLI; auto-downloads models. Streaming support is limited.[^npm-nodejs-whisper] |
-| **`smart-whisper`** | 0.8.1 | 2024-10-02 | MIT | Native N-API addon, auto-offloads idle models. Goes through file IO rather than streaming. **No release in ~19 months.**[^npm-smart-whisper] |
-| **`whisper-node`** | 1.1.1 | 2023-11-29 | MIT | **Unmaintained** — 2+ years since last release.[^npm-whisper-node] Avoid for new projects. |
-| `whisper-node-addon` | various forks | 2025 | MIT | Cross-platform prebuilt `.node` binaries for Electron; useful if you don't want a build step.[^smart-whisper-search] |
+| Package              | Latest        | Last published | License | Notes                                                                                                                                        |
+| -------------------- | ------------- | -------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`nodejs-whisper`** | 0.3.0         | **2026-04-11** | MIT     | Active, the current default. Wraps whisper.cpp CLI; auto-downloads models. Streaming support is limited.[^npm-nodejs-whisper]                |
+| **`smart-whisper`**  | 0.8.1         | 2024-10-02     | MIT     | Native N-API addon, auto-offloads idle models. Goes through file IO rather than streaming. **No release in ~19 months.**[^npm-smart-whisper] |
+| **`whisper-node`**   | 1.1.1         | 2023-11-29     | MIT     | **Unmaintained** — 2+ years since last release.[^npm-whisper-node] Avoid for new projects.                                                   |
+| `whisper-node-addon` | various forks | 2025           | MIT     | Cross-platform prebuilt `.node` binaries for Electron; useful if you don't want a build step.[^smart-whisper-search]                         |
 
-There is no *official* Node binding maintained inside the `ggml-org/whisper.cpp` repo — the official artifact is the CLI and the WASM build. Everything in Node land is third-party.
+There is no _official_ Node binding maintained inside the `ggml-org/whisper.cpp` repo — the official artifact is the CLI and the WASM build. Everything in Node land is third-party.
 
 ### Known gotchas
 
@@ -119,7 +120,7 @@ There is no *official* Node binding maintained inside the `ggml-org/whisper.cpp`
 - **Repetition loops in long-form decoding** — same root cause; same mitigations. There's an open PR proposing automatic hallucination detection + silence skipping.[^cpp-issue-3744]
 - **Language detection failures on short utterances** — the auto-detect first-sample probe can lock onto the wrong language for the rest of the file. Always pass `--language` if you know it.
 - **`large-v3-turbo` is worse than `large-v3` on music, on sung content, and on heavy code-switching** because the decoder is shallower.[^turbo-music]
-- **Memory on very long files** stays *flat* (whisper.cpp uses a deterministic memory pool) — this is actually a *strength* vs faster-whisper on long lectures. The flip side is the CPU cost grows linearly so a 4-hour seminar file takes 4× longer than a 1-hour one regardless of available RAM.[^promptquorum-bench]
+- **Memory on very long files** stays _flat_ (whisper.cpp uses a deterministic memory pool) — this is actually a _strength_ vs faster-whisper on long lectures. The flip side is the CPU cost grows linearly so a 4-hour seminar file takes 4× longer than a 1-hour one regardless of available RAM.[^promptquorum-bench]
 
 ---
 
@@ -147,13 +148,13 @@ A Python re-implementation of Whisper inference on top of **CTranslate2** (OpenN
 
 ### CPU vs GPU vs whisper.cpp
 
-| Hardware | Engine | `large-v3` realtime factor |
-|---|---|---|
-| NVIDIA RTX (CUDA) | faster-whisper FP16 | ~5–10× RT |
-| Apple Silicon M-series | whisper.cpp Metal | ~10× RT |
-| Intel x86_64 CPU only | faster-whisper INT8 | ~1.5–3× RT |
-| Intel x86_64 CPU only | whisper.cpp INT8 | ~0.7–1.5× RT |
-| Apple Silicon CPU only | faster-whisper INT8 | ~2–3× RT |
+| Hardware               | Engine              | `large-v3` realtime factor |
+| ---------------------- | ------------------- | -------------------------- |
+| NVIDIA RTX (CUDA)      | faster-whisper FP16 | ~5–10× RT                  |
+| Apple Silicon M-series | whisper.cpp Metal   | ~10× RT                    |
+| Intel x86_64 CPU only  | faster-whisper INT8 | ~1.5–3× RT                 |
+| Intel x86_64 CPU only  | whisper.cpp INT8    | ~0.7–1.5× RT               |
+| Apple Silicon CPU only | faster-whisper INT8 | ~2–3× RT                   |
 
 On pure-CPU x86, faster-whisper has the edge (Intel oneMKL/oneDNN). On Apple Silicon, whisper.cpp + Metal pulls ahead. On NVIDIA discrete GPUs, faster-whisper wins.[^promptquorum-bench]
 
@@ -169,11 +170,12 @@ faster-whisper requires a Python sidecar. **For this project that's a re-use, no
 - **Repo signals (2026-05-23):** 22,053 ★, latest release `v3.8.5` (2026-04-01), actively maintained.[^wx-repo-api]
 
 WhisperX wraps `faster-whisper` and adds:
-- **Forced alignment** to a phoneme model (wav2vec2-CTC) to give word-level timestamps that are *much* more accurate than Whisper's native cross-attention DTW (median error ~20 ms vs ~100–200 ms).
+
+- **Forced alignment** to a phoneme model (wav2vec2-CTC) to give word-level timestamps that are _much_ more accurate than Whisper's native cross-attention DTW (median error ~20 ms vs ~100–200 ms).
 - **Speaker diarization** via `pyannote-audio` (see §9 below for the license-gating issue).
 - **Batched whisper** before SYSTRAN's BatchedInferencePipeline landed upstream.
 
-**Catch:** the diarization path requires accepting Hugging Face terms on the `pyannote/speaker-diarization-3.1` and `pyannote/segmentation-3.0` model cards and using an HF auth token at runtime — this is a *user-side* requirement we cannot fulfil on their behalf as a redistributor.[^pyannote-gate] Bundling the pyannote weights inside our app installer is **not permitted** by the gate even though the underlying license is MIT.
+**Catch:** the diarization path requires accepting Hugging Face terms on the `pyannote/speaker-diarization-3.1` and `pyannote/segmentation-3.0` model cards and using an HF auth token at runtime — this is a _user-side_ requirement we cannot fulfil on their behalf as a redistributor.[^pyannote-gate] Bundling the pyannote weights inside our app installer is **not permitted** by the gate even though the underlying license is MIT.
 
 ---
 
@@ -183,20 +185,20 @@ WhisperX wraps `faster-whisper` and adds:
 - **License (code):** **MIT** — verified, `Copyright 2023 The OpenAI Authors and The HuggingFace Inc. team`.[^distil-license-file]
 - **License (model weights):** **MIT** — inherited from upstream Whisper per the `distil-large-v3` model card.[^distil-card]
 - **AGPL-compatibility verdict:** **Compatible** for both.
-- **Repo signals (2026-05-23):** 4,081 ★, no GitHub release (model releases are on HF), last push 2025-01-08 — **code repo is mostly inactive** but the *models* on HF continue to receive minor updates.[^distil-repo-api]
+- **Repo signals (2026-05-23):** 4,081 ★, no GitHub release (model releases are on HF), last push 2025-01-08 — **code repo is mostly inactive** but the _models_ on HF continue to receive minor updates.[^distil-repo-api]
 
 ### What it is
 
-A *knowledge-distilled* family of Whisper variants — Hugging Face trained smaller "student" decoders on `openai/whisper-large-v3`'s pseudo-labels.[^distil-paper]
+A _knowledge-distilled_ family of Whisper variants — Hugging Face trained smaller "student" decoders on `openai/whisper-large-v3`'s pseudo-labels.[^distil-paper]
 
 ### Variants
 
-| Model | Params | Use case | Long-form WER vs upstream |
-|---|---|---|---|
-| `distil-large-v3` | 756 M | English long-form (drop-in `large-v3` replacement) | 9.7% vs 8.4% short, 10.8% vs 10.0% long-form sequential[^distil-card] |
-| `distil-large-v3.5` (2025-03) | 756 M | English, optimized for popular Whisper libraries | small further improvement[^distil-card] |
-| `distil-medium.en` | ~395 M | Smaller-footprint English | trades accuracy for size |
-| `distil-small.en` | ~166 M | Very small | trades accuracy for size |
+| Model                         | Params | Use case                                           | Long-form WER vs upstream                                             |
+| ----------------------------- | ------ | -------------------------------------------------- | --------------------------------------------------------------------- |
+| `distil-large-v3`             | 756 M  | English long-form (drop-in `large-v3` replacement) | 9.7% vs 8.4% short, 10.8% vs 10.0% long-form sequential[^distil-card] |
+| `distil-large-v3.5` (2025-03) | 756 M  | English, optimized for popular Whisper libraries   | small further improvement[^distil-card]                               |
+| `distil-medium.en`            | ~395 M | Smaller-footprint English                          | trades accuracy for size                                              |
+| `distil-small.en`             | ~166 M | Very small                                         | trades accuracy for size                                              |
 
 `distil-large-v3` is **51% smaller than `large-v3` and ~6.3× faster on long-form**.[^distil-card] **English only**. Multilingual distilled checkpoints exist as **community efforts** (e.g., `bofenghuang/whisper-large-v3-distil-multi7-v0.2` covering 7 European languages) but are not maintained by HF.[^distil-multi]
 
@@ -226,7 +228,7 @@ A *knowledge-distilled* family of Whisper variants — Hugging Face trained smal
 
 ### `CrisperWhisper` (nyrahealth)
 
-A community fine-tune optimised for *verbatim* transcription with much tighter timestamp boundaries; useful if filler words, repetitions, and disfluencies matter (e.g., for linguistic study). Apache-2.0 weights.[^crisper-card] **Out of scope for v1** but worth flagging.
+A community fine-tune optimised for _verbatim_ transcription with much tighter timestamp boundaries; useful if filler words, repetitions, and disfluencies matter (e.g., for linguistic study). Apache-2.0 weights.[^crisper-card] **Out of scope for v1** but worth flagging.
 
 ### `whisper-timestamped` (linto-ai)
 
@@ -239,13 +241,13 @@ Adds word-level timestamps and per-word confidence on top of openai/whisper with
 ### NVIDIA Parakeet / Canary
 
 - **Model cards:** [`nvidia/parakeet-tdt-0.6b-v2`](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) (English), [`nvidia/parakeet-tdt-0.6b-v3`](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) (25 European languages), `nvidia/parakeet-tdt-1.1b` (older, English), `nvidia/canary-1b`, `nvidia/canary-qwen-2.5b`.
-- **License (model weights):** **CC-BY-4.0**, explicitly: *"License to use this model is covered by the CC-BY-4.0. By downloading the public and release version of the model, you accept the terms and conditions of the CC-BY-4.0 license."*[^parakeet-card][^parakeet-v2-card]
-- **AGPL-compatibility verdict:** **Compatible with caveats.** CC-BY-4.0 allows commercial use and redistribution; the *attribution* requirement (Section 3(a)) must be satisfied — i.e., we must include NVIDIA's model attribution in our distribution. CC-BY-4.0 is **not** an OSI-approved software license, and the [SPDX/FSF positions](https://www.gnu.org/licenses/license-list.html#ccby) flag CC licenses as not ideal for *software* but acceptable for *data/models*. For *weights* (which behave more like data than software), CC-BY-4.0 is generally treated as compatible with AGPL-3.0 distribution as long as attribution is preserved. **Lower-risk than a gated model** (pyannote), **higher-friction than MIT/Apache** (Whisper).
+- **License (model weights):** **CC-BY-4.0**, explicitly: _"License to use this model is covered by the CC-BY-4.0. By downloading the public and release version of the model, you accept the terms and conditions of the CC-BY-4.0 license."_[^parakeet-card][^parakeet-v2-card]
+- **AGPL-compatibility verdict:** **Compatible with caveats.** CC-BY-4.0 allows commercial use and redistribution; the _attribution_ requirement (Section 3(a)) must be satisfied — i.e., we must include NVIDIA's model attribution in our distribution. CC-BY-4.0 is **not** an OSI-approved software license, and the [SPDX/FSF positions](https://www.gnu.org/licenses/license-list.html#ccby) flag CC licenses as not ideal for _software_ but acceptable for _data/models_. For _weights_ (which behave more like data than software), CC-BY-4.0 is generally treated as compatible with AGPL-3.0 distribution as long as attribution is preserved. **Lower-risk than a gated model** (pyannote), **higher-friction than MIT/Apache** (Whisper).
 
 ### Why Parakeet is interesting
 
 - **Top of the [Hugging Face Open ASR Leaderboard](https://huggingface.co/spaces/hf-audio/open_asr_leaderboard)** through 2025 — Canary-Qwen-2.5B at **5.63% average WER**, Parakeet-TDT-0.6B-v2 at **6.05%** while running at **RTFx 3386** (i.e., processes ~1 hour of audio per second on a single GPU at batch 128).[^huggingface-asr-leaderboard][^next-level-asr]
-- **English-only v2 is more accurate than Whisper-large-v3** (8.4% WER) and *vastly* faster.
+- **English-only v2 is more accurate than Whisper-large-v3** (8.4% WER) and _vastly_ faster.
 - **v3** adds 25 European languages, at a small English regression.
 - **Already ONNX-exported in the sherpa-onnx model zoo:** [`sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8`](https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models).[^sherpa-parakeet]
 - **Native CPU performance:** Handy's release notes report ~5× real-time on a mid-range Intel i5 for Parakeet V3 with no GPU.[^handy]
@@ -253,7 +255,7 @@ Adds word-level timestamps and per-word confidence on top of openai/whisper with
 
 ### Why Parakeet is not (yet) a v1 default
 
-- **Streaming story is weaker than Whisper's** — Parakeet is a transducer (TDT) model that *can* be run streamingly, but the canonical inference paths (NeMo / ONNX) assume batch.
+- **Streaming story is weaker than Whisper's** — Parakeet is a transducer (TDT) model that _can_ be run streamingly, but the canonical inference paths (NeMo / ONNX) assume batch.
 - **Multilingual coverage is narrower** — 25 European languages on v3 vs 99 on Whisper.
 - **CC-BY-4.0 attribution requirement** adds a small downstream-redistribution chore (a credits screen entry).
 - **NeMo runtime is heavyweight** if we go through NVIDIA's first-party stack; the ONNX-via-sherpa path is the only sane one for a desktop app.
@@ -268,7 +270,7 @@ Adds word-level timestamps and per-word confidence on top of openai/whisper with
 
 Kaldi-derived, lightweight, **natively streaming**, runs comfortably on a Raspberry Pi or smartphone. English model sizes range from **40 MB `small` (WER ~9.85% LibriSpeech test-clean) to 2.3 GB `gigaspeech` (WER 5.64%)**.[^vosk-models] Native Node, Python, C#, Java, Go, Swift, Kotlin bindings.
 
-**For our use case:** Vosk loses badly to Whisper on accented English, on technical/STEM vocabulary, and on noisy lecture-hall recordings — the WER gap is 3–5× in difficult conditions.[^vosk-vs-whisper] It's the right choice for *low-latency dictation on a 5-year-old laptop* or for *captioning live where Whisper's 1-second window is too laggy*; not the right v1 default for a STEM-leaning note-taker.
+**For our use case:** Vosk loses badly to Whisper on accented English, on technical/STEM vocabulary, and on noisy lecture-hall recordings — the WER gap is 3–5× in difficult conditions.[^vosk-vs-whisper] It's the right choice for _low-latency dictation on a 5-year-old laptop_ or for _captioning live where Whisper's 1-second window is too laggy_; not the right v1 default for a STEM-leaning note-taker.
 
 ### Coqui STT
 
@@ -299,7 +301,7 @@ The full NVIDIA training+inference toolkit. Heavy (gigabytes of Python deps incl
 - **Repo signals (2026-05-23):** 12,423 ★, latest release `v1.13.2` (2026-05-13), last push 2026-05-20. **Very active**, frequent releases.[^sherpa-repo-api]
 - **npm:** [`sherpa-onnx@1.13.2`](https://www.npmjs.com/package/sherpa-onnx), published 2026-05-13.[^npm-sherpa]
 
-This is genuinely interesting for our use case and probably the most underrated option. Sherpa-onnx is a thin, statically-linked ONNX Runtime wrapper around the *next-gen Kaldi* (`k2`) family of models, with first-party support for:
+This is genuinely interesting for our use case and probably the most underrated option. Sherpa-onnx is a thin, statically-linked ONNX Runtime wrapper around the _next-gen Kaldi_ (`k2`) family of models, with first-party support for:
 
 - **Streaming Zipformer (RNN-T)** for true low-latency captioning;
 - **Whisper** in non-streaming mode;
@@ -319,7 +321,7 @@ The big draw is **one runtime that gives us Whisper today + Parakeet tomorrow + 
 - **Repo:** <https://github.com/moonshine-ai/moonshine>
 - **License (code):** **MIT.**
 - **License (model weights):** **MIT for English models. "Moonshine Community License" (non-commercial) for non-English models.**[^moonshine-license-file] **Important read-the-license-twice case.**
-- **AGPL-compatibility verdict:** **Compatible for English; INCOMPATIBLE for non-English models** — the non-commercial Moonshine Community License is *not* AGPL-compatible because AGPL §7 forbids further restrictions, and "non-commercial" is exactly such a restriction.
+- **AGPL-compatibility verdict:** **Compatible for English; INCOMPATIBLE for non-English models** — the non-commercial Moonshine Community License is _not_ AGPL-compatible because AGPL §7 forbids further restrictions, and "non-commercial" is exactly such a restriction.
 - **Repo signals (2026-05-23):** 8,223 ★, latest release `v0.0.59` (2026-04-20). Active.[^moonshine-repo-api]
 
 ### Why Moonshine is interesting for dictation
@@ -340,34 +342,35 @@ The big draw is **one runtime that gives us Whisper today + Parakeet tomorrow + 
 
 Always **opt-in**, never default. Documented here for the moments where the user explicitly says "I'm OK with this audio leaving the device because I need the best possible accuracy on this important lecture."
 
-| Provider | Best feature for us | Privacy posture | Pricing (May 2026, public) | On-prem option? |
-|---|---|---|---|---|
-| **AssemblyAI** | Best diarization + speaker labels; "Universal-2" multilingual model; LeMUR for post-processing; topic/sentiment | SOC 2 Type 1+2, ISO 27001; BAA at enterprise tier only.[^aai-deepgram-compare] | ~$0.12–0.37/hr depending on tier | Yes, enterprise VPC/on-prem; no public air-gap. |
-| **Deepgram** | Lowest latency; best WER on phone-quality audio; Nova-3 with custom vocab API | SOC 2 Type II; HIPAA + BAA via enterprise; SOC 2, GDPR, CCPA, PCI.[^deepgram-privacy] | ~$0.04–0.43/hr (Nova-3) | Yes — Docker/Podman/K8s self-host; License Proxy for single egress. |
-| **Speechmatics** | Strongest accuracy on accented English (UK origin); best public air-gap story | ISO 27001:2022, SOC 2 Type II, HIPAA-stated.[^aai-speechmatics-compare] | ~$0.10–0.30/hr | **Yes — full on-premise + edge supported**, the strongest of the three for air-gapped deployment. |
-| **OpenAI Whisper API** | Cheap, well-known | OpenAI Data Privacy applies (no training on API data, 30-day retention by default).[^openai-privacy-policy] | $0.006/min ≈ $0.36/hr | No. |
+| Provider               | Best feature for us                                                                                             | Privacy posture                                                                                             | Pricing (May 2026, public)       | On-prem option?                                                                                   |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **AssemblyAI**         | Best diarization + speaker labels; "Universal-2" multilingual model; LeMUR for post-processing; topic/sentiment | SOC 2 Type 1+2, ISO 27001; BAA at enterprise tier only.[^aai-deepgram-compare]                              | ~$0.12–0.37/hr depending on tier | Yes, enterprise VPC/on-prem; no public air-gap.                                                   |
+| **Deepgram**           | Lowest latency; best WER on phone-quality audio; Nova-3 with custom vocab API                                   | SOC 2 Type II; HIPAA + BAA via enterprise; SOC 2, GDPR, CCPA, PCI.[^deepgram-privacy]                       | ~$0.04–0.43/hr (Nova-3)          | Yes — Docker/Podman/K8s self-host; License Proxy for single egress.                               |
+| **Speechmatics**       | Strongest accuracy on accented English (UK origin); best public air-gap story                                   | ISO 27001:2022, SOC 2 Type II, HIPAA-stated.[^aai-speechmatics-compare]                                     | ~$0.10–0.30/hr                   | **Yes — full on-premise + edge supported**, the strongest of the three for air-gapped deployment. |
+| **OpenAI Whisper API** | Cheap, well-known                                                                                               | OpenAI Data Privacy applies (no training on API data, 30-day retention by default).[^openai-privacy-policy] | $0.006/min ≈ $0.36/hr            | No.                                                                                               |
 
 **Recommended cloud-backup provider for this project:** **Deepgram or Speechmatics**, picked at runtime by the user. Deepgram for accuracy + latency + BYOK enterprise SSO; Speechmatics for the air-gap option which matters most to institutional/research customers. AssemblyAI's diarization is best-in-class but the privacy posture is less institutional-friendly.
 
 ### OS-native STT
 
-| OS | API | On-device? | Useful for us? |
-|---|---|---|---|
-| **macOS** | `SFSpeechRecognizer` (Speech framework) | **On-device since macOS 10.15 Catalina** if `supportsOnDeviceRecognition == true` (true on Apple Silicon; varies on Intel by locale). **Less accurate than cloud variant.**[^sfspeech-rod] | Marginal — quality is below Whisper-small. Useful only as a zero-install fallback. |
-| **Windows** | `Windows.Media.SpeechRecognition` (UWP) | **No usable offline free-form dictation.** Local grammar-constrained recognition works offline; free-form dictation requires cloud ("Online Speech Recognition" toggle).[^win-srec] | Not useful for our use case. |
-| **Linux** | None standard. | — | Not applicable. |
+| OS          | API                                     | On-device?                                                                                                                                                                                 | Useful for us?                                                                     |
+| ----------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| **macOS**   | `SFSpeechRecognizer` (Speech framework) | **On-device since macOS 10.15 Catalina** if `supportsOnDeviceRecognition == true` (true on Apple Silicon; varies on Intel by locale). **Less accurate than cloud variant.**[^sfspeech-rod] | Marginal — quality is below Whisper-small. Useful only as a zero-install fallback. |
+| **Windows** | `Windows.Media.SpeechRecognition` (UWP) | **No usable offline free-form dictation.** Local grammar-constrained recognition works offline; free-form dictation requires cloud ("Online Speech Recognition" toggle).[^win-srec]        | Not useful for our use case.                                                       |
+| **Linux**   | None standard.                          | —                                                                                                                                                                                          | Not applicable.                                                                    |
 
 **Verdict:** OS-native STT is **not a viable cross-platform baseline**. Use only on macOS as an opportunistic fallback if Whisper isn't installed yet.
 
 ### Web Speech API (`SpeechRecognition`) — the privacy footgun
 
 The browser API `window.SpeechRecognition` / `webkitSpeechRecognition`:
+
 - On Chrome/Chromium (the rendering engine inside Electron): **historically streamed audio to Google's cloud servers** with no clear user disclosure beyond the mic permission prompt.[^webspeech-privacy]
-- Chrome 139 (August 2025) added an opt-in `processLocally` flag that *can* run on-device — **but it's opt-in, the page must request it explicitly, and support is "best effort"**.[^chrome139-onbeing-device] If the device doesn't support it, Chrome silently falls back to the cloud path.
+- Chrome 139 (August 2025) added an opt-in `processLocally` flag that _can_ run on-device — **but it's opt-in, the page must request it explicitly, and support is "best effort"**.[^chrome139-onbeing-device] If the device doesn't support it, Chrome silently falls back to the cloud path.
 - On Safari, the spec/implementation calls Apple's cloud (not on-device).
 - On Firefox, the API is gated behind a pref and largely non-functional in 2026.
 
-**Do not use Web Speech API as a "local" recognition path** in an offline-first / FERPA-conscious app. Even with `processLocally: true`, the silent-fallback behavior makes it impossible to *guarantee* the audio stays on the device. Document this prominently in the app's privacy page; ensure the in-app dictation never routes through `SpeechRecognition` regardless of how convenient it would be.
+**Do not use Web Speech API as a "local" recognition path** in an offline-first / FERPA-conscious app. Even with `processLocally: true`, the silent-fallback behavior makes it impossible to _guarantee_ the audio stays on the device. Document this prominently in the app's privacy page; ensure the in-app dictation never routes through `SpeechRecognition` regardless of how convenient it would be.
 
 ---
 
@@ -375,13 +378,13 @@ The browser API `window.SpeechRecognition` / `webkitSpeechRecognition`:
 
 ### Voice Activity Detection (VAD)
 
-| VAD | License | Verdict | Notes |
-|---|---|---|---|
-| **Silero VAD** (`snakers4/silero-vad`) | MIT[^silero-license-file] | **Compatible** | The de-facto choice. ONNX model ~few MB. Used by faster-whisper, sherpa-onnx, Handy. Latest `v6.2.1` 2026-02-24, active.[^silero-repo-api] |
-| **WebRTC VAD** | BSD-3 | Compatible | Old, lightweight, more false positives than Silero. Sufficient for "strip silence before sending to Whisper". |
-| **`vad-rs`** | MIT (Rust port of Silero) | Compatible | Used by Handy. Pure Rust, no Python. Good if your sidecar is Rust. |
-| **`ricky0123/vad-web`** | ISC[^vadweb-license] | Compatible | Silero VAD packaged for the browser/Node. Useful in the renderer. |
-| **faster-whisper built-in `vad_filter`** | MIT | Compatible | Just Silero with batteries included; no extra integration. |
+| VAD                                      | License                   | Verdict        | Notes                                                                                                                                      |
+| ---------------------------------------- | ------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Silero VAD** (`snakers4/silero-vad`)   | MIT[^silero-license-file] | **Compatible** | The de-facto choice. ONNX model ~few MB. Used by faster-whisper, sherpa-onnx, Handy. Latest `v6.2.1` 2026-02-24, active.[^silero-repo-api] |
+| **WebRTC VAD**                           | BSD-3                     | Compatible     | Old, lightweight, more false positives than Silero. Sufficient for "strip silence before sending to Whisper".                              |
+| **`vad-rs`**                             | MIT (Rust port of Silero) | Compatible     | Used by Handy. Pure Rust, no Python. Good if your sidecar is Rust.                                                                         |
+| **`ricky0123/vad-web`**                  | ISC[^vadweb-license]      | Compatible     | Silero VAD packaged for the browser/Node. Useful in the renderer.                                                                          |
+| **faster-whisper built-in `vad_filter`** | MIT                       | Compatible     | Just Silero with batteries included; no extra integration.                                                                                 |
 
 **Recommendation:** **Silero VAD** via faster-whisper's `vad_filter=True` for the Python sidecar path, or via sherpa-onnx's first-party Silero integration for the sherpa path. There's no good reason to roll your own.
 
@@ -396,7 +399,7 @@ There are two patterns; both are accessible if implemented correctly:
 
 WCAG 2.1 success criterion **1.2.4 Captions (Live)** (Level AA) requires captions for live media, and the WAI guidance explicitly says **auto-generated captions are not by themselves sufficient** for prerecorded content (SC 1.2.2): "Captions are provided for all prerecorded audio content in synchronized media."[^wcag-captions-aelira] For live, no fixed accuracy threshold is mandated, but the working consensus from accessibility consultants is **≥95% accuracy as a floor and ~99% as the human-captioning industry baseline**.[^level-access]
 
-**Practical implication for our app:** when we present live transcripts as captions, we **must** prominently label them as auto-generated, **must** allow the user to flag corrections in-line (which then feed back into the post-recording high-accuracy rerun), and **must not** claim WCAG 1.2.4 compliance from auto-captions alone. Live captions in this app are a *cognitive accessibility aid*, not a *deaf/hard-of-hearing accommodation*.
+**Practical implication for our app:** when we present live transcripts as captions, we **must** prominently label them as auto-generated, **must** allow the user to flag corrections in-line (which then feed back into the post-recording high-accuracy rerun), and **must not** claim WCAG 1.2.4 compliance from auto-captions alone. Live captions in this app are a _cognitive accessibility aid_, not a _deaf/hard-of-hearing accommodation_.
 
 ### Pre-roll buffering
 
@@ -410,7 +413,7 @@ The "I just realized I should be recording" pattern: keep a rolling 30–60 s au
 
 - **Repo:** <https://github.com/pyannote/pyannote-audio>
 - **License (code):** **MIT** — verified.[^pyannote-license-file]
-- **License (models):** MIT *but gated* — `pyannote/speaker-diarization-3.1` and its dependency `pyannote/segmentation-3.0` both require accepting Hugging Face terms and using an HF auth token at download time.[^pyannote-gate]
+- **License (models):** MIT _but gated_ — `pyannote/speaker-diarization-3.1` and its dependency `pyannote/segmentation-3.0` both require accepting Hugging Face terms and using an HF auth token at download time.[^pyannote-gate]
 - **AGPL-compatibility verdict (code):** Compatible.
 - **AGPL-compatibility verdict (model redistribution):** **Conditional and effectively no** — the HF gating mechanism prevents us from bundling the weights in our installer. End users must accept the terms themselves and supply an HF token, which is a real onboarding friction wall.
 - **Repo signals (2026-05-23):** 9,977 ★, latest release `4.0.4` (2026-02-07), active.[^pyannote-repo-api]
@@ -437,12 +440,12 @@ Diarization on CPU in 2026 **works** but is **not free**: 3–10% additional CPU
 
 The use case: a student selects text in a transcript and is taken to that exact moment in the original audio. Cheap if alignment is segment-level (`{start: 17.4s, end: 21.2s, text: "..."}`); expensive if word-level (`{words: [{w: "the", t: 17.42}, {w: "professor", t: 17.51}, ...]}`).
 
-| Engine | Mechanism | Boundary error (median) | CPU overhead |
-|---|---|---|---|
-| `whisper.cpp` `--dtw` | DTW on cross-attention[^dtw-paper] | ~50–100 ms | ~+10%[^dtw-overhead] |
-| `faster-whisper` `word_timestamps=True` | Same DTW, integrated | ~50–100 ms | ~+5–15% |
-| WhisperX | Forced alignment to wav2vec2-CTC phoneme model | **~20 ms** | ~+30–50% (loads a second model) |
-| `whisper-timestamped` | Cross-attention + per-word confidence | ~50–100 ms | ~+15% (AGPL — see §5) |
+| Engine                                  | Mechanism                                      | Boundary error (median) | CPU overhead                    |
+| --------------------------------------- | ---------------------------------------------- | ----------------------- | ------------------------------- |
+| `whisper.cpp` `--dtw`                   | DTW on cross-attention[^dtw-paper]             | ~50–100 ms              | ~+10%[^dtw-overhead]            |
+| `faster-whisper` `word_timestamps=True` | Same DTW, integrated                           | ~50–100 ms              | ~+5–15%                         |
+| WhisperX                                | Forced alignment to wav2vec2-CTC phoneme model | **~20 ms**              | ~+30–50% (loads a second model) |
+| `whisper-timestamped`                   | Cross-attention + per-word confidence          | ~50–100 ms              | ~+15% (AGPL — see §5)           |
 
 **Design implication:** if word-level alignment is too expensive at live time, **commit to segment-level for the live path and run a word-level re-alignment pass after recording stops** as a background job. This naturally complements the "re-transcribe at higher accuracy after the lecture ends" pattern.
 
@@ -482,7 +485,7 @@ We are an **Electron or Tauri** app with **a Python sidecar already required** f
 - **Pros:** **one runtime that covers Whisper + Parakeet + Zipformer + diarization + VAD**; first-party Node API; prebuilt; small footprint; supports both streaming and non-streaming.
 - **Cons:** smaller community than whisper.cpp; harder to debug when something goes wrong; some models still require manual conversion to ONNX.
 
-### Recommendation for *this* project
+### Recommendation for _this_ project
 
 **Lowest-friction sidecar pattern given our context: Option B (reuse Python sidecar with faster-whisper) as the v1 default, with Option D (sherpa-onnx in Node) as the v1.x replacement once we want a unified streaming + Parakeet path.**
 
@@ -513,7 +516,7 @@ Rationale: we're already paying the Python-sidecar cost. Adding faster-whisper t
 ### GPU-accelerated path (when present)
 
 - **On NVIDIA:** faster-whisper switches to CUDA + cuDNN automatically; pull in `nvidia-cudnn-cu12`. `large-v3-turbo` runs at 10–30× real-time, opening up live word-level timestamps and live diarization.
-- **On Apple Silicon (Metal):** Python sidecar path can't use Metal directly (no CT2 Metal backend). Either (a) accept the CPU performance and trust the M-series chip is fast enough (it is for everything except `large-v3`), or (b) ship whisper.cpp as a *secondary* CLI sidecar invoked only on macOS when the user opts into "use Metal acceleration". A reasonable v1.1 upgrade.
+- **On Apple Silicon (Metal):** Python sidecar path can't use Metal directly (no CT2 Metal backend). Either (a) accept the CPU performance and trust the M-series chip is fast enough (it is for everything except `large-v3`), or (b) ship whisper.cpp as a _secondary_ CLI sidecar invoked only on macOS when the user opts into "use Metal acceleration". A reasonable v1.1 upgrade.
 
 ### Cloud opt-in backup
 
@@ -538,7 +541,7 @@ Rationale: we're already paying the Python-sidecar cost. Adding faster-whisper t
 
 - **Memory:** faster-whisper holds the full encoded mel in RAM by default — a 4-hour lecture is ~8 GB at FP16. Mitigation: process in 30-minute logical chunks with VAD-aligned boundaries, then stitch transcripts. whisper.cpp's memory profile stays flat regardless of audio length but linear CPU growth applies either way.[^promptquorum-bench]
 - **Hallucination drift:** the longer the file, the more `condition_on_previous_text=True` (the default) amplifies any single hallucination across subsequent windows. **Set it to `False` for lectures longer than ~30 minutes**, accepting the small accuracy hit at chunk boundaries.[^memo-hallu]
-- **Right chunk size:** 30 s logical chunks for streaming/live (the Whisper-native window); 30–60 *minute* chunks for offline re-pass with VAD-aligned boundaries.
+- **Right chunk size:** 30 s logical chunks for streaming/live (the Whisper-native window); 30–60 _minute_ chunks for offline re-pass with VAD-aligned boundaries.
 
 ### Language switching mid-recording
 
@@ -552,14 +555,14 @@ Multilingual classrooms (a professor swapping between English and Mandarin, code
 
 ### Model storage and first-run download UX
 
-| Default model | Disk | First-run download | When to use this default |
-|---|---|---|---|
-| `tiny` 39 M FP16 | ~75 MiB | Instant on any network | Initial install / extremely slow connections / very old laptops |
-| `base` 74 M FP16 | ~142 MiB | A few seconds | Conservative default for the dictation path |
-| `small` 244 M INT8 | ~250 MiB | ~30 s on broadband | Reasonable lecture default for users on a budget laptop |
+| Default model              | Disk         | First-run download      | When to use this default                                               |
+| -------------------------- | ------------ | ----------------------- | ---------------------------------------------------------------------- |
+| `tiny` 39 M FP16           | ~75 MiB      | Instant on any network  | Initial install / extremely slow connections / very old laptops        |
+| `base` 74 M FP16           | ~142 MiB     | A few seconds           | Conservative default for the dictation path                            |
+| `small` 244 M INT8         | ~250 MiB     | ~30 s on broadband      | Reasonable lecture default for users on a budget laptop                |
 | **`distil-large-v3` INT8** | **~750 MiB** | **~2 min on broadband** | **Recommended lecture default for English speakers on a 2022+ laptop** |
-| `large-v3-turbo` INT8 | ~810 MiB | ~2 min | Recommended lecture default for multilingual users |
-| `large-v3` FP16 | ~2.9 GiB | ~10 min | Power-user opt-in for highest accuracy (post-recording reruns only) |
+| `large-v3-turbo` INT8      | ~810 MiB     | ~2 min                  | Recommended lecture default for multilingual users                     |
+| `large-v3` FP16            | ~2.9 GiB     | ~10 min                 | Power-user opt-in for highest accuracy (post-recording reruns only)    |
 
 **Recommended UX:** ship the app with **no model bundled** (keeps the installer tiny) and download `base` on first launch in the background; offer an explicit "pick your lecture-transcription model" first-run prompt with the table above and an honest "100 MB → 800 MB depending on accuracy" framing. Show download progress prominently with WCAG-compliant ARIA live region updates.
 
@@ -576,23 +579,23 @@ Below this floor: **fall back to `small` or `tiny` and document the accuracy reg
 
 ### Background processing on macOS / Windows energy and battery implications
 
-- **macOS** App Nap will throttle the renderer if the app is backgrounded. The Python sidecar will *not* be throttled, but if it's pegging a core for a 90-minute lecture re-pass, the user's fan ramps and battery dies. Mitigation: detect `powerMonitor.isOnBatteryPower()` and prefer the post-recording rerun to only kick off when plugged in (with a user-visible toggle).
+- **macOS** App Nap will throttle the renderer if the app is backgrounded. The Python sidecar will _not_ be throttled, but if it's pegging a core for a 90-minute lecture re-pass, the user's fan ramps and battery dies. Mitigation: detect `powerMonitor.isOnBatteryPower()` and prefer the post-recording rerun to only kick off when plugged in (with a user-visible toggle).
 - **Windows** has similar Modern Standby implications — Electron apps that spawn long-running native processes can keep the system from entering S0ix; this is a known cause of "laptop hot in the bag" complaints. Document this clearly.
 - **Linux** depends entirely on the desktop environment; less constrained than macOS/Windows.
 
 ### Library / model-weight licenses with surprising terms
 
 1. **Parakeet — CC-BY-4.0 weights.** Compatible with AGPL distribution; **requires NVIDIA attribution preserved in our installer's credits and the about box.**[^parakeet-card]
-2. **pyannote diarization weights — gated.** Code is MIT but model download requires the *end user* to accept HF terms with an HF auth token. **We cannot pre-bundle pyannote weights in our installer.** Use sherpa-onnx's ONNX-exported diarization models instead for the no-friction path.[^pyannote-gate]
+2. **pyannote diarization weights — gated.** Code is MIT but model download requires the _end user_ to accept HF terms with an HF auth token. **We cannot pre-bundle pyannote weights in our installer.** Use sherpa-onnx's ONNX-exported diarization models instead for the no-friction path.[^pyannote-gate]
 3. **Moonshine non-English weights — Moonshine Community License (non-commercial).** **AGPL-incompatible.** Only ship the English Moonshine weights; if we want non-English Moonshine support, the model has to be downloaded by the user themselves under that license, not bundled by us.[^moonshine-license-file]
-4. **`whisper-timestamped` — AGPL-3.0 code.** Same license as us, *compatible*, but using it makes the AGPL obligations *extra* sticky on the transitive dependency graph. Prefer `faster-whisper`'s built-in `word_timestamps` for the same feature under MIT.[^wt-repo]
+4. **`whisper-timestamped` — AGPL-3.0 code.** Same license as us, _compatible_, but using it makes the AGPL obligations _extra_ sticky on the transitive dependency graph. Prefer `faster-whisper`'s built-in `word_timestamps` for the same feature under MIT.[^wt-repo]
 5. **Vosk — most models Apache-2.0, but per-model check needed.** Some specialty acoustic models have additional commercial-use clauses in the Vosk model index. Bundle only the canonical Apache-2.0 English/Spanish/etc. models.
 6. **OpenAI Whisper API (cloud) Terms of Use** prohibit certain content categories and require disclosure to end users about audio being sent to OpenAI. If we offer it as a cloud fallback, the disclosure language goes in the dialog where the user opts in, not buried in a privacy policy.
 7. **Const-me/Whisper — MPL-2.0** (file-level copyleft). Compatible with AGPL but means modifications to those specific files must be released. Not a real concern since we wouldn't fork it anyway in 2026.
 
 ---
 
-[^paper]: Radford et al., *Robust Speech Recognition via Large-Scale Weak Supervision*, OpenAI, 2022. <https://cdn.openai.com/papers/whisper.pdf>. Released alongside the `openai/whisper` repo.
+[^paper]: Radford et al., _Robust Speech Recognition via Large-Scale Weak Supervision_, OpenAI, 2022. <https://cdn.openai.com/papers/whisper.pdf>. Released alongside the `openai/whisper` repo.
 
 [^openai-license-file]: `LICENSE` file at <https://github.com/openai/whisper/blob/main/LICENSE>, fetched via the GitHub Contents API on 2026-05-23 and decoded. Standard MIT License text, `Copyright (c) 2022 OpenAI`. Verified directly, not from README summary.
 
@@ -618,7 +621,7 @@ Below this floor: **fall back to `small` or `tiny` and document the accuracy reg
 
 [^whispercpp-models]: `models/README.md` at <https://github.com/ggml-org/whisper.cpp/blob/master/models/README.md>, fetched 2026-05-23. Lists tiny (75 MiB), base (142 MiB), small (466 MiB), medium (1.5 GiB), large-v1/v2/v3 (2.9 GiB), large-v3-turbo (1.5 GiB), with `-q5_0` quantized variants (e.g., `large-v3-turbo-q5_0` at 547 MiB).
 
-[^dtw-paper]: Cao et al., *Whisper Has an Internal Word Aligner*, 2025. <https://arxiv.org/abs/2509.09987>. Identifies specific attention heads in Whisper that capture accurate word alignments and proposes character-level-filtered DTW for sub-100 ms boundary accuracy.
+[^dtw-paper]: Cao et al., _Whisper Has an Internal Word Aligner_, 2025. <https://arxiv.org/abs/2509.09987>. Identifies specific attention heads in Whisper that capture accurate word alignments and proposes character-level-filtered DTW for sub-100 ms boundary accuracy.
 
 [^dtw-overhead]: <https://github.com/ggml-org/whisper.cpp/discussions/2307>, "Word level time stamps with Whisper 1.6.2 / DTW" — reports ~10% CPU overhead for DTW.
 
@@ -672,7 +675,7 @@ Below this floor: **fall back to `small` or `tiny` and document the accuracy reg
 
 [^distil-repo-api]: GitHub API `repos/huggingface/distil-whisper`, retrieved 2026-05-23: `stargazers_count: 4081`, `latestRelease: null`, `pushed_at: 2025-01-08T10:09:47Z`. Repo activity slowed but HF model variants continue to receive updates (distil-large-v3.5 released 2025-03-25).
 
-[^distil-paper]: Gandhi et al., *Distil-Whisper: Robust Knowledge Distillation via Large-Scale Pseudo Labelling*, 2023. <https://arxiv.org/pdf/2311.00430>.
+[^distil-paper]: Gandhi et al., _Distil-Whisper: Robust Knowledge Distillation via Large-Scale Pseudo Labelling_, 2023. <https://arxiv.org/pdf/2311.00430>.
 
 [^distil-multi]: Community multilingual distillations e.g. <https://huggingface.co/bofenghuang/whisper-large-v3-distil-multi7-v0.2> (7 European languages), <https://huggingface.co/bofenghuang/whisper-large-v3-distil-multi4-v0.2> (4 European languages).
 
@@ -692,7 +695,7 @@ Below this floor: **fall back to `small` or `tiny` and document the accuracy reg
 
 [^parakeet-v2-card]: <https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2>, fetched 2026-05-23. CC-BY-4.0; English-only; up to 24 minutes of audio in a single inference; RTFx 3386 at batch_size=128 on the HF Open ASR leaderboard.
 
-[^huggingface-asr-leaderboard]: <https://huggingface.co/spaces/hf-audio/open_asr_leaderboard> and the corresponding paper <https://arxiv.org/abs/2510.06961>, *Open ASR Leaderboard: Towards Reproducible and Transparent Multilingual Speech Recognition Evaluation*. Canary-Qwen-2.5B at 5.63% average WER; Parakeet-TDT-0.6B-v2 at 6.05% WER with RTFx 3386.
+[^huggingface-asr-leaderboard]: <https://huggingface.co/spaces/hf-audio/open_asr_leaderboard> and the corresponding paper <https://arxiv.org/abs/2510.06961>, _Open ASR Leaderboard: Towards Reproducible and Transparent Multilingual Speech Recognition Evaluation_. Canary-Qwen-2.5B at 5.63% average WER; Parakeet-TDT-0.6B-v2 at 6.05% WER with RTFx 3386.
 
 [^next-level-asr]: <https://nextlevel.ai/best-speech-to-text-models/>, "Best Speech to Text Models 2026" — corroborates the leaderboard numbers.
 
@@ -728,7 +731,7 @@ Below this floor: **fall back to `small` or `tiny` and document the accuracy reg
 
 [^sherpa-readme]: README at <https://github.com/k2-fsa/sherpa-onnx>, fetched 2026-05-23. Enumerates 12 language bindings (C, C++, Python, JavaScript, Java, C#, Kotlin, Swift, Go, Dart, Rust, Pascal), supported model families (Zipformer streaming/offline, Paraformer, Whisper, Parakeet, SenseVoice, Moonshine, CTC variants), Silero VAD integration, speaker diarization, WebAssembly support.
 
-[^moonshine-arxiv]: Jeffries et al., *Moonshine: Speech Recognition for Live Transcription and Voice Commands*, Useful Sensors, 2024. <https://arxiv.org/abs/2410.15608>. Quantifies Moonshine's adaptive-window architecture (processing time proportional to audio length rather than fixed-30-s) and its short-utterance regression.
+[^moonshine-arxiv]: Jeffries et al., _Moonshine: Speech Recognition for Live Transcription and Voice Commands_, Useful Sensors, 2024. <https://arxiv.org/abs/2410.15608>. Quantifies Moonshine's adaptive-window architecture (processing time proportional to audio length rather than fixed-30-s) and its short-utterance regression.
 
 [^moonshine-license-file]: `LICENSE` file at <https://github.com/moonshine-ai/moonshine/blob/main/LICENSE>, fetched via the GitHub Contents API on 2026-05-23 and decoded. **Mixed:** "The code in this repo (https://github.com/moonshine-ai/moonshine), apart from the source in core/third-party, is licensed under the MIT License. The English-language models are also released under the MIT License. See SECTION 1 for terms. Models for other languages are released under the Moonshine Community License, which is a non-commercial license. See SECTION 2 for terms." Verified directly.
 
@@ -744,7 +747,7 @@ Below this floor: **fall back to `small` or `tiny` and document the accuracy reg
 
 [^openai-privacy-policy]: OpenAI API Data Usage Policy <https://openai.com/policies/api-data-usage-policies>: API submitted data is not used for training; 30-day retention by default; zero-data-retention available for eligible customers.
 
-[^sfspeech-rod]: Apple Developer Documentation, *SFSpeechRecognitionRequest.requiresOnDeviceRecognition*: "A Boolean value that determines whether a request must keep its audio data on the device." Constraint: requires `SFSpeechRecognizer.supportsOnDeviceRecognition == true`. On-device speech recognition works on iOS 13+ and macOS Catalina+; all Mac devices support it but accuracy is lower than the cloud variant. <https://developer.apple.com/documentation/speech/sfspeechrecognitionrequest/requiresondevicerecognition>.
+[^sfspeech-rod]: Apple Developer Documentation, _SFSpeechRecognitionRequest.requiresOnDeviceRecognition_: "A Boolean value that determines whether a request must keep its audio data on the device." Constraint: requires `SFSpeechRecognizer.supportsOnDeviceRecognition == true`. On-device speech recognition works on iOS 13+ and macOS Catalina+; all Mac devices support it but accuracy is lower than the cloud variant. <https://developer.apple.com/documentation/speech/sfspeechrecognitionrequest/requiresondevicerecognition>.
 
 [^win-srec]: Microsoft Learn, `Windows.Media.SpeechRecognition` namespace docs and Q&A thread <https://learn.microsoft.com/en-us/answers/questions/2121375/does-another-local-offline-api-have-less-lag-than>. Local grammar-constrained recognition is offline; free-form dictation requires the "Online Speech Recognition" toggle.
 

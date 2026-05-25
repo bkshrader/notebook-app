@@ -1,9 +1,11 @@
 # Project Roadmap
 
 ## Version 1.0
+
 Minimum viable product
 
 Features:
+
 - [Accessibility focused](./features/accessibility/OVERVIEW.md)
   - First-class keyboard navigation
   - Screen reader support
@@ -24,11 +26,12 @@ Features:
 - [AI is BYO (bring your own)](./features/byo-ai/OVERVIEW.md): user configures an OpenAI-compatible endpoint per profile (local or cloud)
 - Build-time feature flag to produce an AI-free distribution.
 
-
 ## Version 1.1
+
 Research features and UI polish
 
 Features:
+
 - [Document ingestion](./features/document-ingestion/OVERVIEW.md)
   - pdf, docx, pptx, audio, video, image
   - LLM-enhanced OCR for image-based documents
@@ -41,9 +44,11 @@ Features:
 - [Document search](./features/document-search/OVERVIEW.md)
 
 ## Version 2.0
+
 High-value high-effort features
 
 Features:
+
 - [Whiteboard / Infinite canvas](./features/whiteboard/OVERVIEW.md)
 - [Rich markdown editor](./features/rich-markdown-editor/OVERVIEW.md)
 - [Timestamp-anchored notes](./features/timestamp-anchored-notes/OVERVIEW.md) for audio/video sources
@@ -56,9 +61,11 @@ Features:
 - [Mind maps](./features/mind-maps/OVERVIEW.md)
 
 ## Version 3.0
+
 Nice-to-have high-effort features
 
 Features:
+
 - [Mobile app](./features/mobile-app/OVERVIEW.md)
 - [Browser extension](./features/browser-extension/OVERVIEW.md)
 - [Remote sync](./features/remote-sync/OVERVIEW.md)
@@ -66,7 +73,7 @@ Features:
 - [Video overviews](./features/video-overviews/OVERVIEW.md) (with remotion.js or similar)
 - [Time-blocking calendar](./features/time-blocking-calendar/OVERVIEW.md) (maybe out of scope)
 
---- 
+---
 
 ## Out of Scope
 

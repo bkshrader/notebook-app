@@ -6,20 +6,20 @@
 
 ## 1. OpenRouter — Header Block
 
-| Item | Value |
-| --- | --- |
-| Website | <https://openrouter.ai/> |
-| Docs | <https://openrouter.ai/docs> |
-| API reference | <https://openrouter.ai/docs/api/reference/overview> |
-| Pricing page | <https://openrouter.ai/pricing> |
-| Models catalog | <https://openrouter.ai/models> |
-| **TypeScript SDK repo** | <https://github.com/OpenRouterTeam/typescript-sdk> |
-| TypeScript SDK package | `@openrouter/sdk` on npm |
-| **TypeScript SDK license** | **Apache-2.0**[^or-ts-license] |
-| **Python SDK repo** | <https://github.com/OpenRouterTeam/python-sdk> |
-| Python SDK package | `openrouter` on PyPI |
-| **Python SDK license** | **Apache-2.0**[^or-py-license] |
-| Status | Both first-party SDKs are in beta (breaking changes possible)[^or-ts-license] |
+| Item                       | Value                                                                         |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| Website                    | <https://openrouter.ai/>                                                      |
+| Docs                       | <https://openrouter.ai/docs>                                                  |
+| API reference              | <https://openrouter.ai/docs/api/reference/overview>                           |
+| Pricing page               | <https://openrouter.ai/pricing>                                               |
+| Models catalog             | <https://openrouter.ai/models>                                                |
+| **TypeScript SDK repo**    | <https://github.com/OpenRouterTeam/typescript-sdk>                            |
+| TypeScript SDK package     | `@openrouter/sdk` on npm                                                      |
+| **TypeScript SDK license** | **Apache-2.0**[^or-ts-license]                                                |
+| **Python SDK repo**        | <https://github.com/OpenRouterTeam/python-sdk>                                |
+| Python SDK package         | `openrouter` on PyPI                                                          |
+| **Python SDK license**     | **Apache-2.0**[^or-py-license]                                                |
+| Status                     | Both first-party SDKs are in beta (breaking changes possible)[^or-ts-license] |
 
 ### AGPL compatibility verdict for the SDKs
 
@@ -97,18 +97,14 @@ Send an `Authorization: Bearer <OPENROUTER_API_KEY>` header. Optional `HTTP-Refe
 const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
   method: 'POST',
   headers: {
-    'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+    Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
     'Content-Type': 'application/json',
     'HTTP-Referer': 'https://yourapp.example',
     'X-Title': 'My Notebook App',
   },
   body: JSON.stringify({
     // Fallback list: try Claude first, fall back to GPT-5, then Llama
-    models: [
-      'anthropic/claude-opus-4.7',
-      'openai/gpt-5.5',
-      'meta-llama/llama-3.3-70b-instruct',
-    ],
+    models: ['anthropic/claude-opus-4.7', 'openai/gpt-5.5', 'meta-llama/llama-3.3-70b-instruct'],
     messages: [
       { role: 'system', content: 'You summarize lecture notes.' },
       { role: 'user', content: 'Summarize: ...' },
@@ -130,8 +126,8 @@ const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       },
     },
     provider: {
-      zdr: true,          // route only to Zero-Data-Retention endpoints
-      sort: 'price',      // cheapest qualifying endpoint
+      zdr: true, // route only to Zero-Data-Retention endpoints
+      sort: 'price', // cheapest qualifying endpoint
     },
   }),
 });
@@ -328,15 +324,18 @@ A note-taking app for college students/academics has several concrete LLM use ca
 ### Desktop-app architectural choice: direct-from-client vs. backend-proxied
 
 **Option A — direct from the desktop app with the user's own key (BYOK):**
+
 - Pros: zero infrastructure on your side; the user's prompts and notes never touch your servers; clear privacy story for academic notes (FERPA-ish concerns, IP, personal medical/disability info in study materials); the user controls cost.
 - Cons: users have to obtain an OpenRouter / OpenAI key (friction); you can't easily collect aggregate analytics; rate-limit / quota errors surface directly to users; you must safely store the key in the OS keychain (`safeStorage` in Electron, `keyring` in Tauri).
 - **This is the right default for an accessibility-first, AGPL, local-first note app.** It aligns with the AGPL spirit (the source the user runs is the source they have) and with the privacy expectations of academics.
 
 **Option B — backend-proxied with your platform key:**
+
 - Pros: smoother onboarding, you can rate-limit / cache server-side, you can pre-buy capacity at volume discounts, you can run guardrails centrally.
 - Cons: you become the data processor for everyone's notes (regulatory and privacy headache); you pay for everyone's inference up front; you need to operate a backend.
 
 **Option C — hybrid:**
+
 - BYOK by default. Offer an optional managed tier (your key) for users who don't want to set up a key, ideally with very visible disclosure of what that means privacy-wise.
 
 ### Privacy implications for academic notes
@@ -352,6 +351,7 @@ A note-taking app for college students/academics has several concrete LLM use ca
 ## 6. Things to Know — per option
 
 ### OpenRouter
+
 - **Maturity**: well-established (founded 2023, hugely popular by 2025), heavy traffic, large community.
 - **Pricing surprise**: the "no markup" claim is true for inference, but the 5.5% **credit purchase** fee is the real cost. With $10 you keep $9.45.
 - **Regional availability**: global; you can constrain to ZDR endpoints; some specific providers are US-only.
@@ -361,6 +361,7 @@ A note-taking app for college students/academics has several concrete LLM use ca
 - **Gotchas**: strict tool use (`strict: true`) silently drops without the right header.[^or-structured] Streaming SSE has occasional comment payloads — your parser must tolerate them.[^or-api] Audio in/out requires base64 (no URL fetching).[^or-audio]
 
 ### Vercel AI Gateway
+
 - **Maturity**: 2024+, fast-evolving.
 - **Pricing**: no markup on tokens, including BYOK.[^vercel-gw]
 - **Regional availability**: Vercel's global infra.
@@ -368,42 +369,50 @@ A note-taking app for college students/academics has several concrete LLM use ca
 - **Gotchas**: Most idiomatic from a Vercel/Next.js context; you can use it from anywhere but the developer surface is TS-first.
 
 ### LiteLLM
+
 - **Maturity**: very mature, the default self-hosted choice.
 - **Pricing**: free for OSS; enterprise on request.
 - **Gotchas**: Python only for library use. Proxy server is language-agnostic. Some providers have version-skew when models change rapidly.
 
 ### Portkey
+
 - **Maturity**: well-funded, heavy enterprise focus.
 - **Pricing**: free tier + tiered SaaS; self-hosted OSS gateway is free.
 - **Gotchas**: governance surface is large and may feel heavy for a single-user app.
 
 ### Helicone
+
 - **Maturity**: well-known for observability; gateway is newer.
 - **Pricing**: 10k req/month free; tiered after.
 - **Gotchas**: positioned more as observability + routing, less pure-routing focus.
 
 ### Cloudflare AI Gateway
+
 - **Maturity**: GA, stable.
 - **Pricing**: free.
 - **Coverage**: fewer providers than OpenRouter; doesn't normalize API shape.
 - **Gotchas**: best if you already live on Cloudflare.
 
 ### Requesty
+
 - **Maturity**: newer, ~2024+, growing.
 - **Pricing**: 5% markup on tokens — most expensive of the bunch on inference.
 - **Gotchas**: smaller community, less independent coverage.
 
 ### Bifrost
+
 - **Maturity**: open-source, ~2024+.
 - **Pricing**: free self-hosted.
 - **Gotchas**: you operate it.
 
 ### Together AI
+
 - **Maturity**: very mature for open-source model hosting.
 - **Coverage**: open-source models only — no GPT, no Claude, no Gemini.
 - **Gotchas**: this is an **inference provider**, not a router. Slot it behind one.
 
 ### NotDiamond / Martian / Unify
+
 - **Status**: NotDiamond is alive but complementary (router-over-routers). Martian has pivoted to research. Unify has pivoted to enterprise AI ops.
 - **Gotchas**: don't depend on these as your primary gateway.
 
@@ -411,17 +420,17 @@ A note-taking app for college students/academics has several concrete LLM use ca
 
 ## License-trap summary
 
-| Tool / SDK | License | AGPL-compatible (one-way: incorporate into AGPL app)? |
-| --- | --- | --- |
-| `@openrouter/sdk` (TS) | Apache-2.0[^or-ts-license] | Yes |
-| `openrouter` (Python) | Apache-2.0[^or-py-license] | Yes |
-| Vercel `ai` SDK | Apache-2.0[^vercel-license] | Yes |
-| LiteLLM (main) | MIT[^litellm-license] | Yes |
-| LiteLLM (`enterprise/`) | Commercial[^litellm-license] | **Avoid** if AGPL |
-| Portkey Gateway | MIT[^portkey-license] | Yes |
-| Helicone | Apache-2.0[^helicone-license] | Yes |
-| Bifrost | Apache-2.0[^bifrost] | Yes |
-| Together AI Python SDK | Permissive (Apache-2.0 family) | Yes |
+| Tool / SDK              | License                        | AGPL-compatible (one-way: incorporate into AGPL app)? |
+| ----------------------- | ------------------------------ | ----------------------------------------------------- |
+| `@openrouter/sdk` (TS)  | Apache-2.0[^or-ts-license]     | Yes                                                   |
+| `openrouter` (Python)   | Apache-2.0[^or-py-license]     | Yes                                                   |
+| Vercel `ai` SDK         | Apache-2.0[^vercel-license]    | Yes                                                   |
+| LiteLLM (main)          | MIT[^litellm-license]          | Yes                                                   |
+| LiteLLM (`enterprise/`) | Commercial[^litellm-license]   | **Avoid** if AGPL                                     |
+| Portkey Gateway         | MIT[^portkey-license]          | Yes                                                   |
+| Helicone                | Apache-2.0[^helicone-license]  | Yes                                                   |
+| Bifrost                 | Apache-2.0[^bifrost]           | Yes                                                   |
+| Together AI Python SDK  | Permissive (Apache-2.0 family) | Yes                                                   |
 
 **One-way means**: you can incorporate the SDK into your AGPL project, but the combined work must be distributed under AGPL.[^fsf-license-list] You cannot relicense the SDK itself; you must preserve attribution/NOTICE files.
 
@@ -432,34 +441,65 @@ A note-taking app for college students/academics has several concrete LLM use ca
 ## Footnotes
 
 [^or-homepage]: OpenRouter homepage, <https://openrouter.ai/>, accessed May 2026 — "400+ language models across 60+ providers."
+
 [^or-ts-license]: OpenRouter TypeScript SDK, <https://github.com/OpenRouterTeam/typescript-sdk> — Apache-2.0 license; published as `@openrouter/sdk`; currently in beta.
+
 [^or-py-license]: OpenRouter Python SDK, <https://github.com/OpenRouterTeam/python-sdk> — Apache-2.0; published as `openrouter` on PyPI; requires Python 3.9+.
+
 [^or-pricing]: OpenRouter Pricing page, <https://openrouter.ai/pricing>, accessed May 2026 — 5.5% credit-purchase fee (5% on crypto, $0.80 min); no inference markup; 1M free BYOK requests/month, 5% after; free tier ~50 req/day, 20 RPM; failed/fallback requests not billed.
+
 [^or-quickstart]: OpenRouter Quickstart, <https://openrouter.ai/docs/quickstart> — auth via `Authorization: Bearer`; `https://openrouter.ai/api/v1/chat/completions` endpoint; `~openai/gpt-latest`-style aliases.
+
 [^or-routing]: OpenRouter Provider Routing, <https://openrouter.ai/docs/guides/routing/provider-selection> — `order`, `sort`, `zdr`, exclusion, BYOK partition controls.
+
 [^or-fallbacks]: OpenRouter Model Fallbacks, <https://openrouter.ai/docs/guides/routing/model-fallbacks> — `models[]` array, priority order, billed at the model that actually answered. Use `extra_body` from OpenAI SDK.
+
 [^or-structured]: OpenRouter Structured Outputs, <https://openrouter.ai/docs/guides/features/structured-outputs> — `json_object` vs. `json_schema` modes; strict tool use requires `structured-outputs-2025-11-13` header or the field is stripped.
+
 [^or-byok]: OpenRouter BYOK, <https://openrouter.ai/docs/guides/overview/auth/byok> — prioritized vs. fallback key partitions; "Always use for this provider" prevents fallback to OpenRouter's keys.
+
 [^or-data-collection]: OpenRouter Data Collection, <https://openrouter.ai/docs/guides/privacy/data-collection> — default no prompt storage; opt-in Private Logging; opt-in Use of Inputs/Outputs for 1% discount grants irrevocable commercial-use right.
+
 [^or-zdr]: OpenRouter ZDR, <https://openrouter.ai/docs/guides/features/zdr> — `https://openrouter.ai/api/v1/endpoints/zdr` lists ZDR endpoints; enforce account-level / per-key / per-request (`provider.zdr: true`).
+
 [^or-api]: OpenRouter API Reference Overview, <https://openrouter.ai/docs/api/reference/overview> — SSE streaming with occasional "comment" payloads to skip.
+
 [^or-audio]: OpenRouter Audio guide, <https://openrouter.ai/docs/guides/overview/multimodal/audio> — input via base64 in `input_audio` content blocks; output via `modalities: ["text", "audio"]`, streamed SSE chunks with `delta.audio`. Voices: alloy, echo, fable, onyx, nova, shimmer.
+
 [^or-audio-models]: OpenRouter STT / Audio API announcements, <https://openrouter.ai/docs/guides/overview/multimodal/stt>, <https://openrouter.ai/announcements/announcing-audio-apis> — Whisper-1, Whisper-Large-V3, Whisper-Large-V3-Turbo (99+ languages, 12% WER), GPT-4o Transcribe, Google Chirp 3, Groq Whisper.
+
 [^vercel-gw]: Vercel AI Gateway docs, <https://vercel.com/docs/ai-gateway> — OpenAI Chat Completions / OpenAI Responses / Anthropic Messages compatibility; no markup on tokens including BYOK; embeddings supported.
+
 [^vercel-license]: Vercel `ai` SDK LICENSE, <https://github.com/vercel/ai/blob/main/LICENSE> — Apache-2.0.
+
 [^litellm]: LiteLLM README, <https://github.com/BerriAI/litellm> — 100+ providers; 8 ms P95 at 1k RPS; SDK + proxy modes; `/chat/completions`, `/messages`, `/embeddings`, `/image/generations`, `/audio/transcriptions`, `/batches`.
+
 [^litellm-license]: LiteLLM LICENSE, <https://github.com/BerriAI/litellm/blob/main/LICENSE> — MIT for main codebase; `enterprise/` directory under separate commercial license.
+
 [^portkey-gw]: Portkey Gateway README, <https://github.com/Portkey-AI/gateway> — 45+ providers, 200+ models on gateway (1,600+ via cloud); `npx @portkey-ai/gateway` self-host; Docker, Workers, Kubernetes deploys.
+
 [^portkey-license]: Portkey Gateway LICENSE, <https://github.com/Portkey-AI/gateway/blob/main/LICENSE> — MIT.
+
 [^helicone]: Helicone homepage and README, <https://www.helicone.ai/>, <https://github.com/Helicone/helicone> — 100+ models, 90+ providers; observability + gateway; free tier 10k req/month.
+
 [^helicone-license]: Helicone LICENSE, <https://github.com/Helicone/helicone/blob/main/LICENSE> — Apache-2.0.
+
 [^cf-gw]: Cloudflare AI Gateway docs, <https://developers.cloudflare.com/ai-gateway/> — caching, rate-limiting, retries, model fallback; available on all plans; supports Workers AI, OpenAI, Anthropic, Gemini, Replicate; BYOK via Cloudflare-stored keys.
+
 [^together]: Together AI homepage, <https://www.together.ai/> — full-stack inference / fine-tuning / GPU clusters; open-source model focus; not a cross-provider router.
+
 [^requesty]: Requesty homepage, <https://requesty.ai/> — 400+ models, 5% markup, OpenAI-SDK compatible, geo-routing, PII scrubbing, RBAC, <20 ms failover.
+
 [^unify]: Unify homepage, <https://unify.ai/> — repositioned as "AI operating layer" enterprise integration product in 2026; LLM-routing product appears deprioritized.
+
 [^notdiamond]: NotDiamond homepage, <https://notdiamond.ai/> — intelligent model router that runs over OpenRouter / Hugging Face / Groq / Eden AI; closed-source product; claims 10%+ accuracy, 50%+ cost wins.
+
 [^martian]: Martian homepage, <https://withmartian.com/> — research focus on interpretability (ARES, Code Review Bench) rather than a public router product.
+
 [^openpipe]: OpenPipe pricing docs, <https://docs.openpipe.ai/pricing/pricing> — training $0.48–$2.90 / 1M tokens; hosted inference per-token or hourly compute units; primary product is fine-tuning Llama/Mistral/Qwen, not a router.
+
 [^bifrost]: Bifrost README, <https://github.com/maximhq/bifrost> — Go-based, Apache-2.0, ~11 µs overhead at 5k RPS; 20+ providers, 1,000+ models; semantic caching, MCP gateway, failover.
+
 [^edenai-comp]: Eden AI vs. OpenRouter comparison, <https://www.edenai.co/post/best-alternatives-to-openrouter> — 500+ models across text, OCR, document parsing, speech, translation, image analysis.
+
 [^fsf-license-list]: FSF License List, <https://www.gnu.org/licenses/license-list.html> — Apache-2.0 is compatible with GPLv3 / AGPLv3 (one direction: Apache → GPLv3/AGPLv3, never the reverse). MIT is compatible with all GPL/AGPL versions.

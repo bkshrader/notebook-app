@@ -10,7 +10,7 @@ A calendar / time-blocking view for scheduling study sessions, assignment work, 
 - **Users already have calendars.** Google Calendar, Apple Calendar, Outlook are universal. Asking students to abandon those for our calendar is a hard sell.
 - **The high-value piece (visualizing time blocks for ADHD time-blindness, à la Tiimo) is achievable with a one-way ICS feed.** We publish task due dates as an ICS feed the user subscribes to in their existing calendar — much less scope than building a calendar UI.
 
-## What v3.0 *might* ship
+## What v3.0 _might_ ship
 
 - One-way ICS feed of project deadlines, task due dates, scheduled focus sessions ([pomodoro-timer](../pomodoro-timer/OVERVIEW.md)).
 - Optional in-app week view that mirrors what the ICS feed publishes (read-only; the user schedules in their own calendar).

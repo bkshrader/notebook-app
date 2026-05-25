@@ -8,8 +8,8 @@ In-app PDF rendering with text-layer highlighting that produces note quotes with
 
 - **Tier 0 (always)** — view-only. PDF.js renders the file; scroll, zoom, text-select.
 - **Tier 1 (v1)** — read-and-extract. Tier 0 + text highlights captured into a note as a blockquote with a backlink to "page N of document.pdf."
-- **Tier 2 (deferred)** — annotate-in-place. Drawing/highlighting/sticky-notes persisted *to the PDF file itself*. Most users get by with highlight-to-note; polish-heavy; not v1 or v1.1.
-- **Tier 3 (v1.1)** — OCR + accessibility upgrade. Detect when a PDF lacks a text layer; offer to OCR it in place via `ocrmypdf`, making scanned readings screen-reader-accessible *outside* our app, not just inside it.
+- **Tier 2 (deferred)** — annotate-in-place. Drawing/highlighting/sticky-notes persisted _to the PDF file itself_. Most users get by with highlight-to-note; polish-heavy; not v1 or v1.1.
+- **Tier 3 (v1.1)** — OCR + accessibility upgrade. Detect when a PDF lacks a text layer; offer to OCR it in place via `ocrmypdf`, making scanned readings screen-reader-accessible _outside_ our app, not just inside it.
 
 ## Why this matters
 

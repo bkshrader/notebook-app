@@ -7,22 +7,26 @@ LLM-powered features that operate over the user's notes and sources: chat-with-y
 ## Sub-features
 
 ### Chat with your sources
+
 - Notebook-scoped chat (à la NotebookLM) over the user's notes and ingested sources within a project.
 - Inline citation chips that link to the exact source span — the single best NotebookLM UX pattern to emulate.
 - Refuses gracefully when sources don't cover the question; configurable to fall back to general knowledge with an explicit "this is outside your sources" indicator.
 - Built on the v1.1 [document search](../document-search/OVERVIEW.md) infrastructure extended with semantic embeddings (sqlite-vec).
 
 ### Summarization
+
 - One-click summary of any note, ingested document, transcript, or selection.
 - Configurable length (brief / standard / detailed).
 - Output goes into a new note in the same project with a backlink to source.
 
 ### Tone rewrite
+
 - Rewrite selected text in a different register (formal / casual / clarified / less-emotional / less-jargon).
 - Inspired by Goblin Tools' Formalizer — a documented ADHD/Autism accommodation: rewriting an emotionally-charged email into a calm one is genuinely hard for some users without an external tool.
 - Inline: shows a diff; user accepts or rejects.
 
 ### Audio summaries (free bonus)
+
 - Summarization output → TTS → audio walkthrough. Falls out for free once both summarization and [text-to-speech](../text-to-speech/OVERVIEW.md) exist.
 
 ## Engineering shape
