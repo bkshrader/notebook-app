@@ -12,7 +12,7 @@ npx license-checker --json | jq -r 'to_entries | sort_by(.key) | .[] | "\(.key):
 
 ## Last regenerated
 
-2026-05-25
+2026-05-25 (post-Storybook + React install)
 
 ## AGPL-compatible license allowlist
 
@@ -26,14 +26,14 @@ If a future install introduces a license **not** on this list, treat it as a blo
 - WTFPL (and any `X OR Y` disjunction where at least one option is on this list)
 - GPL-3.0-or-later, LGPL-3.0-or-later, AGPL-3.0-or-later
 
-Watch out for: custom/source-available licenses, CC-BY-NC-*, CC-BY-SA-* on code, and the GPL-2.0 trap below. See [incompatible.md](incompatible.md) for traps already encountered.
+Watch out for: custom/source-available licenses, CC-BY-NC-_, CC-BY-SA-_ on code, and the GPL-2.0 trap below. See [incompatible.md](incompatible.md) for traps already encountered.
 
 ### The GPL-2.0 trap
 
 Package metadata frequently labels a dependency `GPL-2.0` without disambiguating `-only` vs `-or-later`. The distinction matters:
 
 - **GPL-2.0-or-later** is fine. Downstream consumers can relicense to GPL-3.0, which is AGPL-3.0-compatible (GPLv3 §13 added the bridge).
-- **GPL-2.0-only** is a blocker when *linked* into our binary. GPL-2.0 requires the combined work be distributed under GPL-2.0, and it doesn't grant permission to add AGPL-3.0 §13's network-use clause — the two licenses impose conflicting requirements that can't both be satisfied.
+- **GPL-2.0-only** is a blocker when _linked_ into our binary. GPL-2.0 requires the combined work be distributed under GPL-2.0, and it doesn't grant permission to add AGPL-3.0 §13's network-use clause — the two licenses impose conflicting requirements that can't both be satisfied.
 
 **IPC caveat.** "Linked" is the load-bearing word. If we ship GPL-2.0-only code as a separate process talking to us over IPC (pipes, sockets, HTTP, the Python-sidecar pattern we already use for faster-whisper / Docling / Supertonic), the FSF's position is that the two programs are not a single combined work and the license conflict doesn't trigger — each process can be distributed under its own license. This is the same reasoning that lets us ship AGPL-licensed sidecars at all.
 
@@ -47,6 +47,7 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 
 ```
 7zip-bin@5.2.0: MIT
+@adobe/css-tools@4.5.0: MIT
 @axe-core/playwright@4.11.3: MPL-2.0
 @babel/code-frame@7.29.0: MIT
 @babel/compat-data@7.29.3: MIT
@@ -63,9 +64,12 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @babel/helpers@7.29.2: MIT
 @babel/parser@7.29.3: MIT
 @babel/plugin-transform-arrow-functions@7.27.1: MIT
+@babel/runtime@7.29.2: MIT
 @babel/template@7.28.6: MIT
 @babel/traverse@7.29.0: MIT
 @babel/types@7.29.0: MIT
+@bcoe/v8-coverage@1.0.2: MIT
+@blazediff/core@1.9.1: MIT
 @develar/schema-utils@2.6.5: MIT
 @electron/asar@3.4.1: MIT
 @electron/get@2.0.3: MIT
@@ -73,6 +77,9 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @electron/osx-sign@1.3.1: BSD-2-Clause
 @electron/rebuild@3.6.1: MIT
 @electron/universal@2.0.1: MIT
+@emnapi/core@1.9.2: MIT
+@emnapi/runtime@1.9.2: MIT
+@emnapi/wasi-threads@1.2.1: MIT
 @esbuild/win32-x64@0.21.5: MIT
 @eslint-community/eslint-utils@4.9.1: MIT
 @eslint-community/regexpp@4.12.2: MIT
@@ -96,6 +103,7 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @humanwhocodes/module-importer@1.0.1: Apache-2.0
 @humanwhocodes/retry@0.4.3: Apache-2.0
 @isaacs/cliui@8.0.2: ISC
+@joshwooding/vite-plugin-react-docgen-typescript@0.7.0: MIT
 @jridgewell/gen-mapping@0.3.13: MIT
 @jridgewell/remapping@2.3.5: MIT
 @jridgewell/resolve-uri@3.1.2: MIT
@@ -105,12 +113,22 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @lhci/utils@0.15.1: Apache-2.0
 @malept/cross-spawn-promise@2.0.0: Apache-2.0
 @malept/flatpak-bundler@0.4.0: MIT
+@mdx-js/react@3.1.1: MIT
+@napi-rs/wasm-runtime@1.1.4: MIT
 @npmcli/fs@2.1.2: ISC
 @npmcli/move-file@2.0.1: MIT
+@oxc-parser/binding-win32-x64-msvc@0.127.0: MIT
+@oxc-project/types@0.127.0: MIT
+@oxc-project/types@0.132.0: MIT
+@oxc-resolver/binding-win32-x64-msvc@11.19.1: MIT
 @paulirish/trace_engine@0.0.53: BSD-3-Clause
 @pkgjs/parseargs@0.11.0: MIT
 @playwright/test@1.60.0: Apache-2.0
+@polka/url@1.0.0-next.29: MIT
 @puppeteer/browsers@2.13.2: Apache-2.0
+@rolldown/binding-win32-x64-msvc@1.0.2: MIT
+@rolldown/pluginutils@1.0.1: MIT
+@rollup/pluginutils@5.3.0: MIT
 @rollup/rollup-win32-x64-gnu@4.60.4: MIT
 @rollup/rollup-win32-x64-msvc@4.60.4: MIT
 @sentry-internal/tracing@7.120.4: MIT
@@ -120,19 +138,51 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @sentry/types@7.120.4: MIT
 @sentry/utils@7.120.4: MIT
 @sindresorhus/is@4.6.0: MIT
+@standard-schema/spec@1.1.0: MIT
+@storybook/addon-a11y@10.4.1: MIT
+@storybook/addon-docs@10.4.1: MIT
+@storybook/addon-mcp@0.6.0: MIT
+@storybook/addon-vitest@10.4.1: MIT
+@storybook/builder-vite@10.4.1: MIT
+@storybook/csf-plugin@10.4.1: MIT
+@storybook/global@5.0.0: MIT
+@storybook/icons@2.0.2: MIT
+@storybook/mcp@0.7.0: MIT
+@storybook/react-dom-shim@10.4.1: MIT
+@storybook/react-vite@10.4.1: MIT
+@storybook/react@10.4.1: MIT
 @szmarczak/http-timer@4.0.6: MIT
+@testing-library/dom@10.4.1: MIT
+@testing-library/jest-dom@6.9.1: MIT
+@testing-library/user-event@14.6.1: MIT
+@tmcp/adapter-valibot@0.1.6: MIT
+@tmcp/session-manager@0.2.2: MIT
+@tmcp/transport-http@0.8.6: MIT
 @tootallnate/once@2.0.1: MIT
 @tootallnate/quickjs-emscripten@0.23.0: MIT
+@tybys/wasm-util@0.10.2: MIT
+@types/aria-query@5.0.4: MIT
+@types/babel__core@7.20.5: MIT
+@types/babel__generator@7.27.0: MIT
+@types/babel__template@7.4.4: MIT
+@types/babel__traverse@7.28.0: MIT
 @types/cacheable-request@6.0.3: MIT
+@types/chai@5.2.3: MIT
 @types/debug@4.1.13: MIT
+@types/deep-eql@4.0.2: MIT
+@types/doctrine@0.0.9: MIT
 @types/estree@1.0.8: MIT
 @types/fs-extra@9.0.13: MIT
 @types/http-cache-semantics@4.2.0: MIT
 @types/json-schema@7.0.15: MIT
 @types/keyv@3.1.4: MIT
+@types/mdx@2.0.13: MIT
 @types/ms@2.1.0: MIT
 @types/node@20.19.41: MIT
 @types/node@22.19.19: MIT
+@types/react-dom@19.2.3: MIT
+@types/react@19.2.15: MIT
+@types/resolve@1.20.6: MIT
 @types/responselike@1.0.3: MIT
 @types/yauzl@2.10.3: MIT
 @typescript-eslint/eslint-plugin@8.59.4: MIT
@@ -145,6 +195,22 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @typescript-eslint/typescript-estree@8.59.4: MIT
 @typescript-eslint/utils@8.59.4: MIT
 @typescript-eslint/visitor-keys@8.59.4: MIT
+@valibot/to-json-schema@1.7.0: MIT
+@vitest/browser-playwright@4.1.7: MIT
+@vitest/browser@4.1.7: MIT
+@vitest/coverage-v8@4.1.7: MIT
+@vitest/expect@3.2.4: MIT
+@vitest/expect@4.1.7: MIT
+@vitest/mocker@4.1.7: MIT
+@vitest/pretty-format@3.2.4: MIT
+@vitest/pretty-format@4.1.7: MIT
+@vitest/runner@4.1.7: MIT
+@vitest/snapshot@4.1.7: MIT
+@vitest/spy@3.2.4: MIT
+@vitest/spy@4.1.7: MIT
+@vitest/utils@3.2.4: MIT
+@vitest/utils@4.1.7: MIT
+@webcontainer/env@1.1.1: MIT
 @xmldom/xmldom@0.9.10: MIT
 abbrev@1.1.1: ISC
 accepts@1.3.8: MIT
@@ -164,6 +230,7 @@ ansi-regex@5.0.1: MIT
 ansi-regex@6.2.2: MIT
 ansi-styles@3.2.1: MIT
 ansi-styles@4.3.0: MIT
+ansi-styles@5.2.0: MIT
 ansi-styles@6.2.3: MIT
 app-builder-bin@5.0.0-alpha.10: MIT
 app-builder-lib@25.1.8: MIT
@@ -174,6 +241,7 @@ archiver@5.3.2: MIT
 are-we-there-yet@3.0.1: ISC
 argparse@1.0.10: MIT
 argparse@2.0.1: Python-2.0
+aria-query@5.3.0: Apache-2.0
 aria-query@5.3.2: Apache-2.0
 array-buffer-byte-length@1.0.2: MIT
 array-flatten@1.1.1: MIT
@@ -181,8 +249,11 @@ array-includes@3.1.9: MIT
 array.prototype.flat@1.3.3: MIT
 array.prototype.flatmap@1.3.3: MIT
 arraybuffer.prototype.slice@1.0.4: MIT
+assertion-error@2.0.1: MIT
 ast-types-flow@0.0.8: MIT
 ast-types@0.13.4: MIT
+ast-types@0.16.1: MIT
+ast-v8-to-istanbul@1.0.0: MIT
 async-exit-hook@2.0.1: MIT
 async-function@1.0.0: MIT
 async@3.2.6: MIT
@@ -217,6 +288,7 @@ buffer-from@1.1.2: MIT
 buffer@5.7.1: MIT
 builder-util-runtime@9.2.10: MIT
 builder-util@25.1.7: MIT
+bundle-name@4.1.0: MIT
 bytes@3.1.2: MIT
 cac@6.7.14: MIT
 cacache@16.1.3: ISC
@@ -228,9 +300,12 @@ call-bound@1.0.4: MIT
 callsites@3.1.0: MIT
 camelcase@5.3.1: MIT
 caniuse-lite@1.0.30001793: CC-BY-4.0
+chai@5.3.3: MIT
+chai@6.2.2: MIT
 chalk@2.4.2: MIT
 chalk@4.1.2: MIT
 chardet@0.7.0: MIT
+check-error@2.1.3: MIT
 chownr@2.0.0: ISC
 chrome-launcher@0.13.4: Apache-2.0
 chrome-launcher@1.2.1: Apache-2.0
@@ -272,6 +347,8 @@ crc32-stream@4.0.3: MIT
 cross-spawn@7.0.6: MIT
 crypto-random-string@2.0.0: MIT
 csp_evaluator@1.1.5: Apache-2.0
+css.escape@1.5.1: MIT
+csstype@3.2.3: MIT
 damerau-levenshtein@1.0.8: BSD-2-Clause
 data-uri-to-buffer@6.0.2: MIT
 data-view-buffer@1.0.2: MIT
@@ -282,16 +359,21 @@ debug@4.4.3: MIT
 decamelize@1.2.0: MIT
 decimal.js@10.6.0: MIT
 decompress-response@6.0.0: MIT
+deep-eql@5.0.2: MIT
 deep-is@0.1.4: MIT
+default-browser-id@5.0.1: MIT
+default-browser@5.5.0: MIT
 defaults@1.0.4: MIT
 defer-to-connect@2.0.1: MIT
 define-data-property@1.1.4: MIT
 define-lazy-prop@2.0.0: MIT
+define-lazy-prop@3.0.0: MIT
 define-properties@1.2.1: MIT
 degenerator@5.0.1: MIT
 delayed-stream@1.0.0: MIT
 delegates@1.0.0: MIT
 depd@2.0.0: MIT
+dequal@2.0.3: MIT
 destroy@1.2.0: MIT
 detect-libc@2.1.2: Apache-2.0
 detect-node@2.1.0: MIT
@@ -299,6 +381,9 @@ devtools-protocol@0.0.1467305: BSD-3-Clause
 devtools-protocol@0.0.1608973: BSD-3-Clause
 dir-compare@4.2.0: MIT
 dmg-builder@25.1.8: MIT
+doctrine@3.0.0: Apache-2.0
+dom-accessibility-api@0.5.16: MIT
+dom-accessibility-api@0.6.3: MIT
 dot-prop@5.3.0: MIT
 dotenv-expand@11.0.7: BSD-2-Clause
 dotenv@16.6.1: BSD-2-Clause
@@ -314,6 +399,7 @@ electron-vite@2.3.0: MIT
 electron@33.4.11: MIT
 emoji-regex@8.0.0: MIT
 emoji-regex@9.2.2: MIT
+empathic@2.0.1: MIT
 encodeurl@2.0.0: MIT
 encoding@0.1.13: MIT
 end-of-stream@1.4.5: MIT
@@ -323,6 +409,7 @@ err-code@2.0.3: MIT
 es-abstract@1.24.2: MIT
 es-define-property@1.0.1: MIT
 es-errors@1.3.0: MIT
+es-module-lexer@2.1.0: MIT
 es-object-atoms@1.1.2: MIT
 es-set-tostringtag@2.1.0: MIT
 es-shim-unscopables@1.1.0: MIT
@@ -336,19 +423,24 @@ escape-string-regexp@4.0.0: MIT
 escodegen@2.1.0: BSD-2-Clause
 eslint-config-prettier@10.1.8: MIT
 eslint-plugin-jsx-a11y@6.10.2: MIT
+eslint-plugin-storybook@10.4.1: MIT
 eslint-scope@8.4.0: BSD-2-Clause
 eslint-visitor-keys@3.4.3: Apache-2.0
 eslint-visitor-keys@4.2.1: Apache-2.0
 eslint-visitor-keys@5.0.1: Apache-2.0
 eslint@9.39.4: MIT
+esm-env@1.2.2: MIT
 espree@10.4.0: BSD-2-Clause
 esprima@4.0.1: BSD-2-Clause
 esquery@1.7.0: BSD-3-Clause
 esrecurse@4.3.0: BSD-2-Clause
 estraverse@5.3.0: BSD-2-Clause
+estree-walker@2.0.2: MIT
+estree-walker@3.0.3: MIT
 esutils@2.0.3: BSD-2-Clause
 etag@1.8.1: MIT
 events-universal@1.0.1: Apache-2.0
+expect-type@1.3.0: Apache-2.0
 exponential-backoff@3.1.3: Apache-2.0
 express@4.22.2: MIT
 external-editor@3.1.0: MIT
@@ -394,6 +486,7 @@ get-symbol-description@1.1.0: MIT
 get-uri@6.0.5: MIT
 glob-parent@6.0.2: ISC
 glob@10.5.0: ISC
+glob@13.0.6: BlueOak-1.0.0
 glob@7.2.3: ISC
 glob@8.1.0: ISC
 global-agent@3.0.0: BSD-3-Clause
@@ -412,6 +505,7 @@ has-tostringtag@1.0.2: MIT
 has-unicode@2.0.1: ISC
 hasown@2.0.3: MIT
 hosted-git-info@4.1.0: ISC
+html-escaper@2.0.2: MIT
 http-cache-semantics@4.2.0: BSD-2-Clause
 http-errors@2.0.1: MIT
 http-link-header@1.1.3: MIT
@@ -445,15 +539,18 @@ is-bigint@1.1.0: MIT
 is-boolean-object@1.2.2: MIT
 is-callable@1.2.7: MIT
 is-ci@3.0.1: MIT
+is-core-module@2.16.2: MIT
 is-data-view@1.0.2: MIT
 is-date-object@1.1.0: MIT
 is-docker@2.2.1: MIT
+is-docker@3.0.0: MIT
 is-extglob@2.1.1: MIT
 is-finalizationregistry@1.1.1: MIT
 is-fullwidth-code-point@2.0.0: MIT
 is-fullwidth-code-point@3.0.0: MIT
 is-generator-function@1.1.2: MIT
 is-glob@4.0.3: MIT
+is-inside-container@1.0.0: MIT
 is-interactive@1.0.0: MIT
 is-lambda@1.0.1: MIT
 is-map@2.0.3: MIT
@@ -472,21 +569,27 @@ is-weakmap@2.0.2: MIT
 is-weakref@1.1.1: MIT
 is-weakset@2.0.4: MIT
 is-wsl@2.2.0: MIT
+is-wsl@3.1.1: MIT
 isarray@1.0.0: MIT
 isarray@2.0.5: MIT
 isbinaryfile@4.0.10: MIT
 isbinaryfile@5.0.7: MIT
 isexe@2.0.0: ISC
 isomorphic-fetch@3.0.0: MIT
+istanbul-lib-coverage@3.2.2: BSD-3-Clause
+istanbul-lib-report@3.0.1: BSD-3-Clause
+istanbul-reports@3.2.0: BSD-3-Clause
 jackspeak@3.4.3: BlueOak-1.0.0
 jake@10.9.4: Apache-2.0
 jpeg-js@0.4.4: BSD-3-Clause
 js-library-detector@6.7.0: MIT
+js-tokens@10.0.0: MIT
 js-tokens@4.0.0: MIT
 js-yaml@3.14.2: MIT
 js-yaml@4.1.1: MIT
 jsesc@3.1.0: MIT
 json-buffer@3.0.1: MIT
+json-rpc-2.0@1.7.1: MIT
 json-schema-traverse@0.4.1: MIT
 json-stable-stringify-without-jsonify@1.0.1: MIT
 json-stringify-safe@5.0.1: ISC
@@ -506,6 +609,8 @@ lighthouse-logger@1.2.0: Apache-2.0
 lighthouse-logger@2.0.2: Apache-2.0
 lighthouse-stack-packs@1.12.2: Apache-2.0
 lighthouse@12.6.1: Apache-2.0
+lightningcss-win32-x64-msvc@1.32.0: MPL-2.0
+lightningcss@1.32.0: MPL-2.0
 localforage@1.10.0: Apache-2.0
 locate-path@5.0.0: MIT
 locate-path@6.0.0: MIT
@@ -519,13 +624,18 @@ lodash.union@4.6.0: MIT
 lodash@4.18.1: MIT
 log-symbols@4.1.0: MIT
 lookup-closest-locale@6.2.0: MIT
+loupe@3.2.1: MIT
 lowercase-keys@2.0.0: MIT
 lru-cache@10.4.3: ISC
+lru-cache@11.5.0: BlueOak-1.0.0
 lru-cache@5.1.1: ISC
 lru-cache@6.0.0: ISC
 lru-cache@7.18.3: ISC
+lz-string@1.5.0: MIT
 magic-string@0.30.21: MIT
+magicast@0.5.3: MIT
 make-dir@3.1.0: MIT
+make-dir@4.0.0: MIT
 make-fetch-happen@10.2.1: ISC
 marky@1.3.0: Apache-2.0
 matcher@3.0.0: MIT
@@ -542,6 +652,7 @@ mimic-fn@1.2.0: MIT
 mimic-fn@2.1.0: MIT
 mimic-response@1.0.1: MIT
 mimic-response@3.1.0: MIT
+min-indent@1.0.1: MIT
 minimatch@10.2.5: BlueOak-1.0.0
 minimatch@3.1.5: ISC
 minimatch@5.1.9: ISC
@@ -559,6 +670,7 @@ minizlib@2.1.2: MIT
 mitt@3.0.1: MIT
 mkdirp@0.5.6: MIT
 mkdirp@1.0.4: MIT
+mrmime@2.0.1: MIT
 ms@2.0.0: MIT
 ms@2.1.3: MIT
 mute-stream@0.0.7: ISC
@@ -582,17 +694,21 @@ object-keys@1.1.1: MIT
 object.assign@4.1.7: MIT
 object.fromentries@2.0.8: MIT
 object.values@1.2.1: MIT
+obug@2.1.1: MIT
 on-finished@2.4.1: MIT
 on-headers@1.1.0: MIT
 once@1.4.0: ISC
 onetime@2.0.1: MIT
 onetime@5.1.2: MIT
+open@10.2.0: MIT
 open@7.4.2: MIT
 open@8.4.2: MIT
 optionator@0.9.4: MIT
 ora@5.4.1: MIT
 os-tmpdir@1.0.2: MIT
 own-keys@1.0.1: MIT
+oxc-parser@0.127.0: MIT
+oxc-resolver@11.19.1: MIT
 p-cancelable@2.1.1: MIT
 p-limit@2.3.0: MIT
 p-limit@3.1.0: MIT
@@ -609,19 +725,26 @@ parseurl@1.3.3: MIT
 path-exists@4.0.0: MIT
 path-is-absolute@1.0.1: MIT
 path-key@3.1.1: MIT
+path-parse@1.0.7: MIT
 path-scurry@1.11.1: BlueOak-1.0.0
+path-scurry@2.0.2: BlueOak-1.0.0
 path-to-regexp@0.1.13: MIT
+pathe@2.0.3: MIT
+pathval@2.0.1: MIT
 pe-library@0.4.1: MIT
 pend@1.2.0: MIT
 picocolors@1.1.1: ISC
 picomatch@4.0.4: MIT
+picoquery@2.5.0: MIT
 playwright-core@1.60.0: Apache-2.0
 playwright@1.60.0: Apache-2.0
 plist@3.1.1: MIT
+pngjs@7.0.0: MIT
 possible-typed-array-names@1.1.0: MIT
 postcss@8.5.15: MIT
 prelude-ls@1.2.1: MIT
 prettier@3.8.3: MIT
+pretty-format@27.5.1: MIT
 process-nextick-args@2.0.1: MIT
 progress@2.0.3: MIT
 promise-inflight@1.0.1: ISC
@@ -636,10 +759,17 @@ qs@6.15.2: BSD-3-Clause
 quick-lru@5.1.1: MIT
 range-parser@1.2.1: MIT
 raw-body@2.5.3: MIT
+react-docgen-typescript@2.4.0: MIT
+react-docgen@8.0.3: MIT
+react-dom@19.2.6: MIT
+react-is@17.0.2: MIT
+react@19.2.6: MIT
 read-binary-file-arch@1.0.6: MIT
 readable-stream@2.3.8: MIT
 readable-stream@3.6.2: MIT
 readdir-glob@1.1.3: Apache-2.0
+recast@0.23.11: MIT
+redent@3.0.0: MIT
 reflect.getprototypeof@1.0.10: MIT
 regexp.prototype.flags@1.5.4: MIT
 require-directory@2.1.1: MIT
@@ -647,6 +777,7 @@ require-main-filename@2.0.0: ISC
 resedit@1.7.2: MIT
 resolve-alpn@1.2.1: MIT
 resolve-from@4.0.0: MIT
+resolve@1.22.12: MIT
 responselike@2.0.1: MIT
 restore-cursor@2.0.0: MIT
 restore-cursor@3.1.0: MIT
@@ -655,7 +786,9 @@ rimraf@2.7.1: ISC
 rimraf@3.0.2: ISC
 roarr@2.15.4: BSD-3-Clause
 robots-parser@3.0.1: MIT
+rolldown@1.0.2: MIT
 rollup@4.60.4: MIT
+run-applescript@7.1.0: MIT
 run-async@2.4.1: MIT
 rxjs@6.6.7: Apache-2.0
 safe-array-concat@1.1.4: MIT
@@ -666,6 +799,7 @@ safe-regex-test@1.1.0: MIT
 safer-buffer@2.1.2: MIT
 sanitize-filename@1.6.4: WTFPL OR ISC
 sax@1.6.0: BlueOak-1.0.0
+scheduler@0.27.0: MIT
 semver-compare@1.0.0: MIT
 semver@5.7.2: ISC
 semver@6.3.1: ISC
@@ -684,9 +818,11 @@ side-channel-list@1.0.1: MIT
 side-channel-map@1.0.1: MIT
 side-channel-weakmap@1.0.2: MIT
 side-channel@1.1.0: MIT
+siginfo@2.0.0: ISC
 signal-exit@3.0.7: ISC
 signal-exit@4.1.0: ISC
 simple-update-notifier@2.0.0: MIT
+sirv@3.0.2: MIT
 smart-buffer@4.2.0: MIT
 socks-proxy-agent@7.0.0: MIT
 socks-proxy-agent@8.0.5: MIT
@@ -697,10 +833,14 @@ source-map@0.6.1: BSD-3-Clause
 speedline-core@1.4.3: MIT
 sprintf-js@1.0.3: BSD-3-Clause
 sprintf-js@1.1.3: BSD-3-Clause
+sqids@0.3.0: MIT
 ssri@9.0.1: ISC
+stackback@0.0.2: MIT
 stat-mode@1.0.0: MIT
 statuses@2.0.2: MIT
+std-env@4.1.0: MIT
 stop-iteration-iterator@1.1.0: MIT
+storybook@10.4.1: MIT
 streamx@2.25.0: MIT
 string-width@2.1.1: MIT
 string-width@4.2.3: MIT
@@ -715,10 +855,14 @@ strip-ansi@4.0.0: MIT
 strip-ansi@5.2.0: MIT
 strip-ansi@6.0.1: MIT
 strip-ansi@7.2.0: MIT
+strip-bom@3.0.0: MIT
+strip-indent@3.0.0: MIT
+strip-indent@4.1.1: MIT
 strip-json-comments@3.1.1: MIT
 sumchecker@3.0.1: Apache-2.0
 supports-color@5.5.0: MIT
 supports-color@7.2.0: MIT
+supports-preserve-symlinks-flag@1.0.0: MIT
 tar-fs@3.1.2: MIT
 tar-stream@2.2.0: MIT
 tar-stream@3.2.0: MIT
@@ -728,18 +872,28 @@ temp-file@3.4.0: MIT
 text-decoder@1.2.7: Apache-2.0
 third-party-web@0.26.7: MIT
 through@2.3.8: MIT
+tiny-invariant@1.3.3: MIT
+tinybench@2.9.0: MIT
+tinyexec@1.2.2: MIT
 tinyglobby@0.2.16: MIT
+tinyrainbow@2.0.0: MIT
+tinyrainbow@3.1.0: MIT
+tinyspy@4.0.4: MIT
 tldts-core@6.1.86: MIT
 tldts-icann@6.1.86: MIT
+tmcp@1.19.4: MIT
 tmp-promise@3.0.3: MIT
 tmp@0.0.33: MIT
 tmp@0.1.0: MIT
 tmp@0.2.5: MIT
 toidentifier@1.0.1: MIT
+totalist@3.0.1: MIT
 tr46@0.0.3: MIT
 tree-kill@1.2.2: MIT
 truncate-utf8-bytes@1.0.2: WTFPL
 ts-api-utils@2.5.0: MIT
+ts-dedent@2.2.0: MIT
+tsconfig-paths@4.2.0: MIT
 tslib@1.14.1: 0BSD
 tslib@2.8.1: 0BSD
 type-check@0.4.0: MIT
@@ -761,17 +915,25 @@ unique-string@2.0.0: MIT
 universalify@0.1.2: MIT
 universalify@2.0.1: MIT
 unpipe@1.0.0: MIT
+unplugin@2.3.11: MIT
 update-browserslist-db@1.2.3: MIT
 uri-js@4.4.1: BSD-2-Clause
+uri-template-matcher@1.1.2: ISC
+use-sync-external-store@1.6.0: MIT
 utf8-byte-length@1.0.5: (WTFPL OR MIT)
 util-deprecate@1.0.2: MIT
 utils-merge@1.0.1: MIT
 uuid@8.3.2: MIT
+valibot@1.2.0: MIT
+valibot@1.4.1: MIT
 vary@1.1.2: MIT
 vite@5.4.21: MIT
+vite@8.0.14: MIT
+vitest@4.1.7: MIT
 wcwidth@1.0.1: MIT
 webdriver-bidi-protocol@0.4.1: Apache-2.0
 webidl-conversions@3.0.1: BSD-2-Clause
+webpack-virtual-modules@0.6.2: MIT
 whatwg-fetch@3.6.20: MIT
 whatwg-url@5.0.0: MIT
 which-boxed-primitive@1.1.1: MIT
@@ -780,6 +942,7 @@ which-collection@1.0.2: MIT
 which-module@2.0.1: ISC
 which-typed-array@1.1.20: MIT
 which@2.0.2: ISC
+why-is-node-running@2.3.0: MIT
 wide-align@1.1.5: ISC
 word-wrap@1.2.5: MIT
 wrap-ansi@6.2.0: MIT
@@ -789,6 +952,7 @@ wrappy@1.0.2: ISC
 write-file-atomic@3.0.3: ISC
 ws@7.5.11: MIT
 ws@8.21.0: MIT
+wsl-utils@0.1.0: MIT
 xdg-basedir@4.0.0: MIT
 xmlbuilder@15.1.1: MIT
 y18n@4.0.3: ISC

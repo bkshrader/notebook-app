@@ -1,16 +1,21 @@
-name: a11y (axe-core)
+name: a11y (axe-core, full-surface)
 
-# Scaffolded ahead of the React UI landing. Currently a no-op — the `axe` job
-# is gated behind a workflow_dispatch trigger so it does not run on PRs yet.
-# When the app has a rendered surface, flip this to run on `push` + `pull_request`
-# and replace the placeholder step with the real Playwright + @axe-core/playwright run.
+# Component-level axe runs in the `storybook` job in ci.yml: every story is
+# scanned by @storybook/addon-a11y (preview.tsx sets `a11y.test: 'error'`) so
+# any WCAG 2.1 AA violation in any individual story fails CI on every PR.
+#
+# This workflow is reserved for the *next* layer: a Playwright-electron run
+# that boots the assembled app and scans cross-component flows (focus order,
+# contrast across decorators, composed surfaces). It is gated behind
+# workflow_dispatch until the Electron renderer has rendered routes worth
+# scanning.
 
 on:
   workflow_dispatch:
 
 jobs:
   axe:
-    name: axe-core
+    name: axe-core (full-surface)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,13 +24,13 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Install Playwright browsers
+      - name: Install Playwright browser (chromium)
         run: npx playwright install --with-deps chromium
       - name: Run axe-core via Playwright
         run: |
-          echo "TODO: implement once the app has a rendered surface."
-          echo "Expected shape:"
+          echo "TODO: implement once the Electron app has rendered routes."
+          echo "Per-story axe coverage already runs in ci.yml (storybook job)."
+          echo "Expected shape here:"
           echo "  npx playwright test tests/a11y/"
           echo "Each test launches the Electron app (playwright-electron),"
           echo "navigates to a route, and calls AxeBuilder(...).analyze()."
-          echo "Failing the build on any violation of WCAG 2.1 AA rules."
