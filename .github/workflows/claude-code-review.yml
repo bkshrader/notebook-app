@@ -16,6 +16,14 @@ concurrency:
 
 jobs:
   claude-review:
+    # Auto-review runs only on trusted-author, non-Dependabot PRs.
+    # - Fork PRs are excluded: untrusted code should never reach trusted
+    #   tooling (matches the threat model from the CI hardening pass).
+    # - Dependabot PRs are excluded: they are handled by the dedicated
+    #   dependency-review workflow with a tighter, dep-specific prompt.
+    if: |
+      github.event.pull_request.head.repo.fork == false &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -39,5 +47,8 @@ jobs:
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
           prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          # Pin model: Sonnet 4.6 is sufficient for routine code review and
+          # keeps per-PR cost predictable. Bump to Opus for deeper review.
+          claude_args: '--model claude-sonnet-4-6'
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
