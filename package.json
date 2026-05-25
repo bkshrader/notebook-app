@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Accessibility-first note-taking app for academics",
+  "license": "AGPL-3.0-or-later",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
