@@ -16,18 +16,16 @@ concurrency:
 
 jobs:
   claude:
-    # Restricted to the repo owner: anyone with a GitHub account can write
-    # '@claude' in a public comment, so the actor gate has to happen before
-    # the action runs. Add handles to the array to grant access to future
-    # collaborators.
+    # `if:` gates on '@claude' text only — collaborator authorization is
+    # enforced by the preflight step below, which asks GitHub for the live
+    # collaborator status of the triggering user rather than relying on a
+    # hardcoded list. Keeping the text gate in `if:` avoids spinning up a
+    # runner for every issue/comment event in the repo.
     if: |
-      contains(fromJSON('["bkshrader"]'), github.actor) &&
-      (
-        contains(github.event.comment.body, '@claude') ||
-        contains(github.event.review.body, '@claude') ||
-        contains(github.event.issue.body, '@claude') ||
-        contains(github.event.issue.title, '@claude')
-      )
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -37,6 +35,21 @@ jobs:
       id-token: write
       actions: read # Required for Claude to read CI results on PRs
     steps:
+      # Verify the triggering user is a collaborator on this repo BEFORE
+      # invoking Claude. Anyone with a GitHub account can write '@claude' in
+      # a public comment, so this gate is what prevents internet-triggered
+      # runs. GH returns 204 for collaborators and 404 for non-collaborators;
+      # `gh api` exits non-zero on 4xx, so the step fails closed.
+      #
+      # GITHUB_TOKEN is scoped to this step only, so it is not present in env
+      # for the Claude step below (which uses OIDC-minted credentials instead).
+      - name: Verify triggering user has collaborator access
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${{ github.repository }}/collaborators/${{ github.actor }}" --silent \
+            || { echo "::error::${{ github.actor }} is not a collaborator on ${{ github.repository }}; refusing to run @claude."; exit 1; }
+
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
