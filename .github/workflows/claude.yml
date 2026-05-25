@@ -16,11 +16,18 @@ concurrency:
 
 jobs:
   claude:
+    # Restricted to the repo owner: anyone with a GitHub account can write
+    # '@claude' in a public comment, so the actor gate has to happen before
+    # the action runs. Add handles to the array to grant access to future
+    # collaborators.
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      contains(fromJSON('["bkshrader"]'), github.actor) &&
+      (
+        contains(github.event.comment.body, '@claude') ||
+        contains(github.event.review.body, '@claude') ||
+        contains(github.event.issue.body, '@claude') ||
+        contains(github.event.issue.title, '@claude')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -46,10 +53,12 @@ jobs:
           additional_permissions: |
             actions: read
 
+          # Read-and-comment tool allowlist. No Edit/Write/Bash(npm:*) for now —
+          # this workflow is internet-triggered (anyone can write '@claude' in a
+          # public comment), so the bound on damage from prompt injection or
+          # account-takeover is the size of this allowlist. Broaden when this
+          # workflow is actively used and the use cases are known.
+          claude_args: '--allowedTools "Read,Grep,Glob,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),Bash(git status),Bash(git diff:*),Bash(git log:*)"'
+
           # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
           # prompt: 'Update the pull request description to include a summary of changes.'
-
-          # Optional: Add claude_args to customize behavior and configuration
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
-          # claude_args: '--allowed-tools Bash(gh pr *)'
