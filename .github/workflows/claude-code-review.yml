@@ -66,6 +66,20 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      # Two mutable-reference trust assumptions worth being explicit about:
+      #
+      # 1. `anthropics/claude-code-action@v1` is a moving tag. Deliberate
+      #    choice — Anthropic-maintained, first-party for our use case, and
+      #    pinning to a SHA would mean missing security patches between
+      #    manual updates. Revisit if this ever feels too loose.
+      #
+      # 2. `plugin_marketplaces` + `plugins` resolve fresh from HEAD of the
+      #    default branch on every workflow run — there is currently no
+      #    version-pinning syntax in the `plugins:` input. We are trusting
+      #    Anthropic to not push breaking or risk-expanding changes to the
+      #    `code-review` plugin without notice. If that ever needs to
+      #    change, the escape hatch is forking `anthropics/claude-code` and
+      #    pointing `plugin_marketplaces` at the fork at a known-good ref.
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@v1

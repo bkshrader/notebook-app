@@ -66,6 +66,10 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      # `anthropics/claude-code-action@v1` is a moving tag. Deliberate
+      # choice — Anthropic-maintained, first-party for our use case, and
+      # pinning to a SHA would mean missing security patches between manual
+      # updates. Revisit if this ever feels too loose.
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
