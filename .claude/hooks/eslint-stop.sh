@@ -37,8 +37,11 @@ if ! npx --no-install eslint --version >/dev/null 2>&1; then
   exit 0
 fi
 
+OUTPUT_FILE="$(mktemp)"
+trap 'rm -f "$OUTPUT_FILE"' EXIT
+
 set +e
-ESLINT_OUTPUT="$(npx --no-install eslint . 2>&1)"
+npx --no-install eslint . >"$OUTPUT_FILE" 2>&1
 ESLINT_STATUS=$?
 set -e
 
@@ -48,9 +51,23 @@ if [ "$ESLINT_STATUS" -ne 1 ]; then
   exit 0
 fi
 
-REASON="ESLint found errors. Fix them before stopping:
+# Cap the blocked-reason payload. Past ~64KB it stops being actionable feedback
+# and starts being context-window damage; on Windows it also blows past argv limits.
+MAX_BYTES=65536
+BYTES="$(wc -c <"$OUTPUT_FILE")"
+TRUNCATED_FILE="$(mktemp)"
+trap 'rm -f "$OUTPUT_FILE" "$TRUNCATED_FILE"' EXIT
+if [ "$BYTES" -gt "$MAX_BYTES" ]; then
+  {
+    head -c "$MAX_BYTES" "$OUTPUT_FILE"
+    printf '\n\n[truncated: %s of %s bytes shown — fix the errors above, then re-run eslint locally to see the rest]\n' "$MAX_BYTES" "$BYTES"
+  } >"$TRUNCATED_FILE"
+else
+  cp "$OUTPUT_FILE" "$TRUNCATED_FILE"
+fi
 
-$ESLINT_OUTPUT"
-
-jq -n --arg reason "$REASON" '{decision: "block", reason: $reason}'
+jq -n --rawfile output "$TRUNCATED_FILE" '{
+  decision: "block",
+  reason: ("ESLint found errors. Fix them before stopping:\n\n" + $output)
+}'
 exit 0
