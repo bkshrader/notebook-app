@@ -6,6 +6,66 @@ updates:
       interval: weekly
     open-pull-requests-limit: 10
     groups:
+      vite-ecosystem:
+        patterns:
+          - 'vite'
+          - 'electron-vite'
+          - '@vitejs/*'
+          - 'vitest'
+          - '@vitest/*'
+        update-types:
+          - major
+          - minor
+          - patch
+      storybook:
+        patterns:
+          - 'storybook'
+          - '@storybook/*'
+          - 'eslint-plugin-storybook'
+        update-types:
+          - major
+          - minor
+          - patch
+      eslint:
+        patterns:
+          - 'eslint'
+          - '@eslint/*'
+          - 'typescript-eslint'
+          - 'eslint-config-*'
+          - 'eslint-plugin-*'
+        exclude-patterns:
+          - 'eslint-plugin-storybook'
+        update-types:
+          - major
+          - minor
+          - patch
+      playwright:
+        patterns:
+          - 'playwright'
+          - '@playwright/*'
+          - '@axe-core/playwright'
+        update-types:
+          - major
+          - minor
+          - patch
+      electron:
+        patterns:
+          - 'electron'
+          - 'electron-builder'
+        update-types:
+          - major
+          - minor
+          - patch
+      react:
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
+        update-types:
+          - major
+          - minor
+          - patch
       dev-dependencies:
         dependency-type: development
         update-types:
