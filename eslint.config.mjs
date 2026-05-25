@@ -24,6 +24,22 @@ export default tseslint.config(
     files: ['**/*.{js,mjs,cjs}'],
     ...tseslint.configs.disableTypeChecked,
   },
+  // Node-side scripts (CI helpers, etc.) need Node globals declared so
+  // `no-undef` doesn't flag `URL`, `fetch`, `process`, `AbortSignal`, etc.
+  // Scoped narrowly to `scripts/**` so renderer code (which runs in the
+  // Electron sandbox) doesn't pick up Node globals it shouldn't have.
+  {
+    files: ['scripts/**/*.{js,mjs,cjs}'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        URL: 'readonly',
+        fetch: 'readonly',
+        AbortSignal: 'readonly',
+      },
+    },
+  },
   {
     files: ['**/*.{jsx,tsx}'],
     ...jsxA11y.flatConfigs.strict,

@@ -6,7 +6,7 @@
     "src/renderer/src/main.ts",
     "electron.vite.config.ts"
   ],
-  "ignorePatterns": ["out/**", "dist/**", "**/*.d.ts"],
+  "ignorePatterns": ["out/**", "dist/**", "**/*.d.ts", "scripts/**"],
   "rules": {
     "unused-files": "error",
     "unused-exports": "warn",
