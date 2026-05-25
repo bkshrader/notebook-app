@@ -16,16 +16,19 @@ concurrency:
 
 jobs:
   claude:
-    # `if:` gates on '@claude' text only — collaborator authorization is
-    # enforced by the preflight step below, which asks GitHub for the live
-    # collaborator status of the triggering user rather than relying on a
-    # hardcoded list. Keeping the text gate in `if:` avoids spinning up a
-    # runner for every issue/comment event in the repo.
+    # Belt-and-suspenders permission gate:
+    # - `if:` checks `author_association` for fast eager rejection — this
+    #   avoids spinning up a runner when a non-collaborator writes '@claude'
+    #   in a public comment. `author_association` is set by GitHub at trigger
+    #   time and reflects the user's permission on the repo at that moment.
+    # - The preflight step below makes a live API call as defense-in-depth
+    #   against any future edge case where `author_association` lags actual
+    #   permissions (e.g., permission revocation between trigger and run).
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && contains(fromJSON('["OWNER","COLLABORATOR","MEMBER"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') && contains(fromJSON('["OWNER","COLLABORATOR","MEMBER"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') && contains(fromJSON('["OWNER","COLLABORATOR","MEMBER"]'), github.event.review.author_association)) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')) && contains(fromJSON('["OWNER","COLLABORATOR","MEMBER"]'), github.event.issue.author_association))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
