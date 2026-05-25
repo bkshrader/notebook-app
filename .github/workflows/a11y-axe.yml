@@ -9,21 +9,36 @@ name: a11y (axe-core, full-surface)
 # contrast across decorators, composed surfaces). It is gated behind
 # workflow_dispatch until the Electron renderer has rendered routes worth
 # scanning.
+#
+# BEFORE BROADENING THE TRIGGER (e.g. to `pull_request`) — checklist:
+#   - Keep `--ignore-scripts` on `npm ci` (fork PR can ship malicious postinstall).
+#   - Keep `permissions: contents: read` (no job here needs write).
+#   - Keep `timeout-minutes` set (caps any compromise duration).
+#   - Add `concurrency:` group so fork PRs cannot spam runner minutes.
+#   - Pre-bake Chromium system deps into an image OR drop `--with-deps`
+#     (passwordless sudo apt-get install elevates any prior RCE to root).
+#   - `persist-credentials: false` on `actions/checkout` (already present).
 
 on:
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   axe:
     name: axe-core (full-surface)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: Install Playwright browser (chromium)
         run: npx playwright install --with-deps chromium
       - name: Run axe-core via Playwright

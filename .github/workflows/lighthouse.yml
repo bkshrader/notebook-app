@@ -7,21 +7,40 @@ name: Lighthouse CI
 #   - accessibility >= 100  (WCAG 2.1 AA non-negotiable per project charter)
 #   - best-practices >= 95
 #   - performance >= 90  (tentative — ADHD users notice latency)
+#
+# BEFORE BROADENING THE TRIGGER (e.g. to `pull_request`) — checklist:
+#   - Keep `--ignore-scripts` on `npm ci` (fork PR can ship malicious postinstall).
+#   - Keep `permissions: contents: read` (no job here needs write).
+#   - Keep `timeout-minutes` set (caps any compromise duration).
+#   - Add `concurrency:` group so fork PRs cannot spam runner minutes.
+#   - `persist-credentials: false` on `actions/checkout` (already present).
+#   - Lighthouse URL allowlist: do NOT interpolate PR-controlled data
+#     (branch names, preview URLs) into the URLs Lighthouse loads — risks
+#     SSRF to internal/metadata endpoints (e.g. 169.254.169.254).
+#   - For result uploads, prefer `upload.target: "filesystem"` +
+#     `actions/upload-artifact` over `temporary-public-storage` (which
+#     would publish fork-PR HTML to a third-party bucket under our name).
 
 on:
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   lhci:
     name: Lighthouse CI
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - name: Run Lighthouse CI
         run: |
           echo "TODO: implement once the app has a buildable preview."

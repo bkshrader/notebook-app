@@ -21,12 +21,27 @@ If a future install introduces a license **not** on this list, treat it as a blo
 - MIT, ISC, BSD-2-Clause, BSD-3-Clause, 0BSD, BlueOak-1.0.0
 - Apache-2.0
 - MPL-2.0 (file-level copyleft, compatible)
-- Python-2.0
+- Python-2.0, Zlib, Unlicense
 - CC0-1.0, CC-BY-4.0 (for non-code assets)
 - WTFPL (and any `X OR Y` disjunction where at least one option is on this list)
-- GPL-3.0-or-later, LGPL-3.0-or-later, AGPL-3.0-or-later
+- GPL-3.0-or-later, GPL-3.0-only, LGPL-3.0-or-later, AGPL-3.0-or-later, AGPL-3.0-only
+
+The `-only` variants of GPL/AGPL are admitted because our project is itself AGPL-3.0-or-later and we don't need downstream relicensing flexibility. The `-or-later` form is still preferred for new deps because it leaves future relicensing options open.
 
 Watch out for: custom/source-available licenses, CC-BY-NC-_, CC-BY-SA-_ on code, and the GPL-2.0 trap below. See [incompatible.md](incompatible.md) for traps already encountered.
+
+### Bare `BSD` (no version)
+
+`license-checker` infers `BSD` (no clause-count suffix) for packages where the `package.json` `license` field is missing or non-SPDX, and the LICENSE file's heuristic match lands on the BSD family. Currently in our tree this applies only to `parse-cache-control@1.0.1`, whose LICENSE file is the standard BSD-2-Clause text. The bare `BSD` allow-list entry exists to admit this case without forcing every BSD-inferred package onto an override list. If a future package resolves to bare `BSD` and inspection shows it's not actually BSD-family, that's a blocker — investigate the LICENSE file.
+
+## Keeping the workflow allow list in sync
+
+This allowlist is enforced in CI by the `license-check` job in `.github/workflows/ci.yml`, which passes a `--onlyAllow` string to `license-checker`. **The two lists must stay in sync.** When evaluating a new license:
+
+1. Read the upstream LICENSE file (not just the `license` field) and confirm AGPL-3.0-or-later compatibility against the considerations in this document.
+2. If approved: add the SPDX identifier to **both** the list above and the `--onlyAllow` string in `ci.yml`. Re-run `license-checker` per the regen command above and update the package list.
+3. If rejected: add an entry to [incompatible.md](incompatible.md) with the package name, the license, and the reasoning. Do **not** add to the allowlist.
+4. The workflow uses _exact-string match_ on license identifiers — SPDX expressions like `(MIT OR CC0-1.0)` must be added as literal strings if they appear in our tree.
 
 ### The GPL-2.0 trap
 
