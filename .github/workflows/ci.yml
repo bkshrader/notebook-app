@@ -148,7 +148,7 @@ jobs:
           npx license-checker \
             --production \
             --excludePrivatePackages \
-            --onlyAllow "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;BSD;MPL-2.0;BlueOak-1.0.0;CC0-1.0;CC-BY-4.0;Unlicense;Python-2.0;Zlib;AGPL-3.0-or-later;AGPL-3.0-only;GPL-3.0-or-later;GPL-3.0-only"
+            --onlyAllow "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;BSD;MPL-2.0;BlueOak-1.0.0;CC0-1.0;CC-BY-4.0;Unlicense;Python-2.0;Zlib;AGPL-3.0-or-later;AGPL-3.0-only;GPL-3.0-or-later;GPL-3.0-only;LGPL-3.0-or-later"
 
   storybook:
     name: storybook
@@ -169,9 +169,13 @@ jobs:
         run: npm run build-storybook
       - name: Run story tests (a11y + interaction via Vitest)
         run: npm run test-storybook
-      # Skip artifact upload on fork PRs — a malicious fork PR could
+      # `always()` overrides the default `success()` gate so we still upload
+      # storybook-static/ when build-storybook or test-storybook fail — the
+      # partial artifact is the diagnostic surface for the failure. The
+      # fork-PR check is a security control: a malicious fork PR could
       # populate storybook-static/ with attacker-controlled HTML that a
-      # reviewer might download and open. Trusted-source runs only.
+      # reviewer might download and open, so we only preserve artifacts for
+      # trusted-source runs.
       - name: Upload Storybook static site
         if: always() && github.event.pull_request.head.repo.fork != true
         uses: actions/upload-artifact@v7
