@@ -76,6 +76,10 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # Pin to Node 24 LTS (the project's runtime).
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: '/'
