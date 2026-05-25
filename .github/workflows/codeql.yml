@@ -8,20 +8,35 @@ on:
   schedule:
     - cron: '0 6 * * 1'
 
+# Workflow-level default; the analyze job overrides for security-events.
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   analyze:
     name: Analyze (javascript-typescript)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       security-events: write
       contents: read
       actions: read
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
-      - uses: github/codeql-action/autobuild@v4
+          # `build-mode: none` is the modern recommendation for JS/TS —
+          # CodeQL extracts from source without running any build, so the
+          # autobuild step (which would otherwise execute project code) is
+          # eliminated. Closes a fork-PR code-execution channel.
+          build-mode: none
       - uses: github/codeql-action/analyze@v4
         with:
           category: '/language:javascript-typescript'
