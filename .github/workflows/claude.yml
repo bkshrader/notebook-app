@@ -1,0 +1,102 @@
+name: Claude Code
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+  pull_request_review:
+    types: [submitted]
+
+concurrency:
+  group: claude-mention-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  claude:
+    # Belt-and-suspenders permission gate:
+    # - `if:` checks `author_association` for fast eager rejection — this
+    #   avoids spinning up a runner when a non-collaborator writes '@claude'
+    #   in a public comment. `author_association` is set by GitHub at trigger
+    #   time and reflects the user's permission on the repo at that moment.
+    # - The preflight step below makes a live API call as defense-in-depth
+    #   against any future edge case where `author_association` lags actual
+    #   permissions (e.g., permission revocation between trigger and run).
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && contains(fromJSON('["OWNER","COLLABORATOR","MEMBER"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') && contains(fromJSON('["OWNER","COLLABORATOR","MEMBER"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') && contains(fromJSON('["OWNER","COLLABORATOR","MEMBER"]'), github.event.review.author_association)) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')) && contains(fromJSON('["OWNER","COLLABORATOR","MEMBER"]'), github.event.issue.author_association))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      # `id-token: write` is the GitHub Actions permission to request an OIDC
+      # token from GitHub's identity provider. It does NOT grant write access
+      # to repository content. The Claude GitHub App uses the OIDC token to
+      # authenticate to Anthropic and mint a short-lived, app-scoped
+      # installation token — the token Claude actually uses for repo
+      # operations is scoped by the GitHub App's installation permissions,
+      # not by this workflow's permissions block.
+      id-token: write
+      actions: read # Required for Claude to read CI results on PRs
+    steps:
+      # Verify the triggering user is a collaborator on this repo BEFORE
+      # invoking Claude. Anyone with a GitHub account can write '@claude' in
+      # a public comment, so this gate is what prevents internet-triggered
+      # runs. GH returns 204 for collaborators and 404 for non-collaborators;
+      # `gh api` exits non-zero on 4xx, so the step fails closed.
+      #
+      # GITHUB_TOKEN is scoped to this step only, so it is not present in env
+      # for the Claude step below (which uses OIDC-minted credentials instead).
+      - name: Verify triggering user has collaborator access
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${{ github.repository }}/collaborators/${{ github.actor }}" --silent \
+            || { echo "::error::${{ github.actor }} is not a collaborator on ${{ github.repository }}; refusing to run @claude."; exit 1; }
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      # `anthropics/claude-code-action@v1` is a moving tag. Deliberate
+      # choice — Anthropic-maintained, first-party for our use case, and
+      # pinning to a SHA would mean missing security patches between manual
+      # updates. Revisit if this ever feels too loose.
+      - name: Run Claude Code
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+          # This is an optional setting that allows Claude to read CI results on PRs
+          additional_permissions: |
+            actions: read
+
+          # Read-and-comment tool allowlist. No Edit/Write/Bash(npm:*) for now —
+          # this workflow is internet-triggered (anyone can write '@claude' in a
+          # public comment), so the bound on damage from prompt injection or
+          # account-takeover is the size of this allowlist. Broaden when this
+          # workflow is actively used and the use cases are known.
+          #
+          # Known limitation: `gh pr view/diff` and `gh issue view` are
+          # inbound prompt-injection channels — they pull attacker-influenced
+          # text (any user can author an issue/PR body, including ones
+          # designed to manipulate Claude). The bound on resulting damage is
+          # the collaborator gate (preflight step) plus the absence of
+          # Edit/Write/network tools in this allowlist. A tighter design
+          # would pre-fetch the triggering issue/PR (and optionally linked
+          # ones) in a preflight step and give Claude only `Read` access to
+          # the fetched context — discussed in the PR-52 review thread,
+          # deferred until usage patterns justify the YAML cost.
+          claude_args: '--allowedTools "Read,Grep,Glob,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),Bash(git status),Bash(git diff:*),Bash(git log:*)"'
+
+          # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
+          # prompt: 'Update the pull request description to include a summary of changes.'
