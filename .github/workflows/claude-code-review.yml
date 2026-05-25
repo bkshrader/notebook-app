@@ -3,12 +3,32 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    # Strict allowlist of code-and-code-adjacent paths. Docs-only PRs
+    # (`docs/**`, root `*.md`, `LICENSE`) skip Claude review entirely.
+    # New top-level configs need explicit additions here — the allowlist
+    # stance trades "miss reviewing a new path" for "forget to add a new
+    # path", which is the right direction for this project.
+    #
+    # Excluded by design:
+    # - `package-lock.json`: lockfile changes are caught by `npm audit` and
+    #   `license-check` CI gates; Dependabot lockfile PRs are handled by the
+    #   dedicated dependency-review workflow.
+    # - `.prettierrc`, `.prettierignore`, `.gitattributes`: rare-touch,
+    #   appearance-only or deliberate-by-author files; low review value.
+    paths:
+      # Application source.
+      - 'src/**'
+      # Storybook config (TypeScript, drives the storybook build).
+      - '.storybook/**'
+      # Dependency manifest — intent (new deps, scripts, engines).
+      - 'package.json'
+      # Build and tooling configs that affect lint/typecheck/build outcomes.
+      - 'electron.vite.config.ts'
+      - 'eslint.config.mjs'
+      - 'tsconfig*.json'
+      - '.fallowrc.json'
+      # CI / Actions workflow changes warrant careful review.
+      - '.github/**'
 
 concurrency:
   group: claude-review-${{ github.event.pull_request.number }}
