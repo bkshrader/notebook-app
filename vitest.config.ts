@@ -21,6 +21,9 @@ export default defineConfig({
           // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
           storybookTest({ configDir: path.join(dirname, '.storybook') }),
         ],
+        optimizeDeps: {
+          include: ['react/jsx-dev-runtime'],
+        },
         test: {
           name: 'storybook',
           browser: {
