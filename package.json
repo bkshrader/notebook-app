@@ -13,6 +13,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "audit:fallow": "fallow audit",
     "package": "electron-vite build && electron-builder --dir",
     "dist": "electron-vite build && electron-builder"
   },
@@ -24,6 +25,7 @@
     "electron-vite": "^2.3.0",
     "eslint": "^10.4.0",
     "eslint-config-prettier": "^10.1.8",
+    "fallow": "^2.80.0",
     "prettier": "3.8.3",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.59.4",

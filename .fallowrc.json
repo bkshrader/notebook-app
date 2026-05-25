@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": [
+    "src/main/index.ts",
+    "src/preload/index.ts",
+    "src/renderer/src/main.ts",
+    "electron.vite.config.ts"
+  ],
+  "ignorePatterns": ["out/**", "dist/**", "**/*.d.ts"],
+  "rules": {
+    "unused-files": "error",
+    "unused-exports": "warn",
+    "unused-dependencies": "warn",
+    "circular-dependency": "error"
+  }
+}
