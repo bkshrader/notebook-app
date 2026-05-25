@@ -38,7 +38,7 @@
     "@vitest/coverage-v8": "^4.1.7",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
-    "electron-vite": "^2.3.0",
+    "electron-vite": "^5.0.0",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsx-a11y": "^6.10.2",
