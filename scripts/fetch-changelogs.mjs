@@ -80,6 +80,7 @@
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { execFile as execFileCb } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -227,6 +228,15 @@ export function extractBumps(diff) {
 //   - owner/repo segments that are "." or ".."
 //
 // Returns { owner, repo } on success, or null on rejection.
+//
+// Validation order matters: the pre-parse string check runs *before*
+// `new URL(...)` because the URL parser silently normalizes traversal
+// sequences (e.g. `/foo/bar/../../../etc/passwd` → `/etc/passwd`), which
+// would otherwise pass the strict 2-segment regex as if the package's
+// repository were `etc/passwd`. The post-parse `.`/`..` segment check is
+// a second line of defense for cases the pre-parse misses, like
+// `https://github.com/./bar` (no `..` in the string, but `.` is still a
+// traversal sigil we don't want to interpolate).
 export function validateRepositoryUrl(input) {
   if (typeof input !== 'string') return null;
 
@@ -235,23 +245,8 @@ export function validateRepositoryUrl(input) {
   let url = input;
   if (url.startsWith('git+')) url = url.slice(4);
 
-  // Pre-parse sanity: reject any path-traversal or encoded-slash sigils in
-  // the raw string. The URL parser would otherwise silently normalize
-  // `https://github.com/foo/bar/../../../etc/passwd` to a clean
-  // `/etc/passwd`, which would then pass the strict 2-segment regex below
-  // as if the package's repository were `etc/passwd`. Reject the input
-  // *before* normalization erases the evidence.
-  if (url.includes('..') || url.includes('//github.com//') || /%2f/i.test(url) || /\\/.test(url)) {
-    // Note: the `//` check above is path-specific (two slashes inside the
-    // path portion); the protocol's `//` is always preceded by `:` so this
-    // substring search won't false-positive on `https://github.com/...`.
-    // Only an actual `//github.com//foo` (empty owner segment) matches.
-    // We also reject backslashes — Windows-style separators have no place
-    // in an https URL and are an injection footgun.
-    return null;
-  }
+  if (containsTraversalSigil(url)) return null;
 
-  // Parse with URL — rejects malformed inputs and normalizes percent-encoding.
   let parsed;
   try {
     parsed = new URL(url);
@@ -259,30 +254,50 @@ export function validateRepositoryUrl(input) {
     return null;
   }
 
-  if (parsed.protocol !== 'https:') return null;
-  if (parsed.host !== 'github.com') return null;
-  if (parsed.username !== '' || parsed.password !== '') return null;
-  if (parsed.port !== '') return null;
-  if (parsed.search !== '') return null;
-  if (parsed.hash !== '') return null;
+  if (!hasSafeUrlComponents(parsed)) return null;
 
-  // Pathname must be exactly /<owner>/<repo> or /<owner>/<repo>.git.
-  const path = parsed.pathname;
-  const TOKEN = /^[A-Za-z0-9._-]+$/;
-  const match = path.match(/^\/([^/]+)\/([^/]+?)(\.git)?$/);
+  return extractOwnerRepo(parsed.pathname);
+}
+
+// Pre-parse string check: reject inputs containing traversal sigils
+// (`..`, double-slash inside path, encoded slash, backslash) before the
+// URL parser normalizes the evidence away. See validateRepositoryUrl
+// header for the rationale.
+//
+// `//github.com//` (note the trailing `//`) catches the empty-owner
+// pathological case `https://github.com//bar`. The protocol's `//` is
+// always preceded by `:`, so the search doesn't false-positive on the
+// canonical `https://github.com/...`.
+function containsTraversalSigil(url) {
+  return url.includes('..') || url.includes('//github.com//') || /%2f/i.test(url) || /\\/.test(url);
+}
+
+// Post-parse component check: reject anything beyond a bare https URL
+// to github.com. No userinfo, no port, no query, no fragment, no
+// subdomain.
+function hasSafeUrlComponents(parsed) {
+  return (
+    parsed.protocol === 'https:' &&
+    parsed.host === 'github.com' &&
+    parsed.username === '' &&
+    parsed.password === '' &&
+    parsed.port === '' &&
+    parsed.search === '' &&
+    parsed.hash === ''
+  );
+}
+
+// Parse `/<owner>/<repo>(.git)?` and validate both segments. Returns
+// `{owner, repo}` on success or `null` on rejection. The `.`/`..`
+// rejection backstops `containsTraversalSigil` for single-dot segments
+// that don't contain a `..` substring.
+const TOKEN = /^[A-Za-z0-9._-]+$/;
+function extractOwnerRepo(pathname) {
+  const match = pathname.match(/^\/([^/]+)\/([^/]+?)(\.git)?$/);
   if (!match) return null;
-
-  const owner = match[1];
-  const repo = match[2];
-
-  // Reject "." and ".." explicitly — both pass [.-A-Za-z0-9] but are
-  // filesystem-traversal sigils we never want to interpolate. (The
-  // pre-parse `..` check catches them in the input string, but a single
-  // `.` segment also slips past the token regex and needs explicit
-  // rejection here.)
+  const [, owner, repo] = match;
   if (owner === '.' || owner === '..' || repo === '.' || repo === '..') return null;
   if (!TOKEN.test(owner) || !TOKEN.test(repo)) return null;
-
   return { owner, repo };
 }
 
@@ -344,8 +359,11 @@ export async function fetchRegistryMetadata(name, version, { fetchImpl = fetch }
 // Look up a GitHub release by tag, trying `v<version>` then `<version>`.
 // Uses `gh api` so it picks up the workflow's GH_TOKEN.
 //
-// Returns { tag, title, body, date } on success, or null if neither tag
-// resolves. Errors are returned via the warnings array.
+// Returns { tag, title, body, date } on success, or { tag: null, ... } if
+// neither tag resolves. The warnings array records both attempts when the
+// whole chain fails — a v-prefix 404 followed by a bare-version success
+// is silent (expected), but two failures both get reported so a
+// rate-limit or auth issue isn't masked as "no release found".
 export async function fetchRelease(owner, repo, version, { execImpl = execFile } = {}) {
   // owner/repo are already strictly validated; version is URL-encoded as a
   // belt-and-suspenders defense. (The validator does not cover version
@@ -353,7 +371,8 @@ export async function fetchRelease(owner, repo, version, { execImpl = execFile }
   // want a `+` to be interpreted as a space.)
   const encVer = encodeURIComponent(version);
   const candidates = [`v${encVer}`, encVer];
-  const warnings = [];
+  const attemptErrors = [];
+
   for (const tag of candidates) {
     try {
       const { stdout } = await execImpl(
@@ -367,18 +386,20 @@ export async function fetchRelease(owner, repo, version, { execImpl = execFile }
         title: typeof data.name === 'string' ? data.name : '',
         body: typeof data.body === 'string' ? data.body : '',
         date: typeof data.published_at === 'string' ? data.published_at : '',
-        warnings,
+        warnings: [],
       };
     } catch (err) {
-      // 404 is expected when the tag-prefix convention does not match;
-      // record at debug level only on the second miss.
-      if (tag === candidates[candidates.length - 1]) {
-        warnings.push(
-          `gh api releases/tags lookup failed for ${owner}/${repo}@${version}: ${err.message.split('\n')[0]}`,
-        );
-      }
+      attemptErrors.push({ tag, message: err.message.split('\n')[0] });
     }
   }
+
+  // All attempts failed — surface every attempt in warnings so a
+  // pattern that isn't "404 on tag" (auth, rate limit, network) is
+  // visible in the artifact.
+  const warnings = attemptErrors.map(
+    ({ tag, message }) =>
+      `gh api releases/tags/${tag} failed for ${owner}/${repo}@${version}: ${message}`,
+  );
   return { tag: null, title: null, body: null, date: null, warnings };
 }
 
@@ -386,7 +407,75 @@ export async function fetchRelease(owner, repo, version, { execImpl = execFile }
 // Main
 // ---------------------------------------------------------------------------
 
-export async function run(opts) {
+// Per-package pipeline: registry lookup → URL validation → release fetch
+// → size-cap. Returns `{ entry, bodyBytes, capped }`, where `bodyBytes`
+// is the size accounted against the cumulative cap (0 if no changelog
+// was attached) and `capped` is true iff this entry triggered the
+// cumulative-bytes ceiling.
+//
+// Dependencies are injected so the function is unit-testable without
+// network or subprocess access.
+async function processBump(bump, opts, deps) {
+  const entry = {
+    name: bump.name,
+    oldVersion: bump.oldVersion,
+    newVersion: bump.newVersion,
+    repository: null,
+    changelog: null,
+  };
+  const warnings = [];
+
+  const meta = await fetchRegistryMetadata(bump.name, bump.newVersion, {
+    fetchImpl: deps.fetchImpl,
+  });
+  warnings.push(...meta.warnings);
+  if (!meta.repository) {
+    entry.skippedReason = 'no repository field in registry metadata';
+    return { entry, warnings, bodyBytes: 0, capped: false };
+  }
+
+  const validated = validateRepositoryUrl(meta.repository);
+  if (!validated) {
+    entry.skippedReason = `repository URL failed validation: ${meta.repository}`;
+    return { entry, warnings, bodyBytes: 0, capped: false };
+  }
+  entry.repository = validated;
+
+  const release = await fetchRelease(validated.owner, validated.repo, bump.newVersion, {
+    execImpl: deps.execImpl,
+  });
+  warnings.push(...release.warnings);
+  if (!release.tag) {
+    entry.skippedReason = 'no matching GitHub release tag';
+    return { entry, warnings, bodyBytes: 0, capped: false };
+  }
+
+  let body = release.body ?? '';
+  let truncated = false;
+  if (body.length > opts.maxBytesPerChangelog) {
+    body = body.slice(0, opts.maxBytesPerChangelog) + '\n\n[truncated]';
+    truncated = true;
+  }
+
+  // Cumulative-cap check. The caller passes `bytesUsedSoFar`; if adding
+  // this body would push us over, return `capped: true` and let the
+  // caller stop iterating.
+  if (deps.bytesUsedSoFar + body.length > opts.maxBytesTotal) {
+    entry.skippedReason = 'cumulative changelog size cap reached';
+    return { entry, warnings, bodyBytes: 0, capped: true };
+  }
+
+  entry.changelog = {
+    tag: release.tag,
+    title: release.title,
+    body,
+    date: release.date,
+    truncated,
+  };
+  return { entry, warnings, bodyBytes: body.length, capped: false };
+}
+
+export async function run(opts, { fetchImpl = fetch, execImpl = execFile } = {}) {
   const result = { packages: [], totalsCapped: false, warnings: [] };
 
   let diff;
@@ -397,68 +486,21 @@ export async function run(opts) {
   }
 
   const bumps = extractBumps(diff).slice(0, opts.maxPkgs);
-
   let totalBytes = 0;
 
   for (const bump of bumps) {
-    const entry = {
-      name: bump.name,
-      oldVersion: bump.oldVersion,
-      newVersion: bump.newVersion,
-      repository: null,
-      changelog: null,
-    };
-
-    const meta = await fetchRegistryMetadata(bump.name, bump.newVersion);
-    result.warnings.push(...meta.warnings);
-    if (!meta.repository) {
-      entry.skippedReason = 'no repository field in registry metadata';
-      result.packages.push(entry);
-      continue;
-    }
-
-    const validated = validateRepositoryUrl(meta.repository);
-    if (!validated) {
-      entry.skippedReason = `repository URL failed validation: ${meta.repository}`;
-      result.packages.push(entry);
-      continue;
-    }
-    entry.repository = validated;
-
-    const release = await fetchRelease(validated.owner, validated.repo, bump.newVersion);
-    result.warnings.push(...release.warnings);
-    if (!release.tag) {
-      entry.skippedReason = 'no matching GitHub release tag';
-      result.packages.push(entry);
-      continue;
-    }
-
-    let body = release.body ?? '';
-    let truncated = false;
-    if (body.length > opts.maxBytesPerChangelog) {
-      body = body.slice(0, opts.maxBytesPerChangelog) + '\n\n[truncated]';
-      truncated = true;
-    }
-
-    // Cumulative-cap check. If adding this changelog would push us over,
-    // record a marker entry, set the flag, and stop processing further
-    // packages.
-    if (totalBytes + body.length > opts.maxBytesTotal) {
-      entry.skippedReason = 'cumulative changelog size cap reached';
-      result.packages.push(entry);
+    const { entry, warnings, bodyBytes, capped } = await processBump(bump, opts, {
+      fetchImpl,
+      execImpl,
+      bytesUsedSoFar: totalBytes,
+    });
+    result.packages.push(entry);
+    result.warnings.push(...warnings);
+    totalBytes += bodyBytes;
+    if (capped) {
       result.totalsCapped = true;
       break;
     }
-    totalBytes += body.length;
-
-    entry.changelog = {
-      tag: release.tag,
-      title: release.title,
-      body,
-      date: release.date,
-      truncated,
-    };
-    result.packages.push(entry);
   }
 
   await mkdir(dirname(opts.out), { recursive: true });
@@ -467,10 +509,12 @@ export async function run(opts) {
 }
 
 // CLI entrypoint guard: only run main() when invoked directly, so the
-// module can be imported by the test file without side effects.
+// module can be imported by the test file without side effects. Compare
+// via pathToFileURL so the comparison works regardless of platform path
+// quirks (Windows drive letters, etc.) — substring matching on argv[1]
+// would mis-fire if a wrapper script named the file in its own argv[1].
 const invokedDirectly =
-  import.meta.url === `file://${process.argv[1]}` ||
-  process.argv[1]?.endsWith('fetch-changelogs.mjs');
+  process.argv[1] !== undefined && pathToFileURL(process.argv[1]).href === import.meta.url;
 if (invokedDirectly) {
   try {
     const opts = parseArgs(process.argv.slice(2));

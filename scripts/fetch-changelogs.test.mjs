@@ -57,9 +57,11 @@ test('validateRepositoryUrl: accepts dotted and dashed and underscored names', (
   });
 });
 
-test('validateRepositoryUrl: rejects path traversal (gets normalized then fails strict shape)', () => {
-  // URL normalizes "../" so the resulting pathname is /etc/passwd — fails the
-  // strict 2-segment match.
+test('validateRepositoryUrl: rejects path traversal (pre-parse `..` check fires)', () => {
+  // Defense rationale: without the pre-parse check, the URL parser would
+  // normalize `/foo/bar/../../../etc/passwd` to `/etc/passwd`, which would
+  // then pass the strict 2-segment regex as if the repository were
+  // `etc/passwd`. See validateRepositoryUrl header in fetch-changelogs.mjs.
   assert.equal(validateRepositoryUrl('https://github.com/foo/bar/../../../etc/passwd'), null);
 });
 
@@ -135,9 +137,9 @@ test('validateRepositoryUrl: rejects "." as owner or repo', () => {
 });
 
 test('validateRepositoryUrl: rejects ".." as owner or repo', () => {
-  // ".." segments are collapsed by URL normalization, so by the time we
-  // see them they have either been resolved (and fail strict shape) or
-  // appear as a literal ".." in a strange position. Either way: rejected.
+  // These inputs trip the pre-parse `..` substring check before the URL
+  // parser ever sees them; the post-parse segment guard would also catch
+  // them if the pre-parse check were ever weakened.
   assert.equal(validateRepositoryUrl('https://github.com/../bar'), null);
   assert.equal(validateRepositoryUrl('https://github.com/foo/..'), null);
 });
@@ -367,48 +369,66 @@ test('fetchRegistryMetadata: rejects non-JSON response gracefully', async () => 
 // fetchRelease (injected execFile)
 // ---------------------------------------------------------------------------
 
+// Stub builder for `gh api` calls. Each invocation pops the next handler
+// from `responses`; a handler is either a value to return as `stdout` or
+// an Error to throw. Tracks invocation count via the returned `calls`
+// closure so tests can assert exact-N gh calls without duplicating
+// counter scaffolding.
+function ghApiStub(responses) {
+  let i = 0;
+  const calls = [];
+  const execImpl = async (cmd, args) => {
+    calls.push({ cmd, args });
+    const r = responses[i++];
+    if (r === undefined) throw new Error(`ghApiStub: unexpected call #${i} (${args[1]})`);
+    if (r instanceof Error) throw r;
+    return { stdout: typeof r === 'string' ? r : JSON.stringify(r) };
+  };
+  return { execImpl, calls };
+}
+
 test('fetchRelease: v-prefix tag matches', async () => {
   // gh args layout: ['api', '/repos/{owner}/{repo}/releases/tags/{tag}']
-  // — the path is args[1], not args[2].
-  const execImpl = async (cmd, args) => {
-    assert.equal(cmd, 'gh');
-    assert.equal(args[0], 'api');
-    assert.equal(args[1], '/repos/foo/bar/releases/tags/v1.0.0');
-    return {
-      stdout: JSON.stringify({
-        tag_name: 'v1.0.0',
-        name: 'Release 1.0.0',
-        body: 'Notes.',
-        published_at: '2026-01-01T00:00:00Z',
-      }),
-    };
-  };
+  // — the path is args[1].
+  const { execImpl, calls } = ghApiStub([
+    {
+      tag_name: 'v1.0.0',
+      name: 'Release 1.0.0',
+      body: 'Notes.',
+      published_at: '2026-01-01T00:00:00Z',
+    },
+  ]);
   const r = await fetchRelease('foo', 'bar', '1.0.0', { execImpl });
   assert.equal(r.tag, 'v1.0.0');
   assert.equal(r.title, 'Release 1.0.0');
   assert.equal(r.body, 'Notes.');
   assert.equal(r.date, '2026-01-01T00:00:00Z');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].cmd, 'gh');
+  assert.equal(calls[0].args[0], 'api');
+  assert.equal(calls[0].args[1], '/repos/foo/bar/releases/tags/v1.0.0');
 });
 
 test('fetchRelease: falls back to bare-version tag on v-prefix 404', async () => {
-  let calls = 0;
-  const execImpl = async (cmd, args) => {
-    calls++;
-    if (args[1].endsWith('/v1.0.0')) throw new Error('404');
-    return { stdout: JSON.stringify({ tag_name: '1.0.0', name: '', body: 'X', published_at: '' }) };
-  };
+  const { execImpl, calls } = ghApiStub([
+    new Error('HTTP 404'),
+    { tag_name: '1.0.0', name: '', body: 'X', published_at: '' },
+  ]);
   const r = await fetchRelease('foo', 'bar', '1.0.0', { execImpl });
-  assert.equal(calls, 2);
+  assert.equal(calls.length, 2);
   assert.equal(r.tag, '1.0.0');
+  // First-attempt failure should not surface as a warning since the
+  // second attempt succeeded — only total-failure attempts get reported.
+  assert.deepEqual(r.warnings, []);
 });
 
-test('fetchRelease: returns null tag when no release found', async () => {
-  const execImpl = async () => {
-    throw new Error('404');
-  };
+test('fetchRelease: returns null tag and reports both attempts when nothing found', async () => {
+  const { execImpl } = ghApiStub([new Error('HTTP 404'), new Error('HTTP 429')]);
   const r = await fetchRelease('foo', 'bar', '1.0.0', { execImpl });
   assert.equal(r.tag, null);
-  assert.ok(r.warnings.length >= 1);
+  assert.equal(r.warnings.length, 2);
+  assert.match(r.warnings[0], /tags\/v1\.0\.0.*404/);
+  assert.match(r.warnings[1], /tags\/1\.0\.0.*429/);
 });
 
 // ---------------------------------------------------------------------------
@@ -424,12 +444,240 @@ async function withTempDir(fn) {
   }
 }
 
-test('run: respects --max-bytes-total by setting totalsCapped and stopping', async () => {
-  // We can't easily inject fetch/exec into `run` without refactoring its
-  // signature, so this test exercises the cap logic by giving it a diff
-  // with no real packages — guaranteeing it produces a parseable JSON
-  // file. The detailed cap arithmetic is covered by inline assertions
-  // in run() and is straightforward to verify by reading the code.
+// Stub builder for npm registry fetches. Returns a fetchImpl that maps
+// each call to a fake Response. Map keys are `<pkg>@<version>` so a
+// single stub can serve multi-package diffs.
+function registryStub(byPkgVersion) {
+  return async (url) => {
+    // url is `https://registry.npmjs.org/<pkg-encoded>/<version>`
+    const m = url.match(/^https:\/\/registry\.npmjs\.org\/(.+)\/([^/]+)$/);
+    if (!m) throw new Error(`registryStub: unrecognized url ${url}`);
+    const pkg = decodeURIComponent(m[1]);
+    const ver = decodeURIComponent(m[2]);
+    const key = `${pkg}@${ver}`;
+    const body = byPkgVersion[key];
+    if (body === undefined) return { ok: false, status: 404, json: async () => ({}) };
+    if (body instanceof Error) throw body;
+    return { ok: true, status: 200, json: async () => body };
+  };
+}
+
+function makeDiff(bumps) {
+  // Synthesize a minimal package-lock.json diff containing the given
+  // (name, old, new) triples. Each stanza is the smallest shape
+  // extractBumps will recognize.
+  const stanzas = bumps
+    .map(
+      ([name, oldV, newV]) => `\
+@@ -1,5 +1,5 @@
+     "node_modules/${name}": {
+-      "version": "${oldV}",
++      "version": "${newV}",
+       "resolved": "..."
+     },`,
+    )
+    .join('\n');
+  return `\
+diff --git a/package-lock.json b/package-lock.json
+--- a/package-lock.json
++++ b/package-lock.json
+${stanzas}
+`;
+}
+
+test('run: end-to-end pipeline with mocked fetch and gh produces full entries', async () => {
+  await withTempDir(async (dir) => {
+    const diffPath = join(dir, 'pr.diff');
+    const outPath = join(dir, 'out.json');
+    await writeFile(
+      diffPath,
+      makeDiff([
+        ['react', '19.2.5', '19.2.6'],
+        ['eslint', '9.39.3', '9.39.4'],
+      ]),
+      'utf8',
+    );
+
+    const fetchImpl = registryStub({
+      'react@19.2.6': {
+        repository: { type: 'git', url: 'git+https://github.com/facebook/react.git' },
+      },
+      'eslint@9.39.4': { repository: 'https://github.com/eslint/eslint' },
+    });
+    const { execImpl } = ghApiStub([
+      {
+        tag_name: 'v19.2.6',
+        name: 'React 19.2.6',
+        body: 'React notes',
+        published_at: '2026-05-06T00:00:00Z',
+      },
+      {
+        tag_name: 'v9.39.4',
+        name: 'ESLint 9.39.4',
+        body: 'ESLint notes',
+        published_at: '2026-05-07T00:00:00Z',
+      },
+    ]);
+
+    const out = await run(
+      {
+        diff: diffPath,
+        out: outPath,
+        maxPkgs: 20,
+        maxBytesPerChangelog: 50_000,
+        maxBytesTotal: 1_000_000,
+      },
+      { fetchImpl, execImpl },
+    );
+
+    assert.equal(out.packages.length, 2);
+    assert.deepEqual(out.packages[0].repository, { owner: 'facebook', repo: 'react' });
+    assert.equal(out.packages[0].changelog.tag, 'v19.2.6');
+    assert.equal(out.packages[0].changelog.truncated, false);
+    assert.deepEqual(out.packages[1].repository, { owner: 'eslint', repo: 'eslint' });
+    assert.equal(out.totalsCapped, false);
+
+    // Output file written and matches return value.
+    const persisted = JSON.parse(await readFile(outPath, 'utf8'));
+    assert.deepEqual(persisted, out);
+  });
+});
+
+test('run: enforces --max-bytes-per-changelog by truncating body', async () => {
+  await withTempDir(async (dir) => {
+    const diffPath = join(dir, 'pr.diff');
+    const outPath = join(dir, 'out.json');
+    await writeFile(diffPath, makeDiff([['react', '19.2.5', '19.2.6']]), 'utf8');
+
+    const fetchImpl = registryStub({
+      'react@19.2.6': { repository: 'https://github.com/facebook/react' },
+    });
+    const { execImpl } = ghApiStub([
+      { tag_name: 'v19.2.6', name: 'R', body: 'x'.repeat(200), published_at: '' },
+    ]);
+
+    const out = await run(
+      {
+        diff: diffPath,
+        out: outPath,
+        maxPkgs: 20,
+        maxBytesPerChangelog: 50,
+        maxBytesTotal: 1_000_000,
+      },
+      { fetchImpl, execImpl },
+    );
+
+    assert.equal(out.packages[0].changelog.truncated, true);
+    assert.ok(out.packages[0].changelog.body.startsWith('x'.repeat(50)));
+    assert.ok(out.packages[0].changelog.body.endsWith('[truncated]'));
+  });
+});
+
+test('run: enforces --max-bytes-total by setting totalsCapped and breaking', async () => {
+  await withTempDir(async (dir) => {
+    const diffPath = join(dir, 'pr.diff');
+    const outPath = join(dir, 'out.json');
+    // Three bumps; per-changelog cap accommodates 60 bytes each, total cap
+    // is 100 bytes — so package 1 fits (60), package 2 trips the cap (would
+    // bring total to 120) and is recorded as skipped, package 3 is never
+    // processed because we break on cap.
+    await writeFile(
+      diffPath,
+      makeDiff([
+        ['a', '1.0.0', '1.0.1'],
+        ['b', '1.0.0', '1.0.1'],
+        ['c', '1.0.0', '1.0.1'],
+      ]),
+      'utf8',
+    );
+
+    const fetchImpl = registryStub({
+      'a@1.0.1': { repository: 'https://github.com/x/a' },
+      'b@1.0.1': { repository: 'https://github.com/x/b' },
+      'c@1.0.1': { repository: 'https://github.com/x/c' },
+    });
+    const { execImpl, calls } = ghApiStub([
+      { tag_name: 'v1.0.1', name: '', body: 'y'.repeat(60), published_at: '' },
+      { tag_name: 'v1.0.1', name: '', body: 'y'.repeat(60), published_at: '' },
+      // No third response — if `run` doesn't break, we'd see "unexpected call #3".
+    ]);
+
+    const out = await run(
+      {
+        diff: diffPath,
+        out: outPath,
+        maxPkgs: 20,
+        maxBytesPerChangelog: 100,
+        maxBytesTotal: 100,
+      },
+      { fetchImpl, execImpl },
+    );
+
+    assert.equal(out.totalsCapped, true);
+    assert.equal(out.packages.length, 2);
+    assert.equal(out.packages[0].changelog.body.length, 60);
+    assert.equal(out.packages[1].changelog, null);
+    assert.match(out.packages[1].skippedReason, /size cap reached/);
+    // Two gh calls — third package never reached.
+    assert.equal(calls.length, 2);
+  });
+});
+
+test('run: records skippedReason when registry has no repository field', async () => {
+  await withTempDir(async (dir) => {
+    const diffPath = join(dir, 'pr.diff');
+    const outPath = join(dir, 'out.json');
+    await writeFile(diffPath, makeDiff([['mystery', '1.0.0', '2.0.0']]), 'utf8');
+
+    const fetchImpl = registryStub({ 'mystery@2.0.0': {} }); // no repository
+    const { execImpl } = ghApiStub([]); // gh must NOT be called
+
+    const out = await run(
+      {
+        diff: diffPath,
+        out: outPath,
+        maxPkgs: 20,
+        maxBytesPerChangelog: 50_000,
+        maxBytesTotal: 1_000_000,
+      },
+      { fetchImpl, execImpl },
+    );
+
+    assert.equal(out.packages.length, 1);
+    assert.equal(out.packages[0].repository, null);
+    assert.equal(out.packages[0].changelog, null);
+    assert.match(out.packages[0].skippedReason, /no repository field/);
+  });
+});
+
+test('run: records skippedReason when registry returns invalid repository URL', async () => {
+  await withTempDir(async (dir) => {
+    const diffPath = join(dir, 'pr.diff');
+    const outPath = join(dir, 'out.json');
+    await writeFile(diffPath, makeDiff([['evil', '1.0.0', '1.0.1']]), 'utf8');
+
+    const fetchImpl = registryStub({
+      'evil@1.0.1': { repository: 'git+ssh://evil.example/evil.git' },
+    });
+    const { execImpl } = ghApiStub([]);
+
+    const out = await run(
+      {
+        diff: diffPath,
+        out: outPath,
+        maxPkgs: 20,
+        maxBytesPerChangelog: 50_000,
+        maxBytesTotal: 1_000_000,
+      },
+      { fetchImpl, execImpl },
+    );
+
+    assert.equal(out.packages[0].repository, null);
+    assert.match(out.packages[0].skippedReason, /failed validation/);
+  });
+});
+
+test('run: writes empty result for empty diff', async () => {
   await withTempDir(async (dir) => {
     const diffPath = join(dir, 'pr.diff');
     const outPath = join(dir, 'out.json');
@@ -442,8 +690,7 @@ test('run: respects --max-bytes-total by setting totalsCapped and stopping', asy
       maxBytesTotal: 1_000_000,
     });
     const parsed = JSON.parse(await readFile(outPath, 'utf8'));
-    assert.deepEqual(parsed.packages, []);
-    assert.equal(parsed.totalsCapped, false);
+    assert.deepEqual(parsed, { packages: [], totalsCapped: false, warnings: [] });
   });
 });
 
