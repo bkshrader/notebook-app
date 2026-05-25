@@ -17,7 +17,7 @@ When adding a feature: add a roadmap line + create `docs/features/<kebab-name>/O
 
 Run `npm run` or read `package.json` to discover scripts. No test runner is installed yet; when one lands, document it here only if its invocation isn't obvious from `package.json`.
 
-CI gates on `lint`, `format:check`, `typecheck`, `build`, and `audit:fallow`. Run all five before declaring work done.
+CI gates on `lint`, `format:check`, `typecheck`, `build`, `audit:fallow`, `npm audit --audit-level=high`, and `license-check` (production deps must have an AGPL-3.0-or-later compatible license per the allow/deny lists in `.github/workflows/ci.yml`). Run all seven before declaring work done.
 
 ## Framework and tooling decisions (decided)
 
