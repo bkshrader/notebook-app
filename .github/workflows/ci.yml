@@ -67,7 +67,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run audit:fallow
+      - run: npm run audit:fallow -- --base origin/main
 
   storybook:
     name: storybook
