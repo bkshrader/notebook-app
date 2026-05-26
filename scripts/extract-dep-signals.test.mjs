@@ -258,6 +258,45 @@ diff --git a/package-lock.json b/package-lock.json
   assert.notEqual(firstPkg.newVersion, '9.0.1');
 });
 
+test('extractStanzaChanges: orphan field lines do not leak into the NEXT stanza either', () => {
+  // The previous hunk-boundary fix stopped orphan version lines from
+  // leaking into the PREVIOUS stanza, but missed the other half: if
+  // those orphan lines accumulated into pending while currentPath was
+  // null (between clearStanza and the next setStanza), they would
+  // leak into the NEXT stanza when commit() ran for it.
+  //
+  // This diff: first-pkg gets a clean bump. A hunk boundary, then
+  // orphan version lines, then a fresh stanza for second-pkg with
+  // only a newVersion. The buggy implementation would have reported
+  // second-pkg as a bump from 9.0.0 to 2.0.1 (oldVersion leaking
+  // from the orphan).
+  const diff = `\
+diff --git a/package-lock.json b/package-lock.json
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,3 +1,3 @@
+     "node_modules/first-pkg": {
+-      "version": "1.0.0",
++      "version": "1.0.1",
+@@ -50,3 +50,3 @@
+-      "version": "9.0.0",
++      "version": "9.0.1",
+@@ -100,1 +100,5 @@
++    "node_modules/second-pkg": {
++      "version": "2.0.1",
++      "resolved": "..."
++    },
+`;
+  const { changes: m } = extractStanzaChanges(diff);
+  const secondPkg = findByName(m, 'second-pkg');
+  assert.ok(secondPkg, 'second-pkg not found');
+  // second-pkg should be a netNew (only newVersion present), NOT a
+  // bump from 9.0.0.
+  assert.equal(secondPkg.kind, 'netNew');
+  assert.equal(secondPkg.newVersion, '2.0.1');
+  assert.equal(secondPkg.oldVersion, undefined);
+});
+
 test('extractStanzaChanges: ignores non-lockfile diffs', () => {
   const diff = `\
 diff --git a/package.json b/package.json
@@ -407,6 +446,21 @@ test('findPeerMismatches: dedupes when same consumer-resolution appears at multi
   ]);
   const out = findPeerMismatches(bumps, baseIndex);
   assert.equal(out.length, 1);
+});
+
+test('findPeerMismatches: distinguishes consumers with undefined version by path', () => {
+  // Workspace and `file:` lockfile entries can lack a `version` field.
+  // Dedup-by-name+version would collide all of them on the same
+  // sentinel key when they really might be distinct logical
+  // consumers. The path fallback keeps them separate.
+  const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
+  const baseIndex = new Map([
+    ['node_modules/workspace-a', { name: 'workspace-a', peerDependencies: { eslint: '^9' } }],
+    ['node_modules/workspace-b', { name: 'workspace-b', peerDependencies: { eslint: '^9' } }],
+  ]);
+  const out = findPeerMismatches(bumps, baseIndex);
+  assert.equal(out.length, 2);
+  assert.deepEqual(out.map((m) => m.consumer).sort(), ['workspace-a', 'workspace-b']);
 });
 
 test('findPeerMismatches: skips consumers that are themselves being bumped', () => {

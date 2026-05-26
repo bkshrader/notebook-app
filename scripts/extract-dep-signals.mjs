@@ -193,12 +193,22 @@ function makeStanzaAccumulator() {
       pending[field] = value;
     },
     commit() {
-      if (!currentPath) return;
-      const existing = byPath.get(currentPath) ?? { name: currentName };
-      Object.assign(existing, pending);
-      // Only persist if we accumulated something beyond the bare `name`
-      // sentinel (e.g., a version or license field actually appeared).
-      if (Object.keys(existing).length > 1) byPath.set(currentPath, existing);
+      // `pending` is reset unconditionally — even when there's no
+      // active stanza (currentPath is null). Without that, orphan
+      // record() calls between a hunk-boundary clearStanza and the
+      // next setStanza would accumulate in pending and then leak
+      // into the next stanza's data. The hunk-boundary fix only
+      // half-worked: it stopped the leak into the PREVIOUS stanza,
+      // but the NEXT stanza could still pick up the polluted
+      // pending object.
+      if (currentPath) {
+        const existing = byPath.get(currentPath) ?? { name: currentName };
+        Object.assign(existing, pending);
+        // Only persist if we accumulated something beyond the bare
+        // `name` sentinel (e.g., a version or license field actually
+        // appeared).
+        if (Object.keys(existing).length > 1) byPath.set(currentPath, existing);
+      }
       pending = {};
     },
     finish() {
@@ -401,13 +411,21 @@ export function findPeerMismatches(bumps, baseLockfileIndex) {
   const seen = new Set();
   const out = [];
 
-  for (const meta of baseLockfileIndex.values()) {
+  for (const [path, meta] of baseLockfileIndex) {
     if (bumpedByName.has(meta.name)) continue;
     for (const [peerName, declaredRange] of Object.entries(meta.peerDependencies)) {
       const newVersion = bumpedByName.get(peerName);
       if (!newVersion) continue;
       if (semver.satisfies(newVersion, declaredRange, { includePrerelease: true })) continue;
-      const dedupKey = `${meta.name}@${meta.version}::${peerName}::${declaredRange}`;
+      // Dedup by (name, version-or-path, peer, range). Using version
+      // alone collides when meta.version is undefined (workspace or
+      // `file:` entries — they're stored without a resolved version
+      // number); falling back to the lockfile path makes the key
+      // distinctive even in that case while preserving the
+      // intended dedup for the common same-resolution-at-multiple-
+      // paths case.
+      const versionKey = meta.version ?? `path:${path}`;
+      const dedupKey = `${meta.name}@${versionKey}::${peerName}::${declaredRange}`;
       if (seen.has(dedupKey)) continue;
       seen.add(dedupKey);
       out.push({
