@@ -15,9 +15,16 @@ When adding a feature: add a roadmap line + create `docs/features/<kebab-name>/O
 
 ## Commands
 
-Run `npm run` or read `package.json` to discover scripts. No test runner is installed yet; when one lands, document it here only if its invocation isn't obvious from `package.json`.
+Run `npm run` or read `package.json` to discover scripts. Story tests run via `npm run test-storybook` (Vitest + Playwright chromium). Document any future test runner here only if its invocation isn't obvious from `package.json`.
 
 CI gates on `lint`, `format:check`, `typecheck`, `build`, `audit:fallow`, `npm audit --audit-level=high`, and `license-check` (production deps must have an AGPL-3.0-or-later compatible license per the allow list in `.github/workflows/ci.yml`). Run all seven before declaring work done.
+
+Local git hooks (husky, installed automatically via the `prepare` script on `npm install`):
+
+- **pre-commit** runs prettier + eslint on staged files via `lint-staged`.
+- **pre-push** mirrors CI: typecheck, license-check, `npm audit --audit-level=high`, `audit:fallow`, build, test-storybook.
+- Bypass: `git commit --no-verify` / `git push --no-verify`, or `HUSKY=0 git <cmd>` to skip all hooks.
+- The Claude-Code-only `.claude/hooks/fallow-gate.sh` (PreToolUse on Bash) continues to gate Claude-initiated commits and pushes — this is additive to the husky pre-push.
 
 The `license-check` allow list is duplicated in `.github/workflows/ci.yml` (machine-enforced) and `docs/licenses/in-use.md` (human-facing rationale). When a new license needs evaluation, follow the process in `docs/licenses/in-use.md` and update **both** files together. Rejections go in `docs/licenses/incompatible.md`.
 
