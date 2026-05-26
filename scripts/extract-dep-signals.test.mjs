@@ -120,7 +120,7 @@ test('extractStanzaChanges: classifies bump / removal / netNew', () => {
     ['old-pkg', '1.0.0', null], // removal
     ['new-pkg', null, '2.0.0'], // netNew
   ]);
-  const m = extractStanzaChanges(diff);
+  const { changes: m } = extractStanzaChanges(diff);
   assert.equal(findByName(m, 'react').kind, 'bump');
   assert.equal(findByName(m, 'react').oldVersion, '19.2.5');
   assert.equal(findByName(m, 'react').newVersion, '19.2.6');
@@ -144,14 +144,14 @@ diff --git a/package-lock.json b/package-lock.json
        "resolved": "..."
      },
 `;
-  const m = extractStanzaChanges(diff);
+  const { changes: m } = extractStanzaChanges(diff);
   assert.equal(findByName(m, 'foo').oldLicense, 'MIT');
   assert.equal(findByName(m, 'foo').newLicense, 'ISC');
 });
 
 test('extractStanzaChanges: handles scoped packages', () => {
   const diff = diffOf([['@axe-core/playwright', '4.11.2', '4.11.3']]);
-  const m = extractStanzaChanges(diff);
+  const { changes: m } = extractStanzaChanges(diff);
   assert.equal(findByName(m, '@axe-core/playwright').kind, 'bump');
 });
 
@@ -170,7 +170,7 @@ diff --git a/package-lock.json b/package-lock.json
        "resolved": "..."
      },
 `;
-  const m = extractStanzaChanges(diff);
+  const { changes: m } = extractStanzaChanges(diff);
   assert.equal(findByName(m, 'nested-child').kind, 'bump');
 });
 
@@ -189,7 +189,7 @@ diff --git a/package-lock.json b/package-lock.json
        "resolved": "..."
      },
 `;
-  const m = extractStanzaChanges(diff);
+  const { changes: m } = extractStanzaChanges(diff);
   assert.equal(findByName(m, 'leaf').kind, 'bump');
 });
 
@@ -214,7 +214,7 @@ diff --git a/package-lock.json b/package-lock.json
 +      "resolved": "..."
 +    },
 `;
-  const m = extractStanzaChanges(diff);
+  const { changes: m } = extractStanzaChanges(diff);
   // Expect 2 distinct entries (one removal, one netNew), both with
   // name 'semver'.
   const entries = [...m.values()].filter((e) => e.name === 'semver');
@@ -244,7 +244,7 @@ diff --git a/package-lock.json b/package-lock.json
 -      "version": "9.0.0",
 +      "version": "9.0.1",
 `;
-  const m = extractStanzaChanges(diff);
+  const { changes: m } = extractStanzaChanges(diff);
   // Only first-pkg should be reported with its real versions; the
   // second-hunk version lines belong to no recognized stanza and
   // should be dropped.
@@ -270,11 +270,11 @@ diff --git a/package.json b/package.json
      }
 `;
   // The file header gate ensures package.json hunks are skipped.
-  assert.equal(extractStanzaChanges(diff).size, 0);
+  assert.equal(extractStanzaChanges(diff).changes.size, 0);
 });
 
 test('extractStanzaChanges: returns empty for empty diff', () => {
-  assert.equal(extractStanzaChanges('').size, 0);
+  assert.equal(extractStanzaChanges('').changes.size, 0);
 });
 
 test('extractBumps: back-compat shape', () => {
@@ -300,10 +300,15 @@ test('indexLockfile: dedupes by bare name, keeps first', () => {
     },
   };
   const idx = indexLockfile(lock);
-  assert.equal(idx.size, 1);
-  assert.equal(idx.get('foo').version, '1.0.0');
-  assert.equal(idx.get('foo').license, 'MIT');
-  assert.deepEqual(idx.get('foo').peerDependencies, { bar: '^1' });
+  // Path-keyed: both resolutions of `foo` are kept separate so
+  // findPeerMismatches and buildBumpEntry don't lose data.
+  assert.equal(idx.size, 2);
+  assert.equal(idx.get('node_modules/foo').name, 'foo');
+  assert.equal(idx.get('node_modules/foo').version, '1.0.0');
+  assert.equal(idx.get('node_modules/foo').license, 'MIT');
+  assert.deepEqual(idx.get('node_modules/foo').peerDependencies, { bar: '^1' });
+  assert.equal(idx.get('node_modules/some-parent/node_modules/foo').version, '2.0.0');
+  assert.equal(idx.get('node_modules/some-parent/node_modules/foo').license, 'ISC');
 });
 
 test('indexLockfile: skips root entry', () => {
@@ -314,19 +319,27 @@ test('indexLockfile: skips root entry', () => {
 test('indexLockfile: handles missing peerDependencies as empty object', () => {
   const lock = { packages: { 'node_modules/foo': { version: '1.0.0' } } };
   const idx = indexLockfile(lock);
-  assert.deepEqual(idx.get('foo').peerDependencies, {});
+  assert.deepEqual(idx.get('node_modules/foo').peerDependencies, {});
 });
 
 // ---------------------------------------------------------------------------
 // findPeerMismatches — the headline feature
 // ---------------------------------------------------------------------------
 
+// Test helper: build a path-keyed baseIndex from a flat `name → meta`
+// shape. Most peer-mismatch tests don't care about path details; they
+// just need each consumer to have its own lockfile slot. This puts
+// each entry under `node_modules/<name>`.
+function pathIndex(entries) {
+  return new Map(entries.map(([name, meta]) => [`node_modules/${name}`, { name, ...meta }]));
+}
+
 test('findPeerMismatches: real-world PR 45 shape (eslint 9→10, jsx-a11y stuck at ^9)', () => {
   // This is the exact scenario that drove the rewrite. jsx-a11y@6.10.2
   // declares its eslint peer as `^3 || ... || ^9`. Bumping eslint to
   // 10.4.0 must produce a single mismatch entry.
   const bumps = [{ name: 'eslint', newVersion: '10.4.0' }];
-  const baseIndex = new Map([
+  const baseIndex = pathIndex([
     ['eslint', { version: '9.39.4', peerDependencies: {} }],
     [
       'eslint-plugin-jsx-a11y',
@@ -354,6 +367,48 @@ test('findPeerMismatches: real-world PR 45 shape (eslint 9→10, jsx-a11y stuck 
   assert.match(out[0].declaredRange, /\^9$/);
 });
 
+test('findPeerMismatches: catches peer ranges from non-hoisted same-name copies', () => {
+  // Regression test for the indexLockfile dedup-by-name bug surfaced
+  // by the second-round code review. The hoisted `foo@1.0.0` has no
+  // peer on eslint; the nested `foo@2.0.0` declares `peerDependencies.eslint: ^9`.
+  // The old name-dedup implementation kept only the hoisted copy and
+  // missed the peer entirely. Path-keying surfaces both, so a bump
+  // past `^9` flags the nested copy.
+  const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
+  const baseIndex = new Map([
+    ['node_modules/foo', { name: 'foo', version: '1.0.0', peerDependencies: {} }],
+    [
+      'node_modules/parent/node_modules/foo',
+      { name: 'foo', version: '2.0.0', peerDependencies: { eslint: '^9' } },
+    ],
+  ]);
+  const out = findPeerMismatches(bumps, baseIndex);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].consumer, 'foo');
+  assert.equal(out[0].consumerVersion, '2.0.0');
+  assert.equal(out[0].declaredRange, '^9');
+});
+
+test('findPeerMismatches: dedupes when same consumer-resolution appears at multiple paths', () => {
+  // Workspace pinning or repeated transitive references can put
+  // `foo@1.0.0` at multiple lockfile paths with the same peer range.
+  // We want one mismatch entry, not N copies.
+  const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
+  const baseIndex = new Map([
+    ['node_modules/foo', { name: 'foo', version: '1.0.0', peerDependencies: { eslint: '^9' } }],
+    [
+      'node_modules/parent-a/node_modules/foo',
+      { name: 'foo', version: '1.0.0', peerDependencies: { eslint: '^9' } },
+    ],
+    [
+      'node_modules/parent-b/node_modules/foo',
+      { name: 'foo', version: '1.0.0', peerDependencies: { eslint: '^9' } },
+    ],
+  ]);
+  const out = findPeerMismatches(bumps, baseIndex);
+  assert.equal(out.length, 1);
+});
+
 test('findPeerMismatches: skips consumers that are themselves being bumped', () => {
   // If eslint AND its plugin are both bumping, we have no way to know
   // the plugin's new peer range from local data. Better to under-report.
@@ -361,7 +416,7 @@ test('findPeerMismatches: skips consumers that are themselves being bumped', () 
     { name: 'eslint', newVersion: '10.0.0' },
     { name: 'eslint-plugin-jsx-a11y', newVersion: '7.0.0' },
   ];
-  const baseIndex = new Map([
+  const baseIndex = pathIndex([
     ['eslint-plugin-jsx-a11y', { version: '6.10.2', peerDependencies: { eslint: '^9' } }],
   ]);
   assert.deepEqual(findPeerMismatches(bumps, baseIndex), []);
@@ -369,7 +424,7 @@ test('findPeerMismatches: skips consumers that are themselves being bumped', () 
 
 test('findPeerMismatches: ignores consumers with no peer on bumped package', () => {
   const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
-  const baseIndex = new Map([
+  const baseIndex = pathIndex([
     ['unrelated', { version: '1.0.0', peerDependencies: { other: '^1' } }],
   ]);
   assert.deepEqual(findPeerMismatches(bumps, baseIndex), []);
@@ -381,7 +436,7 @@ test('findPeerMismatches: flags unparseable range as incompatible', () => {
   // silently pass an upstream declaration we can't interpret. Verify
   // it surfaces with satisfies=false.
   const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
-  const baseIndex = new Map([
+  const baseIndex = pathIndex([
     ['weird-consumer', { version: '1.0.0', peerDependencies: { eslint: 'not-a-real-range' } }],
   ]);
   const out = findPeerMismatches(bumps, baseIndex);
@@ -392,7 +447,7 @@ test('findPeerMismatches: flags unparseable range as incompatible', () => {
 
 test('findPeerMismatches: satisfies=true (no entry) when new version IS in range', () => {
   const bumps = [{ name: 'eslint', newVersion: '9.39.4' }];
-  const baseIndex = new Map([
+  const baseIndex = pathIndex([
     ['eslint-plugin-jsx-a11y', { version: '6.10.2', peerDependencies: { eslint: '^9' } }],
   ]);
   assert.deepEqual(findPeerMismatches(bumps, baseIndex), []);
@@ -418,9 +473,38 @@ test('isMajorBump: 0.x patch bump is NOT major', () => {
   assert.equal(isMajorBump('0.1.5', '0.1.6'), false);
 });
 
-test('isMajorBump: handles v-prefix and pre-release tags via coerce', () => {
+test('isMajorBump: handles v-prefix and pre-release tags', () => {
   assert.equal(isMajorBump('v1.0.0', 'v2.0.0'), true);
   assert.equal(isMajorBump('1.0.0-beta.1', '2.0.0'), true);
+});
+
+test('isMajorBump: RC-to-RC churn on same numeric version IS major', () => {
+  // Prereleases exist to ship breaking experiments; one RC to the
+  // next is exactly the kind of bump where the breaking-change scan
+  // matters most.
+  assert.equal(isMajorBump('1.0.0-rc.1', '1.0.0-rc.2'), true);
+});
+
+test('isMajorBump: alpha-to-beta track change IS major', () => {
+  assert.equal(isMajorBump('1.0.0-alpha.1', '1.0.0-beta.1'), true);
+});
+
+test('isMajorBump: prerelease to stable on same numeric version IS major', () => {
+  // 1.0.0-rc.5 → 1.0.0 is a release boundary — the prerelease tag
+  // identifies the pre-stable build, and dropping it changes the
+  // resolved artifact.
+  assert.equal(isMajorBump('1.0.0-rc.5', '1.0.0'), true);
+});
+
+test('isMajorBump: stable to prerelease IS major', () => {
+  // Going stable → prerelease is unusual but should be flagged.
+  assert.equal(isMajorBump('1.0.0', '1.0.0-experimental.1'), true);
+});
+
+test('isMajorBump: stable to same stable is NOT major', () => {
+  // Sanity: the prerelease rule must not false-positive on plain
+  // version equality.
+  assert.equal(isMajorBump('1.0.0', '1.0.0'), false);
 });
 
 test('isMajorBump: returns null on unparseable input', () => {

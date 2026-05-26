@@ -209,18 +209,34 @@ function makeStanzaAccumulator() {
 }
 
 // Classify accumulated stanzas as bump / removal / netNew based on
-// which version fields are present. Drops entries with only license
-// changes (rare; not actionable). CRAP-only finding from uncovered
-// 4-branch dispatch over present-version fields.
+// which version fields are present. License-only stanzas (no version
+// change) are dropped from the main output but surfaced as warnings
+// so they don't silently disappear — `signals.warnings` is read by
+// the prompt and is the right place to flag "we saw something
+// interesting but couldn't classify it." Returns the array of
+// warnings.
+//
+// CRAP-only finding from uncovered 4-branch dispatch over
+// present-version fields.
 // fallow-ignore-next-line complexity
 function classifyStanzas(byPath) {
+  const warnings = [];
   for (const [path, e] of byPath) {
     if (e.oldVersion && e.newVersion) e.kind = 'bump';
     else if (e.oldVersion) e.kind = 'removal';
     else if (e.newVersion) e.kind = 'netNew';
-    else byPath.delete(path);
+    else {
+      // No version change. If the stanza had license-only signal,
+      // surface a warning before dropping it; otherwise drop silently.
+      if (e.oldLicense || e.newLicense) {
+        warnings.push(
+          `license-only stanza change at ${path} (oldLicense=${e.oldLicense ?? 'none'}, newLicense=${e.newLicense ?? 'none'}); not classified as a bump/removal/netNew`,
+        );
+      }
+      byPath.delete(path);
+    }
   }
-  return byPath;
+  return warnings;
 }
 
 // Classify one diff line into a structured event for the main loop.
@@ -290,15 +306,17 @@ export function extractStanzaChanges(diff) {
     }
   }
 
-  return classifyStanzas(acc.finish());
+  const changes = acc.finish();
+  const warnings = classifyStanzas(changes);
+  return { changes, warnings };
 }
 
 // Convenience accessor for callers that only want `(name, oldVersion,
-// newVersion)` triples. Iterates the path-keyed map and extracts the
-// name from each value.
+// newVersion)` triples. Discards warnings; for those, call
+// `extractStanzaChanges` directly.
 export function extractBumps(diff) {
   const out = [];
-  for (const e of extractStanzaChanges(diff).values()) {
+  for (const e of extractStanzaChanges(diff).changes.values()) {
     if (e.kind === 'bump') {
       out.push({ name: e.name, oldVersion: e.oldVersion, newVersion: e.newVersion });
     }
@@ -310,27 +328,29 @@ export function extractBumps(diff) {
 // Lockfile parsing
 // ---------------------------------------------------------------------------
 
-// Walk the lockfile's `packages` object and return a Map keyed by bare
-// package name (deduped). Each value carries the fields we need for
-// peer-compat and license analysis. If a package appears under
-// multiple nested paths, the FIRST seen wins — npm's hoisting puts the
-// top-level resolution first in the object's key order.
+// Walk the lockfile's `packages` object and return a Map keyed by full
+// lockfile path. Each value carries the fields we need for peer-compat
+// and license analysis. We do NOT dedup by bare name — the same
+// package can appear at multiple versions under different paths
+// (hoisted + nested), and dropping the duplicates loses information
+// `findPeerMismatches` needs to be correct: different versions of the
+// same consumer can declare different peer ranges, and `buildBumpEntry`
+// needs to read the license of the specific stanza being bumped, not
+// some arbitrary other copy.
 //
 // The root entry (key `""`) is excluded — it represents the host
 // project itself, which has no useful version/license/peer info.
 //
-// Three early-continue filters (skip-root / skip-non-node_modules /
-// skip-duplicate) followed by a build-and-set. Splitting would obscure
-// the linear filter chain.
+// Two early-continue filters (skip-root / skip-non-node_modules)
+// followed by a build-and-set.
 // fallow-ignore-next-line complexity
 export function indexLockfile(lock) {
   const out = new Map();
   for (const [path, meta] of Object.entries(lock.packages ?? {})) {
     if (path === '') continue;
     if (!path.startsWith('node_modules/')) continue;
-    const name = pathToName(path);
-    if (out.has(name)) continue;
-    out.set(name, {
+    out.set(path, {
+      name: pathToName(path),
       version: meta.version,
       license: typeof meta.license === 'string' ? meta.license : undefined,
       peerDependencies: meta.peerDependencies ?? {},
@@ -363,23 +383,35 @@ export function indexLockfile(lock) {
 // behavior anyway, since we shouldn't silently pass an upstream
 // declaration we can't interpret.
 //
-// Nested-for filter: outer over consumers, inner over the consumer's
-// peer declarations. Each guard (skip-self-bumped / skip-no-peer /
-// emit-on-fail) is a single line. Splitting would require threading
-// state through helpers.
+// `baseLockfileIndex` is path-keyed, so the same consumer name can
+// appear multiple times (one per lockfile resolution — hoisted +
+// nested copies). Iterating all entries means we catch peer ranges
+// declared on non-hoisted copies that the previous name-dedupped
+// implementation missed. We deduplicate output by
+// `(consumerName, consumerVersion, peerName, declaredRange)` so the
+// same logical consumer-resolution doesn't surface twice when it
+// shows up at multiple paths (e.g. workspace pinning).
+//
+// Nested-for filter: outer over consumer resolutions, inner over
+// each consumer's peer declarations. Each guard (skip-self-bumped /
+// skip-no-peer / skip-satisfied / dedup / emit) is a single line.
 // fallow-ignore-next-line complexity
 export function findPeerMismatches(bumps, baseLockfileIndex) {
   const bumpedByName = new Map(bumps.map((b) => [b.name, b.newVersion]));
+  const seen = new Set();
   const out = [];
 
-  for (const [consumer, meta] of baseLockfileIndex) {
-    if (bumpedByName.has(consumer)) continue;
+  for (const meta of baseLockfileIndex.values()) {
+    if (bumpedByName.has(meta.name)) continue;
     for (const [peerName, declaredRange] of Object.entries(meta.peerDependencies)) {
       const newVersion = bumpedByName.get(peerName);
       if (!newVersion) continue;
       if (semver.satisfies(newVersion, declaredRange, { includePrerelease: true })) continue;
+      const dedupKey = `${meta.name}@${meta.version}::${peerName}::${declaredRange}`;
+      if (seen.has(dedupKey)) continue;
+      seen.add(dedupKey);
       out.push({
-        consumer,
+        consumer: meta.name,
         consumerVersion: meta.version,
         bumpedPackage: peerName,
         declaredRange,
@@ -395,26 +427,33 @@ export function findPeerMismatches(bumps, baseLockfileIndex) {
 // Major-bump detection
 // ---------------------------------------------------------------------------
 
-// A "major" bump is one where semver.major(new) > semver.major(old).
-// For 0.x packages we additionally treat any minor bump (0.1 → 0.2) as
-// effectively major — that's the SemVer convention for 0.x: minor
-// bumps may be breaking. Anything we can't parse is `null` (unknown).
+// A "major" bump is one of:
+//   - semver.major(new) > semver.major(old): classic 1.x → 2.x
+//   - 0.x minor change (SemVer convention: 0.x minor bumps may be breaking)
+//   - prerelease churn: one side is prerelease and either
+//     (a) the prerelease identifiers differ, or
+//     (b) only one side is prerelease.
+//     `1.0.0-rc.1` → `1.0.0-rc.2`, `1.0.0-alpha.1` → `1.0.0-beta.1`,
+//     and `1.0.0-rc.5` → `1.0.0` all count. Prereleases exist
+//     specifically to ship breaking experiments; treating them as
+//     non-major would skip the breaking-change-vs-usage scan in the
+//     prompt downstream.
 //
-// Encodes the SemVer 0.x rule + parse-failure handling. Each branch is
-// a documented part of the rule; splitting would scatter the rule
-// across helpers.
+// Anything we can't parse is `null` (unknown).
+//
+// Encodes the SemVer rules + parse-failure handling. Each branch is
+// a documented part of the rule.
 // fallow-ignore-next-line complexity
 export function isMajorBump(oldVersion, newVersion) {
-  try {
-    const o = semver.coerce(oldVersion);
-    const n = semver.coerce(newVersion);
-    if (!o || !n) return null;
-    if (n.major > o.major) return true;
-    if (n.major === 0 && o.major === 0 && n.minor > o.minor) return true;
-    return false;
-  } catch {
-    return null;
-  }
+  const o = semver.parse(oldVersion) ?? semver.coerce(oldVersion);
+  const n = semver.parse(newVersion) ?? semver.coerce(newVersion);
+  if (!o || !n) return null;
+  if (n.major > o.major) return true;
+  if (n.major === 0 && o.major === 0 && n.minor > o.minor) return true;
+  const oPre = o.prerelease ?? [];
+  const nPre = n.prerelease ?? [];
+  if ((oPre.length > 0 || nPre.length > 0) && oPre.join('.') !== nPre.join('.')) return true;
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -441,9 +480,13 @@ function parseLockfile(text, path) {
 }
 
 // Build a `bumps[]` entry from a classified stanza change. License
-// falls back to the base-ref lockfile if the diff didn't include a
-// license line in this stanza (common — most version-only changes
-// don't show license context).
+// falls back to the base-ref lockfile entry AT THE SAME LOCKFILE PATH
+// if the diff didn't include a license line in this stanza (common —
+// most version-only changes don't show license context). Looking up
+// by path (not by name) is load-bearing: same-named packages at
+// different paths can have different licenses (hoisted vs nested
+// copies), and a fallback that reads from the wrong resolution would
+// either mask a real license change or fabricate a fake one.
 //
 // Limitation: a stanza with ONLY a `-"license"` line (license removed
 // in the new version, no `+` counterpart) collapses to newLicense ===
@@ -455,8 +498,8 @@ function parseLockfile(text, path) {
 // CRAP-only finding from uncovered nullish-coalesce chains for the
 // license-fallback logic.
 // fallow-ignore-next-line complexity
-function buildBumpEntry(name, e, baseIndex) {
-  const oldLicense = e.oldLicense ?? baseIndex.get(name)?.license ?? null;
+function buildBumpEntry(path, name, e, baseIndex) {
+  const oldLicense = e.oldLicense ?? baseIndex.get(path)?.license ?? null;
   const newLicense = e.newLicense ?? oldLicense;
   return {
     name,
@@ -480,9 +523,9 @@ function buildLicenseChangeEntry(bump) {
 // Returns `{ bump?, removal?, netNew?, licenseChange? }`. CRAP-only
 // finding from the 3-kind dispatch.
 // fallow-ignore-next-line complexity
-function classifyChange(name, e, baseIndex) {
+function classifyChange(path, name, e, baseIndex) {
   if (e.kind === 'bump') {
-    const bump = buildBumpEntry(name, e, baseIndex);
+    const bump = buildBumpEntry(path, name, e, baseIndex);
     const licenseChange = buildLicenseChangeEntry(bump);
     return licenseChange ? { bump, licenseChange } : { bump };
   }
@@ -504,16 +547,19 @@ export async function run(opts) {
   const lock = parseLockfile(lockText, opts.lockfile);
 
   const baseIndex = indexLockfile(lock);
-  const changes = extractStanzaChanges(diffText);
+  const { changes, warnings: stanzaWarnings } = extractStanzaChanges(diffText);
 
   const bumps = [];
   const removals = [];
   const netNew = [];
   const licenseChanges = [];
   // `changes` is keyed by lockfile path (not name) so distinct copies
-  // of the same package at different paths stay separate.
-  for (const e of changes.values()) {
-    const c = classifyChange(e.name, e, baseIndex);
+  // of the same package at different paths stay separate. Threading
+  // the path into classifyChange lets buildBumpEntry resolve license
+  // fallbacks against the same lockfile entry rather than against an
+  // arbitrarily-picked other copy.
+  for (const [path, e] of changes) {
+    const c = classifyChange(path, e.name, e, baseIndex);
     if (c.bump) bumps.push(c.bump);
     if (c.removal) removals.push(c.removal);
     if (c.netNew) netNew.push(c.netNew);
@@ -526,7 +572,7 @@ export async function run(opts) {
     netNew,
     licenseChanges,
     peerMismatches: findPeerMismatches(bumps, baseIndex),
-    warnings: [],
+    warnings: stanzaWarnings,
   };
 
   await mkdir(dirname(opts.out), { recursive: true });
