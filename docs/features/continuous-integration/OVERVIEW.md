@@ -16,7 +16,7 @@ All seven run on every `pull_request` to `main` via `.github/workflows/ci.yml`:
 2. **`format:check`** — `prettier --check .`
 3. **`typecheck`** — `tsc --noEmit` against both project tsconfigs
 4. **`build`** — `electron-vite build`
-5. **`audit`** — `fallow audit` (codebase intelligence: dead code, complexity, duplication; NOT a license auditor — see [`~/.claude/memory/fallow.md`](https://github.com/bkshrader) if you have access to user memories, otherwise the project memory)
+5. **`audit`** — `fallow audit` (codebase intelligence: dead code, complexity, duplication; NOT a license auditor)
 6. **`npm-audit`** — `npm audit --audit-level=high`
 7. **`license-check`** — `npx license-checker` against the AGPL-compatible allow list
 

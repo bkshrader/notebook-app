@@ -44,9 +44,9 @@ SHA-pinning narrows ONE of those windows. It doesn't narrow the others. And it a
 
 The Anthropic-org-compromise scenario is bad enough that the marginal protection from SHA-pinning isn't load-bearing. The non-Anthropic-org-compromise scenarios (random commit by a confused maintainer; bug in a v1 release) are bounded by:
 
-- Claude's tool allowlist in this project is read-only (`Read,Grep,Glob`). A buggy or malicious commit to `claude-code-action` would have to escape that allowlist to reach the runner's secrets — which is a separate trust boundary at the GitHub-Actions level.
+- Claude's tool allowlists in this project are read-only. `claude-dependency-review.yml` uses `Read,Grep,Glob`; `claude-code-review.yml` uses the action default; `claude.yml` widens to a handful of read-only `gh` and `git` subcommands (`Bash(gh pr view:*)`, `Bash(gh pr diff:*)`, `Bash(gh issue view:*)`, `Bash(git status)`, `Bash(git diff:*)`, `Bash(git log:*)`). No `Edit`, `Write`, `WebFetch`, or unscoped `Bash`. A buggy or malicious commit to `claude-code-action` would have to escape one of those allowlists to reach the runner's secrets — which is a separate trust boundary at the GitHub-Actions level.
 - The OIDC token Claude mints is short-lived and scoped to the Claude GitHub App's installation permissions. A compromised action can't ask the App for permissions it wasn't granted.
-- All three Claude workflows run on `pull_request` (not `pull_request_target`), so they execute in the PR's downgraded-token context. The blast radius of a compromised action is bounded by what that context allows.
+- None of the three Claude workflows uses `pull_request_target` or `workflow_dispatch` with elevated tokens — they trigger on `pull_request`, `issue_comment`, `issues`, and `pull_request_review[_comment]`, all of which execute in the read-token / downgraded-permissions context. The blast radius of a compromised action is bounded by what that context allows.
 
 The combination of "the attacker can compromise multiple Anthropic-owned trust paths simultaneously, so narrowing one doesn't help much" + "the per-workflow tool allowlist and OIDC scope bound the damage even if the action is compromised" + "the solo-maintainer cost of manual SHA bumps is high and the security-patch-flow benefit of staying current is real" makes Option 2 the right tradeoff for this project.
 
@@ -121,7 +121,7 @@ trust posture.
 ## Follow-up
 
 - If Anthropic publishes a security incident affecting their GitHub org or the `claude-code-action` repo, flip this decision: pin to the last-known-good SHA immediately, then re-evaluate when the dust settles.
-- If any Claude workflow ever widens its tool allowlist to include `Bash`, `Edit`, `Write`, `WebFetch`, or arbitrary `Read` outside `$GITHUB_WORKSPACE`, re-evaluate. The bounded-blast-radius argument here weakens substantially when the tools are broader.
+- If any Claude workflow ever widens its tool allowlist to include `Edit`, `Write`, `WebFetch`, unscoped `Bash`, or arbitrary `Read` outside `$GITHUB_WORKSPACE`, re-evaluate. The current scoped read-only `Bash(gh ...)` / `Bash(git ...)` entries in `claude.yml` are below this threshold; adding anything that can mutate state or reach the network would push us over.
 - If we ever publish to npm or take on additional maintainers, the cost-benefit calculation changes (more secrets at stake, more humans to coordinate SHA bumps with) and SHA-pinning may become the right choice.
 
 ## Links

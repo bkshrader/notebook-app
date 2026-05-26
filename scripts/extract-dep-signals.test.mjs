@@ -330,7 +330,7 @@ test('extractBumps: back-compat shape', () => {
 // indexLockfile
 // ---------------------------------------------------------------------------
 
-test('indexLockfile: dedupes by bare name, keeps first', () => {
+test('indexLockfile: keeps distinct copies of same-named package path-keyed', () => {
   const lock = {
     packages: {
       '': { name: 'host' },
