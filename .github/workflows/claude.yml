@@ -1,5 +1,17 @@
 name: Claude Code
 
+# @claude-mention bot for the maintainer. Internet-triggered (anyone can
+# write '@claude' in a public comment) so the collaborator gate is
+# load-bearing — see the if: + preflight step below.
+#
+# Threat model: docs/features/continuous-integration/adrs/ci-threat-model.md
+# Action pinning: docs/features/continuous-integration/adrs/claude-code-action-pinning.md
+#
+# OIDC + id-token semantics, prompt-injection caveats, and the
+# allowlist-bounding-blast-radius argument are documented in
+# adrs/claude-dependency-review.md (the bot-side rationale applies
+# identically here).
+
 on:
   issue_comment:
     types: [created]
@@ -35,15 +47,8 @@ jobs:
       contents: read
       pull-requests: read
       issues: read
-      # `id-token: write` is the GitHub Actions permission to request an OIDC
-      # token from GitHub's identity provider. It does NOT grant write access
-      # to repository content. The Claude GitHub App uses the OIDC token to
-      # authenticate to Anthropic and mint a short-lived, app-scoped
-      # installation token — the token Claude actually uses for repo
-      # operations is scoped by the GitHub App's installation permissions,
-      # not by this workflow's permissions block.
-      id-token: write
-      actions: read # Required for Claude to read CI results on PRs
+      id-token: write # OIDC token issuance; not repo write. See ADR.
+      actions: read # so Claude can read CI results on PRs
     steps:
       # Verify the triggering user is a collaborator on this repo BEFORE
       # invoking Claude. Anyone with a GitHub account can write '@claude' in
@@ -66,37 +71,22 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      # `anthropics/claude-code-action@v1` is a moving tag. Deliberate
-      # choice — Anthropic-maintained, first-party for our use case, and
-      # pinning to a SHA would mean missing security patches between manual
-      # updates. Revisit if this ever feels too loose.
       - name: Run Claude Code
         id: claude
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@v1 # moving tag deliberate; see ADR
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-
-          # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
             actions: read
 
-          # Read-and-comment tool allowlist. No Edit/Write/Bash(npm:*) for now —
-          # this workflow is internet-triggered (anyone can write '@claude' in a
-          # public comment), so the bound on damage from prompt injection or
-          # account-takeover is the size of this allowlist. Broaden when this
-          # workflow is actively used and the use cases are known.
-          #
-          # Known limitation: `gh pr view/diff` and `gh issue view` are
-          # inbound prompt-injection channels — they pull attacker-influenced
-          # text (any user can author an issue/PR body, including ones
-          # designed to manipulate Claude). The bound on resulting damage is
-          # the collaborator gate (preflight step) plus the absence of
-          # Edit/Write/network tools in this allowlist. A tighter design
-          # would pre-fetch the triggering issue/PR (and optionally linked
-          # ones) in a preflight step and give Claude only `Read` access to
-          # the fetched context — discussed in the PR-52 review thread,
-          # deferred until usage patterns justify the YAML cost.
+          # Read-and-comment allowlist. No Edit/Write/Bash(npm:*) — this
+          # workflow is internet-triggered, so the allowlist size bounds
+          # damage from prompt-injection or account-takeover. `gh pr view/
+          # diff` and `gh issue view` are acknowledged inbound injection
+          # channels; the bound is the collaborator gate plus the
+          # absence of Edit/Write/network tools. Broaden only when use
+          # cases justify it.
           claude_args: '--allowedTools "Read,Grep,Glob,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),Bash(git status),Bash(git diff:*),Bash(git log:*)"'
 
-          # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
-          # prompt: 'Update the pull request description to include a summary of changes.'
+          # No `prompt:` here — Claude follows the instructions in the
+          # comment that tagged it.
