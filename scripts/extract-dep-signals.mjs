@@ -138,58 +138,72 @@ const PKG_KEY = /^[ +-]\s*"((?:node_modules\/.+\/)?node_modules\/(?:@[^"/]+\/)?[
 const VERSION_LINE = /^([+-])\s*"version"\s*:\s*"([^"]+)"\s*,?\s*$/;
 const LICENSE_LINE = /^([+-])\s*"license"\s*:\s*"([^"]+)"\s*,?\s*$/;
 const FILE_HEADER = /^\+\+\+ b\/(.+)$/;
+const HUNK_HEADER = /^@@ /;
 
 // Normalize a lockfile path like `node_modules/foo/node_modules/bar` to
 // the bare package name `bar`. The lockfile uses nested node_modules
-// paths for transitive deps; for our purposes the leaf name is what
-// matters (the same package can appear under multiple paths and we
-// de-dup by name).
+// paths for transitive deps; for matching against other name-keyed data
+// (e.g. peerDependencies), the leaf segment is what we need.
 function pathToName(lockfilePath) {
   const segments = lockfilePath.split('node_modules/');
   return segments[segments.length - 1];
 }
 
 // Extract structured stanza-level changes from a PR diff. Returns a
-// Map<name, { oldVersion, newVersion, oldLicense, newLicense, kind }>
+// Map<lockfilePath, { name, oldVersion, newVersion, oldLicense, newLicense, kind }>
 // where `kind` is one of:
 //   - 'bump':    both old and new versions present
 //   - 'removal': only old version present (stanza deleted)
 //   - 'netNew':  only new version present (stanza added)
 //
-// We de-dup by package name. If the same package appears under
-// multiple lockfile paths (workspace pinning, transitive copies),
-// the LAST seen wins. That's fine because all copies of the same
-// package@version share license / version data.
+// We key by full lockfile path (not bare name) to avoid merging
+// distinct copies of the same package. npm hoisting + nested
+// node_modules paths mean a single package name can appear at multiple
+// versions in one lockfile — e.g., `semver` exists at v5.7.2, v6.3.1,
+// v7.7.4, v7.8.1 in this repo across different paths. If a Dependabot
+// PR removes one resolution and adds another, dedup-by-name would
+// merge a `-version: "5.7.2"` line from one stanza with a
+// `+version: "7.8.1"` line from another into a fake "5.7.2 → 7.8.1
+// bump." Keying by path keeps them separate.
+//
+// Downstream consumers that want per-name semantics (`findPeerMismatches`,
+// the run loop) iterate values and use `entry.name`.
+//
 // Accumulator for in-flight stanza state. Encapsulates the pending
 // version/license values and the "flush on stanza boundary" pattern so
 // the main loop in extractStanzaChanges doesn't have to.
 function makeStanzaAccumulator() {
-  const byName = new Map();
+  const byPath = new Map();
+  let currentPath = null;
   let currentName = null;
   let pending = {};
 
   return {
-    setName(name) {
+    setStanza(path, name) {
       this.commit();
+      currentPath = path;
       currentName = name;
     },
-    setNoName() {
+    clearStanza() {
       this.commit();
+      currentPath = null;
       currentName = null;
     },
     record(field, value) {
       pending[field] = value;
     },
     commit() {
-      if (!currentName) return;
-      const existing = byName.get(currentName) ?? {};
+      if (!currentPath) return;
+      const existing = byPath.get(currentPath) ?? { name: currentName };
       Object.assign(existing, pending);
-      if (Object.keys(existing).length > 0) byName.set(currentName, existing);
+      // Only persist if we accumulated something beyond the bare `name`
+      // sentinel (e.g., a version or license field actually appeared).
+      if (Object.keys(existing).length > 1) byPath.set(currentPath, existing);
       pending = {};
     },
     finish() {
       this.commit();
-      return byName;
+      return byPath;
     },
   };
 }
@@ -199,32 +213,34 @@ function makeStanzaAccumulator() {
 // changes (rare; not actionable). CRAP-only finding from uncovered
 // 4-branch dispatch over present-version fields.
 // fallow-ignore-next-line complexity
-function classifyStanzas(byName) {
-  for (const [name, e] of byName) {
+function classifyStanzas(byPath) {
+  for (const [path, e] of byPath) {
     if (e.oldVersion && e.newVersion) e.kind = 'bump';
     else if (e.oldVersion) e.kind = 'removal';
     else if (e.newVersion) e.kind = 'netNew';
-    else byName.delete(name);
+    else byPath.delete(path);
   }
-  return byName;
+  return byPath;
 }
 
 // Classify one diff line into a structured event for the main loop.
 // Returns one of:
 //   { kind: 'file', isLockfile: bool }    — file header
-//   { kind: 'pkgKey', name: string }       — start of a stanza
+//   { kind: 'hunk' }                       — `@@ ... @@` hunk header
+//   { kind: 'pkgKey', path: string, name: string }  — start of a stanza
 //   { kind: 'field', field: 'oldVersion' | 'newVersion' | 'oldLicense' | 'newLicense', value: string }
 //   { kind: 'other' }                      — line we don't care about
 //
-// Pattern-match dispatch over the four line types we care about — each
+// Pattern-match dispatch over the line types we care about — each
 // branch is one regex match + struct construction. Refactoring this
 // into per-kind helpers would just move the dispatch up one level.
 // fallow-ignore-next-line complexity
 function matchDiffLine(line) {
   const fileMatch = line.match(FILE_HEADER);
   if (fileMatch) return { kind: 'file', isLockfile: fileMatch[1] === 'package-lock.json' };
+  if (HUNK_HEADER.test(line)) return { kind: 'hunk' };
   const pkgMatch = line.match(PKG_KEY);
-  if (pkgMatch) return { kind: 'pkgKey', name: pathToName(pkgMatch[1]) };
+  if (pkgMatch) return { kind: 'pkgKey', path: pkgMatch[1], name: pathToName(pkgMatch[1]) };
   const versionMatch = line.match(VERSION_LINE);
   if (versionMatch) {
     return {
@@ -246,7 +262,13 @@ function matchDiffLine(line) {
 
 // Main driver — delegates per-line classification to matchDiffLine and
 // per-stanza accumulation to the StanzaAccumulator. CRAP-only finding
-// from the 4-event-kind dispatch in the loop body.
+// from the 5-event-kind dispatch in the loop body.
+//
+// Hunk-boundary handling: `@@` lines reset the current stanza. Without
+// this, a hunk that ends mid-stanza followed by a hunk that begins
+// mid-some-other-stanza (no fresh `"node_modules/..."` key) would
+// mis-attribute the second hunk's version/license lines to the first
+// stanza's package.
 // fallow-ignore-next-line complexity
 export function extractStanzaChanges(diff) {
   const acc = makeStanzaAccumulator();
@@ -256,11 +278,13 @@ export function extractStanzaChanges(diff) {
     const ev = matchDiffLine(line);
     if (ev.kind === 'file') {
       inLockfile = ev.isLockfile;
-      acc.setNoName();
+      acc.clearStanza();
     } else if (!inLockfile) {
       continue;
+    } else if (ev.kind === 'hunk') {
+      acc.clearStanza();
     } else if (ev.kind === 'pkgKey') {
-      acc.setName(ev.name);
+      acc.setStanza(ev.path, ev.name);
     } else if (ev.kind === 'field') {
       acc.record(ev.field, ev.value);
     }
@@ -269,14 +293,14 @@ export function extractStanzaChanges(diff) {
   return classifyStanzas(acc.finish());
 }
 
-// Back-compat shim: tests and downstream callers may want only the
-// version triples. Same shape as the previous extractBumps export.
+// Convenience accessor for callers that only want `(name, oldVersion,
+// newVersion)` triples. Iterates the path-keyed map and extracts the
+// name from each value.
 export function extractBumps(diff) {
-  const changes = extractStanzaChanges(diff);
   const out = [];
-  for (const [name, e] of changes) {
+  for (const e of extractStanzaChanges(diff).values()) {
     if (e.kind === 'bump') {
-      out.push({ name, oldVersion: e.oldVersion, newVersion: e.newVersion });
+      out.push({ name: e.name, oldVersion: e.oldVersion, newVersion: e.newVersion });
     }
   }
   return out;
@@ -332,13 +356,17 @@ export function indexLockfile(lock) {
 // false-flag.
 //
 // Returns an array of { consumer, consumerVersion, bumpedPackage,
-// declaredRange, newVersion, satisfies } entries. `satisfies` is
-// `false` (definitely incompatible) or `null` (range failed to parse).
+// declaredRange, newVersion, satisfies: false } entries. We only emit
+// when satisfies is definitely false; semver.satisfies returns false
+// (not throws) on malformed input as of semver@7.x, so malformed
+// ranges naturally show up as mismatches — which is the right
+// behavior anyway, since we shouldn't silently pass an upstream
+// declaration we can't interpret.
 //
 // Nested-for filter: outer over consumers, inner over the consumer's
 // peer declarations. Each guard (skip-self-bumped / skip-no-peer /
-// try-satisfies / emit-on-fail) is a single line. Splitting would
-// require threading state through helpers.
+// emit-on-fail) is a single line. Splitting would require threading
+// state through helpers.
 // fallow-ignore-next-line complexity
 export function findPeerMismatches(bumps, baseLockfileIndex) {
   const bumpedByName = new Map(bumps.map((b) => [b.name, b.newVersion]));
@@ -349,23 +377,15 @@ export function findPeerMismatches(bumps, baseLockfileIndex) {
     for (const [peerName, declaredRange] of Object.entries(meta.peerDependencies)) {
       const newVersion = bumpedByName.get(peerName);
       if (!newVersion) continue;
-
-      let satisfies;
-      try {
-        satisfies = semver.satisfies(newVersion, declaredRange, { includePrerelease: true });
-      } catch {
-        satisfies = null;
-      }
-      if (satisfies === false || satisfies === null) {
-        out.push({
-          consumer,
-          consumerVersion: meta.version,
-          bumpedPackage: peerName,
-          declaredRange,
-          newVersion,
-          satisfies: satisfies === false ? false : null,
-        });
-      }
+      if (semver.satisfies(newVersion, declaredRange, { includePrerelease: true })) continue;
+      out.push({
+        consumer,
+        consumerVersion: meta.version,
+        bumpedPackage: peerName,
+        declaredRange,
+        newVersion,
+        satisfies: false,
+      });
     }
   }
   return out;
@@ -423,8 +443,17 @@ function parseLockfile(text, path) {
 // Build a `bumps[]` entry from a classified stanza change. License
 // falls back to the base-ref lockfile if the diff didn't include a
 // license line in this stanza (common — most version-only changes
-// don't show license context). CRAP-only finding from uncovered
-// nullish-coalesce chains for the license-fallback logic.
+// don't show license context).
+//
+// Limitation: a stanza with ONLY a `-"license"` line (license removed
+// in the new version, no `+` counterpart) collapses to newLicense ===
+// oldLicense, so buildLicenseChangeEntry won't surface it as a change.
+// In practice packages don't drop their license string between
+// versions, so we accept this gap rather than complicate the schema
+// with a "license-explicitly-removed" tri-state.
+//
+// CRAP-only finding from uncovered nullish-coalesce chains for the
+// license-fallback logic.
 // fallow-ignore-next-line complexity
 function buildBumpEntry(name, e, baseIndex) {
   const oldLicense = e.oldLicense ?? baseIndex.get(name)?.license ?? null;
@@ -481,8 +510,10 @@ export async function run(opts) {
   const removals = [];
   const netNew = [];
   const licenseChanges = [];
-  for (const [name, e] of changes) {
-    const c = classifyChange(name, e, baseIndex);
+  // `changes` is keyed by lockfile path (not name) so distinct copies
+  // of the same package at different paths stay separate.
+  for (const e of changes.values()) {
+    const c = classifyChange(e.name, e, baseIndex);
     if (c.bump) bumps.push(c.bump);
     if (c.removal) removals.push(c.removal);
     if (c.netNew) netNew.push(c.netNew);

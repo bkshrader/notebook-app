@@ -103,6 +103,17 @@ ${stanzas}
 `;
 }
 
+// Test helper: the stanza-changes map is keyed by lockfile path. Most
+// tests use synthetic diffs where path === `node_modules/<name>`; this
+// helper looks up the entry by name without leaking that detail into
+// every assertion.
+function findByName(stanzaMap, name) {
+  for (const e of stanzaMap.values()) {
+    if (e.name === name) return e;
+  }
+  return undefined;
+}
+
 test('extractStanzaChanges: classifies bump / removal / netNew', () => {
   const diff = diffOf([
     ['react', '19.2.5', '19.2.6'], // bump
@@ -110,13 +121,13 @@ test('extractStanzaChanges: classifies bump / removal / netNew', () => {
     ['new-pkg', null, '2.0.0'], // netNew
   ]);
   const m = extractStanzaChanges(diff);
-  assert.equal(m.get('react').kind, 'bump');
-  assert.equal(m.get('react').oldVersion, '19.2.5');
-  assert.equal(m.get('react').newVersion, '19.2.6');
-  assert.equal(m.get('old-pkg').kind, 'removal');
-  assert.equal(m.get('old-pkg').oldVersion, '1.0.0');
-  assert.equal(m.get('new-pkg').kind, 'netNew');
-  assert.equal(m.get('new-pkg').newVersion, '2.0.0');
+  assert.equal(findByName(m, 'react').kind, 'bump');
+  assert.equal(findByName(m, 'react').oldVersion, '19.2.5');
+  assert.equal(findByName(m, 'react').newVersion, '19.2.6');
+  assert.equal(findByName(m, 'old-pkg').kind, 'removal');
+  assert.equal(findByName(m, 'old-pkg').oldVersion, '1.0.0');
+  assert.equal(findByName(m, 'new-pkg').kind, 'netNew');
+  assert.equal(findByName(m, 'new-pkg').newVersion, '2.0.0');
 });
 
 test('extractStanzaChanges: captures license diff alongside version', () => {
@@ -134,20 +145,20 @@ diff --git a/package-lock.json b/package-lock.json
      },
 `;
   const m = extractStanzaChanges(diff);
-  assert.equal(m.get('foo').oldLicense, 'MIT');
-  assert.equal(m.get('foo').newLicense, 'ISC');
+  assert.equal(findByName(m, 'foo').oldLicense, 'MIT');
+  assert.equal(findByName(m, 'foo').newLicense, 'ISC');
 });
 
 test('extractStanzaChanges: handles scoped packages', () => {
   const diff = diffOf([['@axe-core/playwright', '4.11.2', '4.11.3']]);
   const m = extractStanzaChanges(diff);
-  assert.ok(m.has('@axe-core/playwright'));
-  assert.equal(m.get('@axe-core/playwright').kind, 'bump');
+  assert.equal(findByName(m, '@axe-core/playwright').kind, 'bump');
 });
 
-test('extractStanzaChanges: handles nested node_modules paths', () => {
+test('extractStanzaChanges: handles single-level nested node_modules paths', () => {
   // npm hoists most deps but sometimes nests; the path uses
-  // `node_modules/parent/node_modules/child`. We extract the leaf name.
+  // `node_modules/parent/node_modules/child`. The leaf name should
+  // still be findable in the result.
   const diff = `\
 diff --git a/package-lock.json b/package-lock.json
 --- a/package-lock.json
@@ -160,7 +171,91 @@ diff --git a/package-lock.json b/package-lock.json
      },
 `;
   const m = extractStanzaChanges(diff);
-  assert.ok(m.has('nested-child'));
+  assert.equal(findByName(m, 'nested-child').kind, 'bump');
+});
+
+test('extractStanzaChanges: handles deeply nested node_modules paths', () => {
+  // Defense against regression in the PKG_KEY regex: a transitive dep
+  // can nest more than one level deep
+  // (parent/node_modules/middle/node_modules/leaf).
+  const diff = `\
+diff --git a/package-lock.json b/package-lock.json
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,5 +1,5 @@
+     "node_modules/parent/node_modules/middle/node_modules/leaf": {
+-      "version": "1.0.0",
++      "version": "1.0.1",
+       "resolved": "..."
+     },
+`;
+  const m = extractStanzaChanges(diff);
+  assert.equal(findByName(m, 'leaf').kind, 'bump');
+});
+
+test('extractStanzaChanges: keeps distinct copies of same-named package separate', () => {
+  // Real-world shape: a Dependabot rollup removes one copy of a
+  // package at version X (under one path) and adds another at version
+  // Y (under a different path). Dedup-by-name would merge them into a
+  // fake "X → Y bump." Path-keying keeps them as separate
+  // removal + netNew entries.
+  const diff = `\
+diff --git a/package-lock.json b/package-lock.json
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,5 +1,1 @@
+-    "node_modules/parent-a/node_modules/semver": {
+-      "version": "5.7.2",
+-      "resolved": "..."
+-    },
+@@ -100,1 +100,5 @@
++    "node_modules/parent-b/node_modules/semver": {
++      "version": "7.8.1",
++      "resolved": "..."
++    },
+`;
+  const m = extractStanzaChanges(diff);
+  // Expect 2 distinct entries (one removal, one netNew), both with
+  // name 'semver'.
+  const entries = [...m.values()].filter((e) => e.name === 'semver');
+  assert.equal(entries.length, 2);
+  const removal = entries.find((e) => e.kind === 'removal');
+  const netNew = entries.find((e) => e.kind === 'netNew');
+  assert.ok(removal, 'removal not found');
+  assert.ok(netNew, 'netNew not found');
+  assert.equal(removal.oldVersion, '5.7.2');
+  assert.equal(netNew.newVersion, '7.8.1');
+});
+
+test('extractStanzaChanges: resets state on @@ hunk boundaries', () => {
+  // Defense against cross-stanza leakage: a hunk ends mid-stanza, then
+  // the next hunk begins with no fresh "node_modules/..." key. Without
+  // hunk-boundary handling, any version/license lines in the second
+  // hunk would be mis-attributed to the first hunk's package.
+  const diff = `\
+diff --git a/package-lock.json b/package-lock.json
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,3 +1,3 @@
+     "node_modules/first-pkg": {
+-      "version": "1.0.0",
++      "version": "1.0.1",
+@@ -50,3 +50,3 @@
+-      "version": "9.0.0",
++      "version": "9.0.1",
+`;
+  const m = extractStanzaChanges(diff);
+  // Only first-pkg should be reported with its real versions; the
+  // second-hunk version lines belong to no recognized stanza and
+  // should be dropped.
+  const firstPkg = findByName(m, 'first-pkg');
+  assert.ok(firstPkg, 'first-pkg not found');
+  assert.equal(firstPkg.oldVersion, '1.0.0');
+  assert.equal(firstPkg.newVersion, '1.0.1');
+  // The orphan version lines must NOT have been attached to first-pkg
+  // (which would have overwritten its real values).
+  assert.notEqual(firstPkg.oldVersion, '9.0.0');
+  assert.notEqual(firstPkg.newVersion, '9.0.1');
 });
 
 test('extractStanzaChanges: ignores non-lockfile diffs', () => {
@@ -280,17 +375,19 @@ test('findPeerMismatches: ignores consumers with no peer on bumped package', () 
   assert.deepEqual(findPeerMismatches(bumps, baseIndex), []);
 });
 
-test('findPeerMismatches: marks satisfies=null on unparseable range', () => {
+test('findPeerMismatches: flags unparseable range as incompatible', () => {
+  // semver.satisfies returns false (not throws) on malformed ranges as
+  // of semver@7.x. This is the right behavior for us — we shouldn't
+  // silently pass an upstream declaration we can't interpret. Verify
+  // it surfaces with satisfies=false.
   const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
   const baseIndex = new Map([
     ['weird-consumer', { version: '1.0.0', peerDependencies: { eslint: 'not-a-real-range' } }],
   ]);
   const out = findPeerMismatches(bumps, baseIndex);
-  // semver.satisfies treats invalid ranges as `false` rather than throwing,
-  // so this surfaces as "definitely incompatible" — close enough to "unknown"
-  // for our purposes that we still flag it. Just verify it surfaces.
   assert.equal(out.length, 1);
   assert.equal(out[0].consumer, 'weird-consumer');
+  assert.equal(out[0].satisfies, false);
 });
 
 test('findPeerMismatches: satisfies=true (no entry) when new version IS in range', () => {
