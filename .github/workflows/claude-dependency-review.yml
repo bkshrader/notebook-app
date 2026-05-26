@@ -27,8 +27,10 @@ name: Claude Dependency Review
 #     NOT `github.actor`. Synacktiv documented forgeability of
 #     `github.actor` in Dependabot-pushed-from-fork scenarios.
 #
-#   - The fetch step runs `gh pr diff`, `gh pr view`, and
-#     `node scripts/extract-dep-signals.mjs`. The extractor itself
+#   - The fetch step runs `git fetch` + `git diff` (against locally
+#     fetched refs, no upstream truncation), `gh pr view` (for
+#     metadata only — small response, not subject to diff truncation),
+#     and `node scripts/extract-dep-signals.mjs`. The extractor itself
 #     does not touch the network — it transforms the local PR diff
 #     plus the checked-out base-ref `package-lock.json` into structured
 #     risk signals (bumps, removals, net-new transitives, license
@@ -99,7 +101,13 @@ name: Claude Dependency Review
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review, synchronize, labeled]
+    # `labeled` is deliberately NOT in this list. Combined with the
+    # `cancel-in-progress: true` concurrency policy below, a maintainer
+    # adding a triage label mid-run would tear down the in-flight
+    # Claude job and silently produce no comment. Dependabot adds the
+    # `dependencies` label atomically at PR creation, so `opened`
+    # already covers the gating-label case.
+    types: [opened, reopened, ready_for_review, synchronize]
 
 concurrency:
   group: claude-dep-review-${{ github.event.pull_request.number }}
@@ -181,16 +189,35 @@ jobs:
       # `extract-dep-signals.mjs` is pure-local — no network, no
       # subprocess — so it has no comparable failure mode worth
       # capping.
+      #
+      # We use `git diff base..head` rather than `gh pr diff` because
+      # the GitHub `.diff` media-type endpoint silently truncates
+      # very large diffs (no documented threshold, but empirically
+      # around 20MB / 20k lines). A truncated diff would slip past
+      # the size cap (it's been pre-trimmed to fit) and feed
+      # under-counted signals to Claude. `git diff` against locally-
+      # fetched refs has no upstream truncation. `gh pr view` is
+      # kept for the metadata JSON — that endpoint is small and not
+      # subject to the same truncation.
       - name: Fetch PR diff and metadata, extract dep signals
         id: fetch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           MAX_DIFF_BYTES: '512000' # 500 KB
         run: |
           set -euo pipefail
           mkdir -p .claude-dep-review
-          gh pr diff "$PR_NUMBER" > .claude-dep-review/pr.diff
+
+          # Fetch the PR head ref into the local object DB so we can
+          # compute the diff against it. `pull/N/head` is GitHub's
+          # documented ref for the PR's head commit regardless of
+          # fork status.
+          git fetch --depth=1 origin "pull/${PR_NUMBER}/head"
+          git diff "${BASE_SHA}" "${HEAD_SHA}" > .claude-dep-review/pr.diff
+
           gh pr view "$PR_NUMBER" \
             --json title,body,additions,deletions,changedFiles,labels,author \
             > .claude-dep-review/pr.json
