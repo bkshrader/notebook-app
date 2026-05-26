@@ -27,12 +27,18 @@ fi
 
 cd "$CWD"
 
-if ! command -v npx >/dev/null 2>&1; then
-  echo "eslint-stop: npx not on PATH, skipping." >&2
+# Invoke ESLint via `node ./node_modules/eslint/bin/eslint.js` rather than `npx`.
+# On Windows, `npx --no-install` still pays ~5s of wrapper overhead per call;
+# spawning node directly avoids that and the existence check is a cheap stat
+# instead of a process spawn.
+ESLINT_BIN="./node_modules/eslint/bin/eslint.js"
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "eslint-stop: node not on PATH, skipping." >&2
   exit 0
 fi
 
-if ! npx --no-install eslint --version >/dev/null 2>&1; then
+if [ ! -f "$ESLINT_BIN" ]; then
   echo "eslint-stop: eslint not installed in this project, skipping." >&2
   exit 0
 fi
@@ -40,8 +46,20 @@ fi
 OUTPUT_FILE="$(mktemp)"
 trap 'rm -f "$OUTPUT_FILE"' EXIT
 
+# Exclude nested worktrees: when this hook runs from the main checkout, `eslint .`
+# would otherwise descend into .claude/worktrees/<name>/ and surface lint errors
+# from other agents' in-flight work. Each worktree has its own copy of this hook
+# that lints its own files (CWD=worktree), so skipping the nested dir here doesn't
+# lose coverage. The pattern is harmless inside a worktree (no such dir there).
+#
+# --cache: the type-aware rules (recommendedTypeChecked) spin up the full TS program,
+# which costs ~15s cold. Caching by file mtime + config hash drops repeat fires to ~2s.
+# Hook-specific cache dir avoids colliding with a future `npm run lint -- --cache`.
 set +e
-npx --no-install eslint . >"$OUTPUT_FILE" 2>&1
+node "$ESLINT_BIN" \
+  --cache --cache-location node_modules/.cache/eslint-stop/ \
+  --ignore-pattern '.claude/worktrees/' \
+  . >"$OUTPUT_FILE" 2>&1
 ESLINT_STATUS=$?
 set -e
 
