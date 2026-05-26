@@ -1,34 +1,29 @@
 name: Claude Code Review
 
+# Per-PR code review using the `code-review` plugin from
+# `anthropics/claude-code`'s marketplace. Skips fork PRs and Dependabot
+# PRs (the latter handled by claude-dependency-review.yml).
+#
+# Threat model: docs/features/continuous-integration/adrs/ci-threat-model.md
+# Action + plugin-marketplace pinning: docs/features/continuous-integration/adrs/claude-code-action-pinning.md
+
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    # Strict allowlist of code-and-code-adjacent paths. Docs-only PRs
-    # (`docs/**`, root `*.md`, `LICENSE`) skip Claude review entirely.
-    # New top-level configs need explicit additions here — the allowlist
-    # stance trades "miss reviewing a new path" for "forget to add a new
-    # path", which is the right direction for this project.
-    #
-    # Excluded by design:
-    # - `package-lock.json`: lockfile changes are caught by `npm audit` and
-    #   `license-check` CI gates; Dependabot lockfile PRs are handled by the
-    #   dedicated dependency-review workflow.
-    # - `.prettierrc`, `.prettierignore`, `.gitattributes`: rare-touch,
-    #   appearance-only or deliberate-by-author files; low review value.
+    # Allowlist of code-and-code-adjacent paths. Docs-only PRs skip
+    # Claude review; new top-level configs need explicit additions
+    # here. Excluded by design: `package-lock.json` (covered by
+    # npm-audit + license-check + dep-review workflow); appearance-only
+    # files (`.prettierrc*`, `.gitattributes`).
     paths:
-      # Application source.
-      - 'src/**'
-      # Storybook config (TypeScript, drives the storybook build).
-      - '.storybook/**'
-      # Dependency manifest — intent (new deps, scripts, engines).
-      - 'package.json'
-      # Build and tooling configs that affect lint/typecheck/build outcomes.
-      - 'electron.vite.config.ts'
+      - 'src/**' # application source
+      - '.storybook/**' # Storybook config (drives the storybook build)
+      - 'package.json' # intent (new deps, scripts, engines)
+      - 'electron.vite.config.ts' # build/lint/typecheck-affecting configs
       - 'eslint.config.mjs'
       - 'tsconfig*.json'
       - '.fallowrc.json'
-      # CI / Actions workflow changes warrant careful review.
-      - '.github/**'
+      - '.github/**' # CI/Actions workflow changes
 
 concurrency:
   group: claude-review-${{ github.event.pull_request.number }}
@@ -36,11 +31,8 @@ concurrency:
 
 jobs:
   claude-review:
-    # Auto-review runs only on trusted-author, non-Dependabot PRs.
-    # - Fork PRs are excluded: untrusted code should never reach trusted
-    #   tooling (matches the threat model from the CI hardening pass).
-    # - Dependabot PRs are excluded: they are handled by the dedicated
-    #   dependency-review workflow with a tighter, dep-specific prompt.
+    # Skip fork PRs (untrusted code) and Dependabot PRs (handled by the
+    # dep-review workflow with a tighter prompt).
     if: |
       github.event.pull_request.head.repo.fork == false &&
       github.event.pull_request.user.login != 'dependabot[bot]'
@@ -50,14 +42,7 @@ jobs:
       contents: read
       pull-requests: read
       issues: read
-      # `id-token: write` is the GitHub Actions permission to request an OIDC
-      # token from GitHub's identity provider. It does NOT grant write access
-      # to repository content. The Claude GitHub App uses the OIDC token to
-      # authenticate to Anthropic and mint a short-lived, app-scoped
-      # installation token — the token Claude actually uses for repo
-      # operations is scoped by the GitHub App's installation permissions,
-      # not by this workflow's permissions block.
-      id-token: write
+      id-token: write # OIDC token issuance; not repo write. See ADR.
 
     steps:
       - name: Checkout repository
@@ -66,20 +51,11 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      # Two mutable-reference trust assumptions worth being explicit about:
-      #
-      # 1. `anthropics/claude-code-action@v1` is a moving tag. Deliberate
-      #    choice — Anthropic-maintained, first-party for our use case, and
-      #    pinning to a SHA would mean missing security patches between
-      #    manual updates. Revisit if this ever feels too loose.
-      #
-      # 2. `plugin_marketplaces` + `plugins` resolve fresh from HEAD of the
-      #    default branch on every workflow run — there is currently no
-      #    version-pinning syntax in the `plugins:` input. We are trusting
-      #    Anthropic to not push breaking or risk-expanding changes to the
-      #    `code-review` plugin without notice. If that ever needs to
-      #    change, the escape hatch is forking `anthropics/claude-code` and
-      #    pointing `plugin_marketplaces` at the fork at a known-good ref.
+      # `anthropics/claude-code-action@v1` AND `plugin_marketplaces` are
+      # both moving references and both deliberately unpinned. See
+      # adrs/claude-code-action-pinning.md for the reasoning and revisit
+      # triggers (especially: tool-allowlist widening or Anthropic-org
+      # security incident).
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@v1
@@ -88,8 +64,6 @@ jobs:
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
           prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
-          # Pin model: Sonnet 4.6 is sufficient for routine code review and
-          # keeps per-PR cost predictable. Bump to Opus for deeper review.
+          # Sonnet 4.6 — sufficient for routine review; predictable cost.
+          # Bump to Opus for deeper review.
           claude_args: '--model claude-sonnet-4-6'
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options

@@ -18,27 +18,17 @@
 //
 // SECURITY MODEL
 //
-// This script runs in CI on Dependabot-authored PRs. ALL inputs are
-// local files — the checked-out base-ref `package-lock.json` (trusted,
-// authored by us before the PR existed) and the PR's diff (untrusted,
-// authored by Dependabot which is in turn driven by upstream packages).
+// Inputs are local files only: the checked-out base-ref `package-lock.json`
+// (trusted; authored by us pre-PR) and the PR's diff (untrusted;
+// upstream-controlled via Dependabot). No network, no subprocess, no
+// `fetch()` / `gh api` / `npm view`. Diff parsing is regex-based; an
+// attacker who can shape the diff can emit noise but cannot escalate
+// — the downstream consumer (Claude with `Read,Grep,Glob` only) is
+// advisory.
 //
-// Defenses:
-//
-//   1. No network. No subprocess. No `npm view`, no `gh api`, no
-//      `fetch()`. The script is a pure transformer over local data.
-//      Release-note content is handled by the workflow's Claude prompt
-//      directly via `pr.json.body` (Dependabot's own changelog
-//      embedding) — this script does NOT touch release notes.
-//
-//   2. Diff parsing is regex-based with bounded line-window heuristics.
-//      An attacker who can shape the diff can confuse `extractStanzaChanges`
-//      into emitting noise, but the downstream consumer (Claude with a
-//      read-only tool allowlist) can only act on the signals
-//      advisorily.
-//
-//   3. Peer-range satisfaction uses the `semver` library — battle-tested
-//      and widely deployed, on the project's license allow list (ISC).
+// Full rationale, including why this is a local extractor rather than a
+// network changelog fetcher and how it fits the dep-review workflow:
+//   docs/features/continuous-integration/adrs/claude-dependency-review.md
 //
 // CONTRACT
 //
