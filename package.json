@@ -19,7 +19,8 @@
     "dist": "electron-vite build && electron-builder",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "test-storybook": "vitest --project=storybook --run"
+    "test-storybook": "vitest --project=storybook --run",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
@@ -44,7 +45,9 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-storybook": "^10.4.1",
     "fallow": "^2.80.0",
+    "husky": "9.1.7",
     "license-checker": "^25.0.1",
+    "lint-staged": "15.5.2",
     "playwright": "^1.60.0",
     "prettier": "3.8.3",
     "storybook": "^10.4.1",
@@ -56,5 +59,14 @@
   "dependencies": {
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css,html}": [
+      "prettier --write"
+    ]
   }
 }
