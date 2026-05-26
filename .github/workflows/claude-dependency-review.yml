@@ -154,13 +154,21 @@ jobs:
       # callsites from Claude's grep and we'd falsely report LOW risk.
       # Pinning to base.sha guarantees we are searching pre-merge code.
       #
-      # We still get the PR's diff via `gh pr diff` in the fetch step
+      # We still get the PR's diff via `git diff` in the fetch step
       # below — that's the source of truth for "what's changing".
+      #
+      # `fetch-depth: 0` (full history) is required so we have enough
+      # commit ancestry locally to compute the merge base of base and
+      # the PR head. We use a three-dot diff (`base...head`) to get
+      # only the changes the PR introduces, not any deltas from
+      # main advancing between the PR opening and this run. Without
+      # the merge base in the local object DB, `git diff A...B` fails.
+      # Our repo is small enough that the full-history clone is cheap.
       - name: Checkout base ref
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.base.sha }}
-          fetch-depth: 1
+          fetch-depth: 0
           persist-credentials: false
 
       # Pin Node version to match the rest of CI (see .github/workflows/ci.yml).
@@ -190,15 +198,26 @@ jobs:
       # subprocess — so it has no comparable failure mode worth
       # capping.
       #
-      # We use `git diff base..head` rather than `gh pr diff` because
-      # the GitHub `.diff` media-type endpoint silently truncates
-      # very large diffs (no documented threshold, but empirically
-      # around 20MB / 20k lines). A truncated diff would slip past
-      # the size cap (it's been pre-trimmed to fit) and feed
-      # under-counted signals to Claude. `git diff` against locally-
-      # fetched refs has no upstream truncation. `gh pr view` is
-      # kept for the metadata JSON — that endpoint is small and not
-      # subject to the same truncation.
+      # We use `git diff base...head` (three-dot) rather than `gh pr diff`
+      # for two reasons:
+      #   (a) The GitHub `.diff` media-type endpoint silently truncates
+      #       very large diffs (no documented threshold, but empirically
+      #       around 20MB / 20k lines). A truncated diff would slip past
+      #       the size cap (it's been pre-trimmed to fit) and feed
+      #       under-counted signals to Claude.
+      #   (b) Three-dot diff (`base...head`) returns only the changes
+      #       the PR introduces — equivalent to "what GitHub shows in
+      #       the Files view." Two-dot (`base..head`) would also
+      #       include the inverse of any main-advance changes between
+      #       the PR's base and current main, producing phantom
+      #       removals from unrelated PRs that merged in the
+      #       meantime. Computing the merge base requires both refs'
+      #       ancestry in the local object DB — see fetch-depth: 0
+      #       on the checkout above, and the full-history fetch for
+      #       pull/N/head below.
+      #
+      # `gh pr view` is kept for the metadata JSON — that endpoint is
+      # small and not subject to the same truncation.
       - name: Fetch PR diff and metadata, extract dep signals
         id: fetch
         env:
@@ -211,12 +230,12 @@ jobs:
           set -euo pipefail
           mkdir -p .claude-dep-review
 
-          # Fetch the PR head ref into the local object DB so we can
-          # compute the diff against it. `pull/N/head` is GitHub's
-          # documented ref for the PR's head commit regardless of
-          # fork status.
-          git fetch --depth=1 origin "pull/${PR_NUMBER}/head"
-          git diff "${BASE_SHA}" "${HEAD_SHA}" > .claude-dep-review/pr.diff
+          # Fetch the PR head ref's full history (unshallow) into the
+          # local object DB so `git diff base...head` can compute the
+          # merge base. `pull/N/head` is GitHub's documented ref for
+          # the PR's head commit regardless of fork status.
+          git fetch origin "pull/${PR_NUMBER}/head"
+          git diff "${BASE_SHA}...${HEAD_SHA}" > .claude-dep-review/pr.diff
 
           gh pr view "$PR_NUMBER" \
             --json title,body,additions,deletions,changedFiles,labels,author \
