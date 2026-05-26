@@ -1,103 +1,95 @@
 #!/usr/bin/env node
-// fetch-changelogs.mjs — read a PR diff, extract Dependabot version bumps,
-// resolve each bumped package's GitHub repository via the npm registry, and
-// fetch the release notes from GitHub Releases. Output is structured JSON
-// for downstream consumption by the dependency-review workflow.
+// extract-dep-signals.mjs — read a PR diff plus the base-ref
+// `package-lock.json`, and emit structured risk signals for the
+// dependency-review workflow:
+//
+//   1. Bumps          — (name, oldVersion, newVersion) triples for every
+//                       version change in the lockfile.
+//   2. Removals       — packages dropped from the dep tree.
+//   3. NetNew         — packages added to the dep tree (transitive surface
+//                       expansion).
+//   4. LicenseChanges — packages whose license string changed.
+//   5. PeerMismatches — consumers in the base-ref lockfile that declare a
+//                       `peerDependencies` range NOT satisfied by the new
+//                       version of a bumped package. THIS IS THE
+//                       HIGHEST-SIGNAL OUTPUT — it surfaces "you bumped X
+//                       but Y still wants the old range" before Claude
+//                       has to reason about it.
 //
 // SECURITY MODEL
 //
-// This script runs in CI on Dependabot-authored PRs. The diff and the
-// version strings it contains are upstream-controlled — an attacker who
-// publishes a malicious package version can craft a `repository` field
-// designed to manipulate downstream consumers. The defenses here are:
+// This script runs in CI on Dependabot-authored PRs. ALL inputs are
+// local files — the checked-out base-ref `package-lock.json` (trusted,
+// authored by us before the PR existed) and the PR's diff (untrusted,
+// authored by Dependabot which is in turn driven by upstream packages).
 //
-//   1. Strict URL validation. Only `https://github.com/<owner>/<repo>(.git)?`
-//      and the `git+https://` variant are accepted, with `owner` and `repo`
-//      restricted to `[A-Za-z0-9._-]+`. Path traversal, query strings,
-//      fragments, alternate hosts, userinfo, ports, and arbitrary git
-//      schemes are all rejected.
+// Defenses:
 //
-//   2. Size caps. Each changelog is truncated at --max-bytes-per-changelog;
-//      the cumulative output is capped at --max-bytes-total. The number of
-//      packages processed is capped at --max-pkgs. The workflow that
-//      invokes this script also caps the input diff size before calling.
+//   1. No network. No subprocess. No `npm view`, no `gh api`, no
+//      `fetch()`. The script is a pure transformer over local data.
+//      Release-note content is handled by the workflow's Claude prompt
+//      directly via `pr.json.body` (Dependabot's own changelog
+//      embedding) — this script does NOT touch release notes.
 //
-//   3. No package code execution. We deliberately do NOT run `npm view`,
-//      `npm ci`, or any tool that would execute lifecycle scripts. The
-//      `repository` field is read from the npm registry's HTTPS JSON API
-//      (https://registry.npmjs.org/<pkg>/<version>) — a pure data fetch.
+//   2. Diff parsing is regex-based with bounded line-window heuristics.
+//      An attacker who can shape the diff can confuse `extractStanzaChanges`
+//      into emitting noise, but the downstream consumer (Claude with a
+//      read-only tool allowlist) can only act on the signals
+//      advisorily.
 //
-//      Note: the handoff doc that scoped this script assumed
-//      `package-lock.json` carries a `repository` field per entry. Lockfile
-//      v3 (which this project uses) does NOT carry that field — it stores
-//      only `version`, `resolved`, `integrity`, `license`, and dep graph
-//      data. Hitting the registry over HTTPS is the least-privilege path
-//      to the data we need: no code runs, no install happens, and the
-//      returned JSON is treated as untrusted input by the validator.
-//
-//   4. GitHub Releases lookup uses `gh api`, which authenticates with the
-//      caller's GH_TOKEN. The release-tag path is constructed from the
-//      *validated* {owner, repo} tokens only; the version string is
-//      URL-encoded before interpolation as a defense-in-depth measure
-//      against odd version strings.
+//   3. Peer-range satisfaction uses the `semver` library — battle-tested
+//      and widely deployed, on the project's license allow list (ISC).
 //
 // CONTRACT
 //
 //   Inputs (flags):
-//     --diff <path>                  Path to PR unified diff. Required.
-//     --out <path>                   Output JSON path. Required.
-//     --max-pkgs <n>                 Max packages to process. Default 20.
-//     --max-bytes-per-changelog <n>  Per-changelog body cap. Default 50000.
-//     --max-bytes-total <n>          Cumulative body cap. Default 1000000.
+//     --diff <path>      Path to the PR's unified diff. Required.
+//     --lockfile <path>  Path to the BASE REF package-lock.json. Required.
+//     --out <path>       Output JSON path. Required.
 //
-//   Output JSON shape:
+//   Output JSON shape (versions illustrative):
 //     {
-//       "packages": [
-//         {
-//           "name": "react",
-//           "oldVersion": "19.2.5",
-//           "newVersion": "19.2.6",
-//           "repository": { "owner": "facebook", "repo": "react" },
-//           "changelog": {
-//             "tag": "v19.2.6",
-//             "title": "...",
-//             "body": "...",
-//             "date": "2026-05-01T00:00:00Z",
-//             "truncated": false
-//           } | null,
-//           "skippedReason": "<string>" | undefined
-//         }
+//       "bumps": [
+//         { "name": "eslint", "oldVersion": "9.39.4", "newVersion": "10.4.0",
+//           "oldLicense": "MIT", "newLicense": "MIT",
+//           "isMajor": true }
 //       ],
-//       "totalsCapped": false,
-//       "warnings": ["..."]
+//       "removals":   [ { "name": "callsites", "version": "3.1.0" } ],
+//       "netNew":     [ { "name": "@types/esrecurse", "version": "4.3.1",
+//                         "license": "MIT" } ],
+//       "licenseChanges": [
+//         { "name": "foo", "version": "2.0.0",
+//           "oldLicense": "MIT", "newLicense": "ISC" }
+//       ],
+//       "peerMismatches": [
+//         { "consumer": "eslint-plugin-jsx-a11y",
+//           "consumerVersion": "6.10.2",
+//           "bumpedPackage": "eslint",
+//           "declaredRange": "^3 || ^4 || ... || ^9",
+//           "newVersion": "10.4.0",
+//           "satisfies": false }
+//       ],
+//       "warnings": [ "..." ]
 //     }
 //
 //   Exit codes:
-//     0  Success (output written; individual package failures are recorded
-//        per-package in the JSON, not surfaced as exit code).
-//     1  Fatal: missing required flag, unreadable input, output write
-//        failure, or unexpected internal error.
+//     0  Success (output written).
+//     1  Fatal: missing flag, unreadable input, malformed lockfile, write failure.
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { execFile as execFileCb } from 'node:child_process';
-import { promisify } from 'node:util';
-
-const execFile = promisify(execFileCb);
+import semver from 'semver';
 
 // ---------------------------------------------------------------------------
 // Argument parsing
 // ---------------------------------------------------------------------------
 
-const DEFAULTS = Object.freeze({
-  maxPkgs: 20,
-  maxBytesPerChangelog: 50_000,
-  maxBytesTotal: 1_000_000,
-});
-
+// Idiomatic CLI flag-dispatch switch — cyclomatic = #flags + 2. Splitting
+// each case into a helper would add ceremony without improving clarity.
+// fallow-ignore-next-line complexity
 export function parseArgs(argv) {
-  const out = { ...DEFAULTS };
+  const out = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => {
@@ -109,410 +101,410 @@ export function parseArgs(argv) {
       case '--diff':
         out.diff = next();
         break;
+      case '--lockfile':
+        out.lockfile = next();
+        break;
       case '--out':
         out.out = next();
-        break;
-      case '--max-pkgs':
-        out.maxPkgs = parseIntStrict(next(), a);
-        break;
-      case '--max-bytes-per-changelog':
-        out.maxBytesPerChangelog = parseIntStrict(next(), a);
-        break;
-      case '--max-bytes-total':
-        out.maxBytesTotal = parseIntStrict(next(), a);
         break;
       default:
         throw new Error(`Unknown argument: ${a}`);
     }
   }
   if (!out.diff) throw new Error('--diff is required');
+  if (!out.lockfile) throw new Error('--lockfile is required');
   if (!out.out) throw new Error('--out is required');
   return out;
-}
-
-function parseIntStrict(s, flag) {
-  if (!/^\d+$/.test(s)) throw new Error(`${flag} must be a non-negative integer, got: ${s}`);
-  return Number.parseInt(s, 10);
 }
 
 // ---------------------------------------------------------------------------
 // Diff parsing
 // ---------------------------------------------------------------------------
 
-// Extract (name, oldVersion, newVersion) triples from a PR diff.
+// Lockfile stanzas look like:
 //
-// We only consider package-lock.json hunks; package.json bumps are followed
-// by lockfile bumps for the same package, so the lockfile is the canonical
-// source. Each bumped package shows up in the lockfile as a paired
-// `-"version": "X"` / `+"version": "Y"` change inside a stanza whose object
-// key is `"node_modules/<name>":` (possibly nested for transitive deps).
+//   "node_modules/<name>": {
+//     "version": "X.Y.Z",
+//     "resolved": "...",
+//     "license": "MIT",
+//     ...
+//   }
 //
-// The strategy is line-by-line:
-//   - Track the most recent `"node_modules/<name>":` key seen in the hunk
-//     (whether on a context, +, or - line).
-//   - When we see a paired `-"version": "X"` followed by `+"version": "Y"`
-//     in close proximity, emit a triple for the currently-tracked package.
+// We track the most recent `"node_modules/<name>":` key seen, then
+// scan for `version` / `license` lines (with `+` / `-` / context
+// prefixes) within the stanza. The stanza terminates at the next key
+// or end-of-hunk.
+const PKG_KEY = /^[ +-]\s*"((?:node_modules\/.+\/)?node_modules\/(?:@[^"/]+\/)?[^"/]+)"\s*:\s*\{/;
+const VERSION_LINE = /^([+-])\s*"version"\s*:\s*"([^"]+)"\s*,?\s*$/;
+const LICENSE_LINE = /^([+-])\s*"license"\s*:\s*"([^"]+)"\s*,?\s*$/;
+const FILE_HEADER = /^\+\+\+ b\/(.+)$/;
+
+// Normalize a lockfile path like `node_modules/foo/node_modules/bar` to
+// the bare package name `bar`. The lockfile uses nested node_modules
+// paths for transitive deps; for our purposes the leaf name is what
+// matters (the same package can appear under multiple paths and we
+// de-dup by name).
+function pathToName(lockfilePath) {
+  const segments = lockfilePath.split('node_modules/');
+  return segments[segments.length - 1];
+}
+
+// Extract structured stanza-level changes from a PR diff. Returns a
+// Map<name, { oldVersion, newVersion, oldLicense, newLicense, kind }>
+// where `kind` is one of:
+//   - 'bump':    both old and new versions present
+//   - 'removal': only old version present (stanza deleted)
+//   - 'netNew':  only new version present (stanza added)
 //
-// "Close proximity" means: the + must come within a small window after the
-// matching -. We use 5 lines, which is enough for the typical lockfile
-// stanza shape but tight enough not to cross stanzas.
-export function extractBumps(diff) {
-  const lines = diff.split('\n');
-  const bumps = [];
-  const seen = new Set(); // de-dup by `name@old->new`
-  let currentPkg = null;
+// We de-dup by package name. If the same package appears under
+// multiple lockfile paths (workspace pinning, transitive copies),
+// the LAST seen wins. That's fine because all copies of the same
+// package@version share license / version data.
+// Accumulator for in-flight stanza state. Encapsulates the pending
+// version/license values and the "flush on stanza boundary" pattern so
+// the main loop in extractStanzaChanges doesn't have to.
+function makeStanzaAccumulator() {
+  const byName = new Map();
+  let currentName = null;
+  let pending = {};
+
+  return {
+    setName(name) {
+      this.commit();
+      currentName = name;
+    },
+    setNoName() {
+      this.commit();
+      currentName = null;
+    },
+    record(field, value) {
+      pending[field] = value;
+    },
+    commit() {
+      if (!currentName) return;
+      const existing = byName.get(currentName) ?? {};
+      Object.assign(existing, pending);
+      if (Object.keys(existing).length > 0) byName.set(currentName, existing);
+      pending = {};
+    },
+    finish() {
+      this.commit();
+      return byName;
+    },
+  };
+}
+
+// Classify accumulated stanzas as bump / removal / netNew based on
+// which version fields are present. Drops entries with only license
+// changes (rare; not actionable). CRAP-only finding from uncovered
+// 4-branch dispatch over present-version fields.
+// fallow-ignore-next-line complexity
+function classifyStanzas(byName) {
+  for (const [name, e] of byName) {
+    if (e.oldVersion && e.newVersion) e.kind = 'bump';
+    else if (e.oldVersion) e.kind = 'removal';
+    else if (e.newVersion) e.kind = 'netNew';
+    else byName.delete(name);
+  }
+  return byName;
+}
+
+// Classify one diff line into a structured event for the main loop.
+// Returns one of:
+//   { kind: 'file', isLockfile: bool }    — file header
+//   { kind: 'pkgKey', name: string }       — start of a stanza
+//   { kind: 'field', field: 'oldVersion' | 'newVersion' | 'oldLicense' | 'newLicense', value: string }
+//   { kind: 'other' }                      — line we don't care about
+//
+// Pattern-match dispatch over the four line types we care about — each
+// branch is one regex match + struct construction. Refactoring this
+// into per-kind helpers would just move the dispatch up one level.
+// fallow-ignore-next-line complexity
+function matchDiffLine(line) {
+  const fileMatch = line.match(FILE_HEADER);
+  if (fileMatch) return { kind: 'file', isLockfile: fileMatch[1] === 'package-lock.json' };
+  const pkgMatch = line.match(PKG_KEY);
+  if (pkgMatch) return { kind: 'pkgKey', name: pathToName(pkgMatch[1]) };
+  const versionMatch = line.match(VERSION_LINE);
+  if (versionMatch) {
+    return {
+      kind: 'field',
+      field: versionMatch[1] === '-' ? 'oldVersion' : 'newVersion',
+      value: versionMatch[2],
+    };
+  }
+  const licenseMatch = line.match(LICENSE_LINE);
+  if (licenseMatch) {
+    return {
+      kind: 'field',
+      field: licenseMatch[1] === '-' ? 'oldLicense' : 'newLicense',
+      value: licenseMatch[2],
+    };
+  }
+  return { kind: 'other' };
+}
+
+// Main driver — delegates per-line classification to matchDiffLine and
+// per-stanza accumulation to the StanzaAccumulator. CRAP-only finding
+// from the 4-event-kind dispatch in the loop body.
+// fallow-ignore-next-line complexity
+export function extractStanzaChanges(diff) {
+  const acc = makeStanzaAccumulator();
   let inLockfile = false;
-  const pendingOld = new Map(); // name -> { oldVersion, lineIndex }
 
-  const PKG_KEY = /^[ +-]\s*"node_modules\/((?:@[^"/]+\/)?[^"/]+)"\s*:\s*\{/;
-  const VERSION_LINE = /^([+-])\s*"version"\s*:\s*"([^"]+)"\s*,?\s*$/;
-  const FILE_HEADER = /^\+\+\+ b\/(.+)$/;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    const fileMatch = line.match(FILE_HEADER);
-    if (fileMatch) {
-      inLockfile = fileMatch[1] === 'package-lock.json';
-      currentPkg = null;
-      pendingOld.clear();
+  for (const line of diff.split('\n')) {
+    const ev = matchDiffLine(line);
+    if (ev.kind === 'file') {
+      inLockfile = ev.isLockfile;
+      acc.setNoName();
+    } else if (!inLockfile) {
       continue;
+    } else if (ev.kind === 'pkgKey') {
+      acc.setName(ev.name);
+    } else if (ev.kind === 'field') {
+      acc.record(ev.field, ev.value);
     }
-    if (!inLockfile) continue;
+  }
 
-    const pkgMatch = line.match(PKG_KEY);
-    if (pkgMatch) {
-      currentPkg = pkgMatch[1];
-      continue;
+  return classifyStanzas(acc.finish());
+}
+
+// Back-compat shim: tests and downstream callers may want only the
+// version triples. Same shape as the previous extractBumps export.
+export function extractBumps(diff) {
+  const changes = extractStanzaChanges(diff);
+  const out = [];
+  for (const [name, e] of changes) {
+    if (e.kind === 'bump') {
+      out.push({ name, oldVersion: e.oldVersion, newVersion: e.newVersion });
     }
+  }
+  return out;
+}
 
-    const versionMatch = line.match(VERSION_LINE);
-    if (!versionMatch || !currentPkg) continue;
+// ---------------------------------------------------------------------------
+// Lockfile parsing
+// ---------------------------------------------------------------------------
 
-    const [, sign, version] = versionMatch;
-    if (sign === '-') {
-      pendingOld.set(currentPkg, { oldVersion: version, lineIndex: i });
-    } else {
-      const pending = pendingOld.get(currentPkg);
-      if (pending && i - pending.lineIndex <= 5) {
-        const key = `${currentPkg}@${pending.oldVersion}->${version}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          bumps.push({ name: currentPkg, oldVersion: pending.oldVersion, newVersion: version });
-        }
-        pendingOld.delete(currentPkg);
+// Walk the lockfile's `packages` object and return a Map keyed by bare
+// package name (deduped). Each value carries the fields we need for
+// peer-compat and license analysis. If a package appears under
+// multiple nested paths, the FIRST seen wins — npm's hoisting puts the
+// top-level resolution first in the object's key order.
+//
+// The root entry (key `""`) is excluded — it represents the host
+// project itself, which has no useful version/license/peer info.
+//
+// Three early-continue filters (skip-root / skip-non-node_modules /
+// skip-duplicate) followed by a build-and-set. Splitting would obscure
+// the linear filter chain.
+// fallow-ignore-next-line complexity
+export function indexLockfile(lock) {
+  const out = new Map();
+  for (const [path, meta] of Object.entries(lock.packages ?? {})) {
+    if (path === '') continue;
+    if (!path.startsWith('node_modules/')) continue;
+    const name = pathToName(path);
+    if (out.has(name)) continue;
+    out.set(name, {
+      version: meta.version,
+      license: typeof meta.license === 'string' ? meta.license : undefined,
+      peerDependencies: meta.peerDependencies ?? {},
+    });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Peer-compat analysis
+// ---------------------------------------------------------------------------
+
+// For each bumped package, scan the base-ref lockfile for every
+// consumer that declares it in `peerDependencies`. If the consumer is
+// NOT also being bumped (i.e., it'll still be at its base-ref version
+// after this PR merges) and the new version of the bumped package does
+// NOT satisfy the consumer's declared range, emit a mismatch.
+//
+// We deliberately use the BASE-REF lockfile to enumerate consumers,
+// not the diff. Consumers that ARE being bumped get a free pass —
+// their new version may declare a wider range, and we have no way to
+// know it from local data alone. Better to under-report than to
+// false-flag.
+//
+// Returns an array of { consumer, consumerVersion, bumpedPackage,
+// declaredRange, newVersion, satisfies } entries. `satisfies` is
+// `false` (definitely incompatible) or `null` (range failed to parse).
+//
+// Nested-for filter: outer over consumers, inner over the consumer's
+// peer declarations. Each guard (skip-self-bumped / skip-no-peer /
+// try-satisfies / emit-on-fail) is a single line. Splitting would
+// require threading state through helpers.
+// fallow-ignore-next-line complexity
+export function findPeerMismatches(bumps, baseLockfileIndex) {
+  const bumpedByName = new Map(bumps.map((b) => [b.name, b.newVersion]));
+  const out = [];
+
+  for (const [consumer, meta] of baseLockfileIndex) {
+    if (bumpedByName.has(consumer)) continue;
+    for (const [peerName, declaredRange] of Object.entries(meta.peerDependencies)) {
+      const newVersion = bumpedByName.get(peerName);
+      if (!newVersion) continue;
+
+      let satisfies;
+      try {
+        satisfies = semver.satisfies(newVersion, declaredRange, { includePrerelease: true });
+      } catch {
+        satisfies = null;
+      }
+      if (satisfies === false || satisfies === null) {
+        out.push({
+          consumer,
+          consumerVersion: meta.version,
+          bumpedPackage: peerName,
+          declaredRange,
+          newVersion,
+          satisfies: satisfies === false ? false : null,
+        });
       }
     }
   }
-
-  return bumps;
+  return out;
 }
 
 // ---------------------------------------------------------------------------
-// Repository URL validation
+// Major-bump detection
 // ---------------------------------------------------------------------------
 
-// Strict allow-list:
-//   - https://github.com/<owner>/<repo>
-//   - https://github.com/<owner>/<repo>.git
-//   - git+https://github.com/<owner>/<repo>.git
+// A "major" bump is one where semver.major(new) > semver.major(old).
+// For 0.x packages we additionally treat any minor bump (0.1 → 0.2) as
+// effectively major — that's the SemVer convention for 0.x: minor
+// bumps may be breaking. Anything we can't parse is `null` (unknown).
 //
-// Reject:
-//   - non-github.com hosts
-//   - git+ssh, ssh, git://, http:// (insecure or non-validatable)
-//   - paths with anything beyond /<owner>/<repo>(.git)? (no subpaths, no
-//     traversal, no encoded slashes)
-//   - query strings, fragments
-//   - userinfo, non-default ports
-//   - owner/repo segments outside [A-Za-z0-9._-]+
-//   - owner/repo segments that are "." or ".."
-//
-// Returns { owner, repo } on success, or null on rejection.
-//
-// Validation order matters: the pre-parse string check runs *before*
-// `new URL(...)` because the URL parser silently normalizes traversal
-// sequences (e.g. `/foo/bar/../../../etc/passwd` → `/etc/passwd`), which
-// would otherwise pass the strict 2-segment regex as if the package's
-// repository were `etc/passwd`. The post-parse `.`/`..` segment check is
-// a second line of defense for cases the pre-parse misses, like
-// `https://github.com/./bar` (no `..` in the string, but `.` is still a
-// traversal sigil we don't want to interpolate).
-export function validateRepositoryUrl(input) {
-  if (typeof input !== 'string') return null;
-
-  // Strip the `git+` prefix if present; everything else must be exactly
-  // an https://github.com URL.
-  let url = input;
-  if (url.startsWith('git+')) url = url.slice(4);
-
-  if (containsTraversalSigil(url)) return null;
-
-  let parsed;
+// Encodes the SemVer 0.x rule + parse-failure handling. Each branch is
+// a documented part of the rule; splitting would scatter the rule
+// across helpers.
+// fallow-ignore-next-line complexity
+export function isMajorBump(oldVersion, newVersion) {
   try {
-    parsed = new URL(url);
+    const o = semver.coerce(oldVersion);
+    const n = semver.coerce(newVersion);
+    if (!o || !n) return null;
+    if (n.major > o.major) return true;
+    if (n.major === 0 && o.major === 0 && n.minor > o.minor) return true;
+    return false;
   } catch {
     return null;
   }
-
-  if (!hasSafeUrlComponents(parsed)) return null;
-
-  return extractOwnerRepo(parsed.pathname);
-}
-
-// Pre-parse string check: reject inputs containing traversal sigils
-// (`..`, double-slash inside path, encoded slash, backslash) before the
-// URL parser normalizes the evidence away. See validateRepositoryUrl
-// header for the rationale.
-//
-// `//github.com//` (note the trailing `//`) catches the empty-owner
-// pathological case `https://github.com//bar`. The protocol's `//` is
-// always preceded by `:`, so the search doesn't false-positive on the
-// canonical `https://github.com/...`.
-function containsTraversalSigil(url) {
-  return url.includes('..') || url.includes('//github.com//') || /%2f/i.test(url) || /\\/.test(url);
-}
-
-// Post-parse component check: reject anything beyond a bare https URL
-// to github.com. No userinfo, no port, no query, no fragment, no
-// subdomain.
-function hasSafeUrlComponents(parsed) {
-  return (
-    parsed.protocol === 'https:' &&
-    parsed.host === 'github.com' &&
-    parsed.username === '' &&
-    parsed.password === '' &&
-    parsed.port === '' &&
-    parsed.search === '' &&
-    parsed.hash === ''
-  );
-}
-
-// Parse `/<owner>/<repo>(.git)?` and validate both segments. Returns
-// `{owner, repo}` on success or `null` on rejection. The `.`/`..`
-// rejection backstops `containsTraversalSigil` for single-dot segments
-// that don't contain a `..` substring.
-const TOKEN = /^[A-Za-z0-9._-]+$/;
-function extractOwnerRepo(pathname) {
-  const match = pathname.match(/^\/([^/]+)\/([^/]+?)(\.git)?$/);
-  if (!match) return null;
-  const [, owner, repo] = match;
-  if (owner === '.' || owner === '..' || repo === '.' || repo === '..') return null;
-  if (!TOKEN.test(owner) || !TOKEN.test(repo)) return null;
-  return { owner, repo };
-}
-
-// ---------------------------------------------------------------------------
-// Registry + Releases fetching
-// ---------------------------------------------------------------------------
-
-// Fetch the package metadata blob for a specific version from the npm
-// registry. Returns { repository: <raw string or null>, warnings: [...] }.
-// Network errors are returned as warnings, not thrown, so the caller can
-// move on to the next package.
-export async function fetchRegistryMetadata(name, version, { fetchImpl = fetch } = {}) {
-  // The package name may include a scope (`@scope/name`). The registry
-  // accepts the unescaped form for scoped packages — `@axe-core/playwright`
-  // is requested as `/@axe-core%2Fplaywright/version` per the registry's
-  // documented behavior. encodeURIComponent on the full name handles this.
-  // For non-scoped packages, encodeURIComponent is a no-op for the
-  // allowed npm name charset.
-  const url = `https://registry.npmjs.org/${encodeURIComponent(name)}/${encodeURIComponent(version)}`;
-  let res;
-  try {
-    res = await fetchImpl(url, {
-      headers: { accept: 'application/json' },
-      // 10s is generous; the registry is fast. Anything slower than this
-      // is signal to skip the package and move on.
-      signal: AbortSignal.timeout(10_000),
-    });
-  } catch (err) {
-    return {
-      repository: null,
-      warnings: [`registry fetch failed for ${name}@${version}: ${err.message}`],
-    };
-  }
-  if (!res.ok) {
-    return {
-      repository: null,
-      warnings: [`registry returned ${res.status} for ${name}@${version}`],
-    };
-  }
-  let body;
-  try {
-    body = await res.json();
-  } catch (err) {
-    return {
-      repository: null,
-      warnings: [`registry returned non-JSON for ${name}@${version}: ${err.message}`],
-    };
-  }
-  // The `repository` field is either a string or `{type, url, directory?}`.
-  // Both are upstream-controlled — we extract the url and hand it to the
-  // strict validator without further interpretation.
-  const repo = body && body.repository;
-  let urlField = null;
-  if (typeof repo === 'string') urlField = repo;
-  else if (repo && typeof repo === 'object' && typeof repo.url === 'string') urlField = repo.url;
-  return { repository: urlField, warnings: [] };
-}
-
-// Look up a GitHub release by tag, trying `v<version>` then `<version>`.
-// Uses `gh api` so it picks up the workflow's GH_TOKEN.
-//
-// Returns { tag, title, body, date } on success, or { tag: null, ... } if
-// neither tag resolves. The warnings array records both attempts when the
-// whole chain fails — a v-prefix 404 followed by a bare-version success
-// is silent (expected), but two failures both get reported so a
-// rate-limit or auth issue isn't masked as "no release found".
-export async function fetchRelease(owner, repo, version, { execImpl = execFile } = {}) {
-  // owner/repo are already strictly validated; version is URL-encoded as a
-  // belt-and-suspenders defense. (The validator does not cover version
-  // strings — npm semver allows e.g. `1.0.0+build.metadata` and we don't
-  // want a `+` to be interpreted as a space.)
-  const encVer = encodeURIComponent(version);
-  const candidates = [`v${encVer}`, encVer];
-  const attemptErrors = [];
-
-  for (const tag of candidates) {
-    try {
-      const { stdout } = await execImpl(
-        'gh',
-        ['api', `/repos/${owner}/${repo}/releases/tags/${tag}`],
-        { maxBuffer: 4 * 1024 * 1024, timeout: 10_000 },
-      );
-      const data = JSON.parse(stdout);
-      return {
-        tag: data.tag_name ?? tag,
-        title: typeof data.name === 'string' ? data.name : '',
-        body: typeof data.body === 'string' ? data.body : '',
-        date: typeof data.published_at === 'string' ? data.published_at : '',
-        warnings: [],
-      };
-    } catch (err) {
-      attemptErrors.push({ tag, message: err.message.split('\n')[0] });
-    }
-  }
-
-  // All attempts failed — surface every attempt in warnings so a
-  // pattern that isn't "404 on tag" (auth, rate limit, network) is
-  // visible in the artifact.
-  const warnings = attemptErrors.map(
-    ({ tag, message }) =>
-      `gh api releases/tags/${tag} failed for ${owner}/${repo}@${version}: ${message}`,
-  );
-  return { tag: null, title: null, body: null, date: null, warnings };
 }
 
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
-// Per-package pipeline: registry lookup → URL validation → release fetch
-// → size-cap. Returns `{ entry, bodyBytes, capped }`, where `bodyBytes`
-// is the size accounted against the cumulative cap (0 if no changelog
-// was attached) and `capped` is true iff this entry triggered the
-// cumulative-bytes ceiling.
-//
-// Dependencies are injected so the function is unit-testable without
-// network or subprocess access.
-async function processBump(bump, opts, deps) {
-  const entry = {
-    name: bump.name,
-    oldVersion: bump.oldVersion,
-    newVersion: bump.newVersion,
-    repository: null,
-    changelog: null,
-  };
-  const warnings = [];
-
-  const meta = await fetchRegistryMetadata(bump.name, bump.newVersion, {
-    fetchImpl: deps.fetchImpl,
-  });
-  warnings.push(...meta.warnings);
-  if (!meta.repository) {
-    entry.skippedReason = 'no repository field in registry metadata';
-    return { entry, warnings, bodyBytes: 0, capped: false };
+// Read a file by path, prefixing any I/O error with a flag-name-aware
+// message so the user knows which input failed.
+async function readNamedFile(path, flag) {
+  try {
+    return await readFile(path, 'utf8');
+  } catch (err) {
+    throw new Error(`Failed to read ${flag} ${path}: ${err.message}`);
   }
-
-  const validated = validateRepositoryUrl(meta.repository);
-  if (!validated) {
-    entry.skippedReason = `repository URL failed validation: ${meta.repository}`;
-    return { entry, warnings, bodyBytes: 0, capped: false };
-  }
-  entry.repository = validated;
-
-  const release = await fetchRelease(validated.owner, validated.repo, bump.newVersion, {
-    execImpl: deps.execImpl,
-  });
-  warnings.push(...release.warnings);
-  if (!release.tag) {
-    entry.skippedReason = 'no matching GitHub release tag';
-    return { entry, warnings, bodyBytes: 0, capped: false };
-  }
-
-  let body = release.body ?? '';
-  let truncated = false;
-  if (body.length > opts.maxBytesPerChangelog) {
-    body = body.slice(0, opts.maxBytesPerChangelog) + '\n\n[truncated]';
-    truncated = true;
-  }
-
-  // Cumulative-cap check. The caller passes `bytesUsedSoFar`; if adding
-  // this body would push us over, return `capped: true` and let the
-  // caller stop iterating.
-  if (deps.bytesUsedSoFar + body.length > opts.maxBytesTotal) {
-    entry.skippedReason = 'cumulative changelog size cap reached';
-    return { entry, warnings, bodyBytes: 0, capped: true };
-  }
-
-  entry.changelog = {
-    tag: release.tag,
-    title: release.title,
-    body,
-    date: release.date,
-    truncated,
-  };
-  return { entry, warnings, bodyBytes: body.length, capped: false };
 }
 
-export async function run(opts, { fetchImpl = fetch, execImpl = execFile } = {}) {
-  const result = { packages: [], totalsCapped: false, warnings: [] };
-
-  let diff;
+// Parse a lockfile JSON blob, surfacing parse errors against --lockfile.
+function parseLockfile(text, path) {
   try {
-    diff = await readFile(opts.diff, 'utf8');
+    return JSON.parse(text);
   } catch (err) {
-    throw new Error(`Failed to read --diff ${opts.diff}: ${err.message}`);
+    throw new Error(`Failed to parse --lockfile ${path} as JSON: ${err.message}`);
+  }
+}
+
+// Build a `bumps[]` entry from a classified stanza change. License
+// falls back to the base-ref lockfile if the diff didn't include a
+// license line in this stanza (common — most version-only changes
+// don't show license context). CRAP-only finding from uncovered
+// nullish-coalesce chains for the license-fallback logic.
+// fallow-ignore-next-line complexity
+function buildBumpEntry(name, e, baseIndex) {
+  const oldLicense = e.oldLicense ?? baseIndex.get(name)?.license ?? null;
+  const newLicense = e.newLicense ?? oldLicense;
+  return {
+    name,
+    oldVersion: e.oldVersion,
+    newVersion: e.newVersion,
+    oldLicense,
+    newLicense,
+    isMajor: isMajorBump(e.oldVersion, e.newVersion) === true,
+  };
+}
+
+// If the bumped package's license string changed, return the
+// licenseChange entry; otherwise null.
+function buildLicenseChangeEntry(bump) {
+  const { oldLicense, newLicense } = bump;
+  if (!oldLicense || !newLicense || oldLicense === newLicense) return null;
+  return { name: bump.name, version: bump.newVersion, oldLicense, newLicense };
+}
+
+// Dispatch a classified stanza change into the per-kind builder.
+// Returns `{ bump?, removal?, netNew?, licenseChange? }`. CRAP-only
+// finding from the 3-kind dispatch.
+// fallow-ignore-next-line complexity
+function classifyChange(name, e, baseIndex) {
+  if (e.kind === 'bump') {
+    const bump = buildBumpEntry(name, e, baseIndex);
+    const licenseChange = buildLicenseChangeEntry(bump);
+    return licenseChange ? { bump, licenseChange } : { bump };
+  }
+  if (e.kind === 'removal') return { removal: { name, version: e.oldVersion } };
+  if (e.kind === 'netNew') {
+    return { netNew: { name, version: e.newVersion, license: e.newLicense ?? null } };
+  }
+  return {};
+}
+
+// Top-level orchestration: read inputs, classify each change, build the
+// signals output. CRAP-only finding from the 4-bucket dispatch over
+// classifyChange's result shape. The dispatch is a 4-line if-chain
+// against optional fields and doesn't benefit from further extraction.
+// fallow-ignore-next-line complexity
+export async function run(opts) {
+  const diffText = await readNamedFile(opts.diff, '--diff');
+  const lockText = await readNamedFile(opts.lockfile, '--lockfile');
+  const lock = parseLockfile(lockText, opts.lockfile);
+
+  const baseIndex = indexLockfile(lock);
+  const changes = extractStanzaChanges(diffText);
+
+  const bumps = [];
+  const removals = [];
+  const netNew = [];
+  const licenseChanges = [];
+  for (const [name, e] of changes) {
+    const c = classifyChange(name, e, baseIndex);
+    if (c.bump) bumps.push(c.bump);
+    if (c.removal) removals.push(c.removal);
+    if (c.netNew) netNew.push(c.netNew);
+    if (c.licenseChange) licenseChanges.push(c.licenseChange);
   }
 
-  const bumps = extractBumps(diff).slice(0, opts.maxPkgs);
-  let totalBytes = 0;
-
-  for (const bump of bumps) {
-    const { entry, warnings, bodyBytes, capped } = await processBump(bump, opts, {
-      fetchImpl,
-      execImpl,
-      bytesUsedSoFar: totalBytes,
-    });
-    result.packages.push(entry);
-    result.warnings.push(...warnings);
-    totalBytes += bodyBytes;
-    if (capped) {
-      result.totalsCapped = true;
-      break;
-    }
-  }
+  const result = {
+    bumps,
+    removals,
+    netNew,
+    licenseChanges,
+    peerMismatches: findPeerMismatches(bumps, baseIndex),
+    warnings: [],
+  };
 
   await mkdir(dirname(opts.out), { recursive: true });
   await writeFile(opts.out, JSON.stringify(result, null, 2) + '\n', 'utf8');
   return result;
 }
 
-// CLI entrypoint guard: only run main() when invoked directly, so the
-// module can be imported by the test file without side effects. Compare
-// via pathToFileURL so the comparison works regardless of platform path
-// quirks (Windows drive letters, etc.) — substring matching on argv[1]
-// would mis-fire if a wrapper script named the file in its own argv[1].
+// CLI entrypoint guard — see scripts/extract-dep-signals.test.mjs for
+// the import-side usage.
 const invokedDirectly =
   process.argv[1] !== undefined && pathToFileURL(process.argv[1]).href === import.meta.url;
 if (invokedDirectly) {
@@ -520,7 +512,7 @@ if (invokedDirectly) {
     const opts = parseArgs(process.argv.slice(2));
     await run(opts);
   } catch (err) {
-    process.stderr.write(`fetch-changelogs: ${err.message}\n`);
+    process.stderr.write(`extract-dep-signals: ${err.message}\n`);
     process.exit(1);
   }
 }

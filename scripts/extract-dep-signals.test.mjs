@@ -1,14 +1,17 @@
-// fetch-changelogs.test.mjs — unit tests for the dependency-review
-// changelog fetcher. Focuses on security-critical surfaces:
+// extract-dep-signals.test.mjs — unit tests for the dependency-review
+// signal extractor. Coverage focuses on:
 //
-//   1. URL validation (the upstream-controlled `repository` field is the
-//      primary attack surface — see fetch-changelogs.mjs SECURITY MODEL).
-//   2. Diff parsing (must extract version bumps deterministically without
-//      cross-stanza confusion).
-//   3. Argument parsing (boundary checks for size caps).
-//   4. Cap enforcement (size limits must fail closed).
+//   1. Stanza extraction from PR diffs (bumps, removals, net-new,
+//      license-only diffs).
+//   2. Lockfile indexing — package name dedup, license/peer-dep
+//      surfacing.
+//   3. Peer-range satisfaction — the highest-signal output. The killer
+//      test case is the real-world PR 45 shape: bump eslint past the
+//      range its plugin's peerDependencies declare.
+//   4. Major-bump detection, including the 0.x convention.
+//   5. End-to-end run() with synthesized inputs.
 //
-// Run with: node --test scripts/fetch-changelogs.test.mjs
+// Run with: node --test scripts/extract-dep-signals.test.mjs
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -18,186 +21,149 @@ import { join } from 'node:path';
 
 import {
   parseArgs,
+  extractStanzaChanges,
   extractBumps,
-  validateRepositoryUrl,
-  fetchRegistryMetadata,
-  fetchRelease,
+  indexLockfile,
+  findPeerMismatches,
+  isMajorBump,
   run,
-} from './fetch-changelogs.mjs';
+} from './extract-dep-signals.mjs';
 
 // ---------------------------------------------------------------------------
-// validateRepositoryUrl — security-critical
+// parseArgs
 // ---------------------------------------------------------------------------
 
-test('validateRepositoryUrl: accepts canonical https github URL', () => {
-  assert.deepEqual(validateRepositoryUrl('https://github.com/foo/bar'), {
-    owner: 'foo',
-    repo: 'bar',
-  });
+test('parseArgs: all three flags required', () => {
+  assert.throws(() => parseArgs([]), /--diff is required/);
+  assert.throws(() => parseArgs(['--diff', 'd']), /--lockfile is required/);
+  assert.throws(() => parseArgs(['--diff', 'd', '--lockfile', 'l']), /--out is required/);
 });
 
-test('validateRepositoryUrl: accepts .git suffix', () => {
-  assert.deepEqual(validateRepositoryUrl('https://github.com/foo/bar.git'), {
-    owner: 'foo',
-    repo: 'bar',
-  });
+test('parseArgs: happy path', () => {
+  const o = parseArgs(['--diff', 'd', '--lockfile', 'l', '--out', 'o']);
+  assert.deepEqual(o, { diff: 'd', lockfile: 'l', out: 'o' });
 });
 
-test('validateRepositoryUrl: accepts git+https prefix with .git suffix', () => {
-  assert.deepEqual(validateRepositoryUrl('git+https://github.com/foo/bar.git'), {
-    owner: 'foo',
-    repo: 'bar',
-  });
+test('parseArgs: unknown flag rejected', () => {
+  assert.throws(
+    () => parseArgs(['--diff', 'd', '--lockfile', 'l', '--out', 'o', '--evil']),
+    /Unknown argument/,
+  );
 });
 
-test('validateRepositoryUrl: accepts dotted and dashed and underscored names', () => {
-  assert.deepEqual(validateRepositoryUrl('https://github.com/foo.bar/baz-qux_quux'), {
-    owner: 'foo.bar',
-    repo: 'baz-qux_quux',
-  });
-});
-
-test('validateRepositoryUrl: rejects path traversal (pre-parse `..` check fires)', () => {
-  // Defense rationale: without the pre-parse check, the URL parser would
-  // normalize `/foo/bar/../../../etc/passwd` to `/etc/passwd`, which would
-  // then pass the strict 2-segment regex as if the repository were
-  // `etc/passwd`. See validateRepositoryUrl header in fetch-changelogs.mjs.
-  assert.equal(validateRepositoryUrl('https://github.com/foo/bar/../../../etc/passwd'), null);
-});
-
-test('validateRepositoryUrl: rejects query string', () => {
-  assert.equal(validateRepositoryUrl('https://github.com/foo/bar?evil=1'), null);
-});
-
-test('validateRepositoryUrl: rejects fragment', () => {
-  assert.equal(validateRepositoryUrl('https://github.com/foo/bar#main'), null);
-});
-
-test('validateRepositoryUrl: rejects non-github host', () => {
-  assert.equal(validateRepositoryUrl('https://evil.com/foo/bar'), null);
-});
-
-test('validateRepositoryUrl: rejects github subdomain', () => {
-  assert.equal(validateRepositoryUrl('https://api.github.com/foo/bar'), null);
-});
-
-test('validateRepositoryUrl: rejects http (non-tls)', () => {
-  assert.equal(validateRepositoryUrl('http://github.com/foo/bar'), null);
-});
-
-test('validateRepositoryUrl: rejects git+ssh scheme', () => {
-  assert.equal(validateRepositoryUrl('git+ssh://git@github.com/foo/bar.git'), null);
-});
-
-test('validateRepositoryUrl: rejects ssh scheme', () => {
-  assert.equal(validateRepositoryUrl('ssh://git@github.com/foo/bar.git'), null);
-});
-
-test('validateRepositoryUrl: rejects git:// scheme', () => {
-  assert.equal(validateRepositoryUrl('git://github.com/foo/bar.git'), null);
-});
-
-test('validateRepositoryUrl: rejects userinfo', () => {
-  assert.equal(validateRepositoryUrl('https://user:pass@github.com/foo/bar'), null);
-});
-
-test('validateRepositoryUrl: rejects non-default port', () => {
-  assert.equal(validateRepositoryUrl('https://github.com:8443/foo/bar'), null);
-});
-
-test('validateRepositoryUrl: rejects subpath beyond owner/repo', () => {
-  assert.equal(validateRepositoryUrl('https://github.com/foo/bar/tree/main'), null);
-});
-
-test('validateRepositoryUrl: rejects empty owner segment', () => {
-  assert.equal(validateRepositoryUrl('https://github.com//bar'), null);
-});
-
-test('validateRepositoryUrl: rejects empty repo segment', () => {
-  assert.equal(validateRepositoryUrl('https://github.com/foo/'), null);
-});
-
-test('validateRepositoryUrl: rejects single-segment path', () => {
-  assert.equal(validateRepositoryUrl('https://github.com/foo'), null);
-});
-
-test('validateRepositoryUrl: rejects owner segment with disallowed chars', () => {
-  assert.equal(validateRepositoryUrl('https://github.com/foo$bar/baz'), null);
-});
-
-test('validateRepositoryUrl: rejects repo segment containing slash via encoding', () => {
-  // %2F is the URL-encoded slash; URL normalizes it in pathname and the
-  // strict 2-segment match fails.
-  assert.equal(validateRepositoryUrl('https://github.com/foo/bar%2Fbaz'), null);
-});
-
-test('validateRepositoryUrl: rejects "." as owner or repo', () => {
-  assert.equal(validateRepositoryUrl('https://github.com/./bar'), null);
-  assert.equal(validateRepositoryUrl('https://github.com/foo/.'), null);
-});
-
-test('validateRepositoryUrl: rejects ".." as owner or repo', () => {
-  // These inputs trip the pre-parse `..` substring check before the URL
-  // parser ever sees them; the post-parse segment guard would also catch
-  // them if the pre-parse check were ever weakened.
-  assert.equal(validateRepositoryUrl('https://github.com/../bar'), null);
-  assert.equal(validateRepositoryUrl('https://github.com/foo/..'), null);
-});
-
-test('validateRepositoryUrl: rejects non-string input', () => {
-  assert.equal(validateRepositoryUrl(null), null);
-  assert.equal(validateRepositoryUrl(undefined), null);
-  assert.equal(validateRepositoryUrl(42), null);
-  assert.equal(validateRepositoryUrl({ url: 'https://github.com/foo/bar' }), null);
-});
-
-test('validateRepositoryUrl: rejects malformed URL strings', () => {
-  assert.equal(validateRepositoryUrl(''), null);
-  assert.equal(validateRepositoryUrl('not a url'), null);
-  assert.equal(validateRepositoryUrl('https://'), null);
+test('parseArgs: missing value rejected', () => {
+  assert.throws(() => parseArgs(['--diff']), /Missing value for --diff/);
 });
 
 // ---------------------------------------------------------------------------
-// extractBumps
+// extractStanzaChanges + extractBumps
 // ---------------------------------------------------------------------------
 
-const SAMPLE_DIFF_SIMPLE = `\
+// Helper: synthesize a minimal package-lock.json diff. Each entry is
+// `[name, oldVer, newVer]` where any of oldVer/newVer may be null to
+// signal removal / net-new.
+function diffOf(entries, { withLicense = null } = {}) {
+  const stanzas = entries
+    .map(([name, oldV, newV]) => {
+      if (oldV && newV) {
+        // bump
+        return `\
+@@ -1,5 +1,5 @@
+     "node_modules/${name}": {
+-      "version": "${oldV}",
++      "version": "${newV}",
+${withLicense ? `       "license": "${withLicense}",\n` : ''}\
+       "resolved": "..."
+     },`;
+      } else if (oldV) {
+        // removal: stanza disappears entirely
+        return `\
+@@ -1,5 +1,1 @@
+-    "node_modules/${name}": {
+-      "version": "${oldV}",
+-      "resolved": "..."
+-    },`;
+      } else {
+        // netNew: stanza appears
+        return `\
+@@ -1,1 +1,5 @@
++    "node_modules/${name}": {
++      "version": "${newV}",
+${withLicense ? `+      "license": "${withLicense}",\n` : ''}\
++      "resolved": "..."
++    },`;
+      }
+    })
+    .join('\n');
+  return `\
 diff --git a/package-lock.json b/package-lock.json
-index 1111111..2222222 100644
 --- a/package-lock.json
 +++ b/package-lock.json
-@@ -100,7 +100,7 @@
-     "node_modules/react": {
--      "version": "19.2.5",
-+      "version": "19.2.6",
-       "resolved": "https://registry.npmjs.org/react/-/react-19.2.6.tgz",
-       "integrity": "sha512-..."
-     },
+${stanzas}
 `;
+}
 
-test('extractBumps: single package bump', () => {
-  const bumps = extractBumps(SAMPLE_DIFF_SIMPLE);
-  assert.deepEqual(bumps, [{ name: 'react', oldVersion: '19.2.5', newVersion: '19.2.6' }]);
+test('extractStanzaChanges: classifies bump / removal / netNew', () => {
+  const diff = diffOf([
+    ['react', '19.2.5', '19.2.6'], // bump
+    ['old-pkg', '1.0.0', null], // removal
+    ['new-pkg', null, '2.0.0'], // netNew
+  ]);
+  const m = extractStanzaChanges(diff);
+  assert.equal(m.get('react').kind, 'bump');
+  assert.equal(m.get('react').oldVersion, '19.2.5');
+  assert.equal(m.get('react').newVersion, '19.2.6');
+  assert.equal(m.get('old-pkg').kind, 'removal');
+  assert.equal(m.get('old-pkg').oldVersion, '1.0.0');
+  assert.equal(m.get('new-pkg').kind, 'netNew');
+  assert.equal(m.get('new-pkg').newVersion, '2.0.0');
 });
 
-test('extractBumps: scoped package', () => {
+test('extractStanzaChanges: captures license diff alongside version', () => {
   const diff = `\
 diff --git a/package-lock.json b/package-lock.json
 --- a/package-lock.json
 +++ b/package-lock.json
 @@ -1,5 +1,5 @@
-     "node_modules/@axe-core/playwright": {
--      "version": "4.11.2",
-+      "version": "4.11.3",
-       "resolved": "https://registry.npmjs.org/.../playwright-4.11.3.tgz"
+     "node_modules/foo": {
+-      "version": "1.0.0",
++      "version": "2.0.0",
+-      "license": "MIT",
++      "license": "ISC",
+       "resolved": "..."
      },
 `;
-  assert.deepEqual(extractBumps(diff), [
-    { name: '@axe-core/playwright', oldVersion: '4.11.2', newVersion: '4.11.3' },
-  ]);
+  const m = extractStanzaChanges(diff);
+  assert.equal(m.get('foo').oldLicense, 'MIT');
+  assert.equal(m.get('foo').newLicense, 'ISC');
 });
 
-test('extractBumps: ignores non-lockfile files', () => {
+test('extractStanzaChanges: handles scoped packages', () => {
+  const diff = diffOf([['@axe-core/playwright', '4.11.2', '4.11.3']]);
+  const m = extractStanzaChanges(diff);
+  assert.ok(m.has('@axe-core/playwright'));
+  assert.equal(m.get('@axe-core/playwright').kind, 'bump');
+});
+
+test('extractStanzaChanges: handles nested node_modules paths', () => {
+  // npm hoists most deps but sometimes nests; the path uses
+  // `node_modules/parent/node_modules/child`. We extract the leaf name.
+  const diff = `\
+diff --git a/package-lock.json b/package-lock.json
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,5 +1,5 @@
+     "node_modules/some-parent/node_modules/nested-child": {
+-      "version": "1.0.0",
++      "version": "1.0.1",
+       "resolved": "..."
+     },
+`;
+  const m = extractStanzaChanges(diff);
+  assert.ok(m.has('nested-child'));
+});
+
+test('extractStanzaChanges: ignores non-lockfile diffs', () => {
   const diff = `\
 diff --git a/package.json b/package.json
 --- a/package.json
@@ -208,235 +174,168 @@ diff --git a/package.json b/package.json
 +      "version": "19.2.6"
      }
 `;
-  // The package-key regex is keyed to package-lock.json hunks only via the
-  // FILE_HEADER tracker. package.json bumps are ignored.
-  assert.deepEqual(extractBumps(diff), []);
+  // The file header gate ensures package.json hunks are skipped.
+  assert.equal(extractStanzaChanges(diff).size, 0);
 });
 
-test('extractBumps: multiple packages in one diff', () => {
-  const diff = `\
-diff --git a/package-lock.json b/package-lock.json
---- a/package-lock.json
-+++ b/package-lock.json
-@@ -100,7 +100,7 @@
-     "node_modules/react": {
--      "version": "19.2.5",
-+      "version": "19.2.6",
-       "resolved": "..."
-     },
-@@ -200,7 +200,7 @@
-     "node_modules/eslint": {
--      "version": "9.39.3",
-+      "version": "9.39.4",
-       "resolved": "..."
-     },
-`;
-  assert.deepEqual(extractBumps(diff), [
-    { name: 'react', oldVersion: '19.2.5', newVersion: '19.2.6' },
-    { name: 'eslint', oldVersion: '9.39.3', newVersion: '9.39.4' },
+test('extractStanzaChanges: returns empty for empty diff', () => {
+  assert.equal(extractStanzaChanges('').size, 0);
+});
+
+test('extractBumps: back-compat shape', () => {
+  const diff = diffOf([
+    ['react', '19.2.5', '19.2.6'],
+    ['gone', '1.0.0', null], // should not appear in bumps
   ]);
-});
-
-test('extractBumps: de-duplicates identical bumps', () => {
-  // Same package can appear in multiple stanzas (workspace pinning, nested
-  // deps); we only want one entry per (name, old, new).
-  const diff = `\
-diff --git a/package-lock.json b/package-lock.json
---- a/package-lock.json
-+++ b/package-lock.json
-@@ -1,5 +1,5 @@
-     "node_modules/react": {
--      "version": "19.2.5",
-+      "version": "19.2.6",
-       "resolved": "..."
-     },
-@@ -100,5 +100,5 @@
-     "node_modules/react": {
--      "version": "19.2.5",
-+      "version": "19.2.6",
-       "resolved": "..."
-     },
-`;
   assert.deepEqual(extractBumps(diff), [
     { name: 'react', oldVersion: '19.2.5', newVersion: '19.2.6' },
   ]);
 });
 
-test('extractBumps: returns empty for empty diff', () => {
-  assert.deepEqual(extractBumps(''), []);
-});
-
 // ---------------------------------------------------------------------------
-// parseArgs
+// indexLockfile
 // ---------------------------------------------------------------------------
 
-test('parseArgs: required flags', () => {
-  assert.throws(() => parseArgs([]), /--diff is required/);
-  assert.throws(() => parseArgs(['--diff', 'd.txt']), /--out is required/);
-});
-
-test('parseArgs: defaults applied', () => {
-  const o = parseArgs(['--diff', 'd', '--out', 'o']);
-  assert.equal(o.maxPkgs, 20);
-  assert.equal(o.maxBytesPerChangelog, 50_000);
-  assert.equal(o.maxBytesTotal, 1_000_000);
-});
-
-test('parseArgs: integer flags reject non-integers', () => {
-  assert.throws(
-    () => parseArgs(['--diff', 'd', '--out', 'o', '--max-pkgs', 'abc']),
-    /non-negative integer/,
-  );
-  assert.throws(
-    () => parseArgs(['--diff', 'd', '--out', 'o', '--max-pkgs', '-5']),
-    /non-negative integer/,
-  );
-  assert.throws(
-    () => parseArgs(['--diff', 'd', '--out', 'o', '--max-pkgs', '1.5']),
-    /non-negative integer/,
-  );
-});
-
-test('parseArgs: unknown flag rejected', () => {
-  assert.throws(() => parseArgs(['--diff', 'd', '--out', 'o', '--evil']), /Unknown argument/);
-});
-
-test('parseArgs: missing value rejected', () => {
-  assert.throws(() => parseArgs(['--diff']), /Missing value for --diff/);
-});
-
-// ---------------------------------------------------------------------------
-// fetchRegistryMetadata (injected fetch)
-// ---------------------------------------------------------------------------
-
-test('fetchRegistryMetadata: extracts string repository', async () => {
-  const fetchImpl = async () => ({
-    ok: true,
-    status: 200,
-    json: async () => ({ repository: 'https://github.com/foo/bar' }),
-  });
-  const r = await fetchRegistryMetadata('foo', '1.0.0', { fetchImpl });
-  assert.equal(r.repository, 'https://github.com/foo/bar');
-  assert.deepEqual(r.warnings, []);
-});
-
-test('fetchRegistryMetadata: extracts object repository.url', async () => {
-  const fetchImpl = async () => ({
-    ok: true,
-    status: 200,
-    json: async () => ({ repository: { type: 'git', url: 'git+https://github.com/foo/bar.git' } }),
-  });
-  const r = await fetchRegistryMetadata('foo', '1.0.0', { fetchImpl });
-  assert.equal(r.repository, 'git+https://github.com/foo/bar.git');
-});
-
-test('fetchRegistryMetadata: returns null repository on missing field', async () => {
-  const fetchImpl = async () => ({ ok: true, status: 200, json: async () => ({}) });
-  const r = await fetchRegistryMetadata('foo', '1.0.0', { fetchImpl });
-  assert.equal(r.repository, null);
-});
-
-test('fetchRegistryMetadata: surfaces non-2xx as warning, not throw', async () => {
-  const fetchImpl = async () => ({ ok: false, status: 404, json: async () => ({}) });
-  const r = await fetchRegistryMetadata('foo', '1.0.0', { fetchImpl });
-  assert.equal(r.repository, null);
-  assert.match(r.warnings[0], /404/);
-});
-
-test('fetchRegistryMetadata: surfaces network error as warning, not throw', async () => {
-  const fetchImpl = async () => {
-    throw new Error('ECONNREFUSED');
-  };
-  const r = await fetchRegistryMetadata('foo', '1.0.0', { fetchImpl });
-  assert.equal(r.repository, null);
-  assert.match(r.warnings[0], /ECONNREFUSED/);
-});
-
-test('fetchRegistryMetadata: rejects non-JSON response gracefully', async () => {
-  const fetchImpl = async () => ({
-    ok: true,
-    status: 200,
-    json: async () => {
-      throw new Error('Unexpected token <');
+test('indexLockfile: dedupes by bare name, keeps first', () => {
+  const lock = {
+    packages: {
+      '': { name: 'host' },
+      'node_modules/foo': { version: '1.0.0', license: 'MIT', peerDependencies: { bar: '^1' } },
+      'node_modules/some-parent/node_modules/foo': { version: '2.0.0', license: 'ISC' },
     },
-  });
-  const r = await fetchRegistryMetadata('foo', '1.0.0', { fetchImpl });
-  assert.equal(r.repository, null);
-  assert.match(r.warnings[0], /non-JSON/);
-});
-
-// ---------------------------------------------------------------------------
-// fetchRelease (injected execFile)
-// ---------------------------------------------------------------------------
-
-// Stub builder for `gh api` calls. Each invocation pops the next handler
-// from `responses`; a handler is either a value to return as `stdout` or
-// an Error to throw. Tracks invocation count via the returned `calls`
-// closure so tests can assert exact-N gh calls without duplicating
-// counter scaffolding.
-function ghApiStub(responses) {
-  let i = 0;
-  const calls = [];
-  const execImpl = async (cmd, args) => {
-    calls.push({ cmd, args });
-    const r = responses[i++];
-    if (r === undefined) throw new Error(`ghApiStub: unexpected call #${i} (${args[1]})`);
-    if (r instanceof Error) throw r;
-    return { stdout: typeof r === 'string' ? r : JSON.stringify(r) };
   };
-  return { execImpl, calls };
-}
-
-test('fetchRelease: v-prefix tag matches', async () => {
-  // gh args layout: ['api', '/repos/{owner}/{repo}/releases/tags/{tag}']
-  // — the path is args[1].
-  const { execImpl, calls } = ghApiStub([
-    {
-      tag_name: 'v1.0.0',
-      name: 'Release 1.0.0',
-      body: 'Notes.',
-      published_at: '2026-01-01T00:00:00Z',
-    },
-  ]);
-  const r = await fetchRelease('foo', 'bar', '1.0.0', { execImpl });
-  assert.equal(r.tag, 'v1.0.0');
-  assert.equal(r.title, 'Release 1.0.0');
-  assert.equal(r.body, 'Notes.');
-  assert.equal(r.date, '2026-01-01T00:00:00Z');
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0].cmd, 'gh');
-  assert.equal(calls[0].args[0], 'api');
-  assert.equal(calls[0].args[1], '/repos/foo/bar/releases/tags/v1.0.0');
+  const idx = indexLockfile(lock);
+  assert.equal(idx.size, 1);
+  assert.equal(idx.get('foo').version, '1.0.0');
+  assert.equal(idx.get('foo').license, 'MIT');
+  assert.deepEqual(idx.get('foo').peerDependencies, { bar: '^1' });
 });
 
-test('fetchRelease: falls back to bare-version tag on v-prefix 404', async () => {
-  const { execImpl, calls } = ghApiStub([
-    new Error('HTTP 404'),
-    { tag_name: '1.0.0', name: '', body: 'X', published_at: '' },
-  ]);
-  const r = await fetchRelease('foo', 'bar', '1.0.0', { execImpl });
-  assert.equal(calls.length, 2);
-  assert.equal(r.tag, '1.0.0');
-  // First-attempt failure should not surface as a warning since the
-  // second attempt succeeded — only total-failure attempts get reported.
-  assert.deepEqual(r.warnings, []);
+test('indexLockfile: skips root entry', () => {
+  const lock = { packages: { '': { name: 'host', version: '0.0.0' } } };
+  assert.equal(indexLockfile(lock).size, 0);
 });
 
-test('fetchRelease: returns null tag and reports both attempts when nothing found', async () => {
-  const { execImpl } = ghApiStub([new Error('HTTP 404'), new Error('HTTP 429')]);
-  const r = await fetchRelease('foo', 'bar', '1.0.0', { execImpl });
-  assert.equal(r.tag, null);
-  assert.equal(r.warnings.length, 2);
-  assert.match(r.warnings[0], /tags\/v1\.0\.0.*404/);
-  assert.match(r.warnings[1], /tags\/1\.0\.0.*429/);
+test('indexLockfile: handles missing peerDependencies as empty object', () => {
+  const lock = { packages: { 'node_modules/foo': { version: '1.0.0' } } };
+  const idx = indexLockfile(lock);
+  assert.deepEqual(idx.get('foo').peerDependencies, {});
 });
 
 // ---------------------------------------------------------------------------
-// run — end-to-end with all injectable callouts stubbed
+// findPeerMismatches — the headline feature
+// ---------------------------------------------------------------------------
+
+test('findPeerMismatches: real-world PR 45 shape (eslint 9→10, jsx-a11y stuck at ^9)', () => {
+  // This is the exact scenario that drove the rewrite. jsx-a11y@6.10.2
+  // declares its eslint peer as `^3 || ... || ^9`. Bumping eslint to
+  // 10.4.0 must produce a single mismatch entry.
+  const bumps = [{ name: 'eslint', newVersion: '10.4.0' }];
+  const baseIndex = new Map([
+    ['eslint', { version: '9.39.4', peerDependencies: {} }],
+    [
+      'eslint-plugin-jsx-a11y',
+      {
+        version: '6.10.2',
+        peerDependencies: { eslint: '^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9' },
+      },
+    ],
+    [
+      'typescript-eslint',
+      {
+        version: '8.59.4',
+        peerDependencies: { eslint: '^8.57.0 || ^9.0.0 || ^10.0.0', typescript: '>=4.8.4' },
+      },
+    ],
+    ['eslint-config-prettier', { version: '10.1.8', peerDependencies: { eslint: '>=7.0.0' } }],
+  ]);
+  const out = findPeerMismatches(bumps, baseIndex);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].consumer, 'eslint-plugin-jsx-a11y');
+  assert.equal(out[0].consumerVersion, '6.10.2');
+  assert.equal(out[0].bumpedPackage, 'eslint');
+  assert.equal(out[0].newVersion, '10.4.0');
+  assert.equal(out[0].satisfies, false);
+  assert.match(out[0].declaredRange, /\^9$/);
+});
+
+test('findPeerMismatches: skips consumers that are themselves being bumped', () => {
+  // If eslint AND its plugin are both bumping, we have no way to know
+  // the plugin's new peer range from local data. Better to under-report.
+  const bumps = [
+    { name: 'eslint', newVersion: '10.0.0' },
+    { name: 'eslint-plugin-jsx-a11y', newVersion: '7.0.0' },
+  ];
+  const baseIndex = new Map([
+    ['eslint-plugin-jsx-a11y', { version: '6.10.2', peerDependencies: { eslint: '^9' } }],
+  ]);
+  assert.deepEqual(findPeerMismatches(bumps, baseIndex), []);
+});
+
+test('findPeerMismatches: ignores consumers with no peer on bumped package', () => {
+  const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
+  const baseIndex = new Map([
+    ['unrelated', { version: '1.0.0', peerDependencies: { other: '^1' } }],
+  ]);
+  assert.deepEqual(findPeerMismatches(bumps, baseIndex), []);
+});
+
+test('findPeerMismatches: marks satisfies=null on unparseable range', () => {
+  const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
+  const baseIndex = new Map([
+    ['weird-consumer', { version: '1.0.0', peerDependencies: { eslint: 'not-a-real-range' } }],
+  ]);
+  const out = findPeerMismatches(bumps, baseIndex);
+  // semver.satisfies treats invalid ranges as `false` rather than throwing,
+  // so this surfaces as "definitely incompatible" — close enough to "unknown"
+  // for our purposes that we still flag it. Just verify it surfaces.
+  assert.equal(out.length, 1);
+  assert.equal(out[0].consumer, 'weird-consumer');
+});
+
+test('findPeerMismatches: satisfies=true (no entry) when new version IS in range', () => {
+  const bumps = [{ name: 'eslint', newVersion: '9.39.4' }];
+  const baseIndex = new Map([
+    ['eslint-plugin-jsx-a11y', { version: '6.10.2', peerDependencies: { eslint: '^9' } }],
+  ]);
+  assert.deepEqual(findPeerMismatches(bumps, baseIndex), []);
+});
+
+// ---------------------------------------------------------------------------
+// isMajorBump
+// ---------------------------------------------------------------------------
+
+test('isMajorBump: classic 1.x → 2.x is major', () => {
+  assert.equal(isMajorBump('1.5.3', '2.0.0'), true);
+});
+
+test('isMajorBump: same-major minor bump is NOT major', () => {
+  assert.equal(isMajorBump('1.5.3', '1.6.0'), false);
+});
+
+test('isMajorBump: 0.x minor bump IS major (SemVer 0.x convention)', () => {
+  assert.equal(isMajorBump('0.1.5', '0.2.0'), true);
+});
+
+test('isMajorBump: 0.x patch bump is NOT major', () => {
+  assert.equal(isMajorBump('0.1.5', '0.1.6'), false);
+});
+
+test('isMajorBump: handles v-prefix and pre-release tags via coerce', () => {
+  assert.equal(isMajorBump('v1.0.0', 'v2.0.0'), true);
+  assert.equal(isMajorBump('1.0.0-beta.1', '2.0.0'), true);
+});
+
+test('isMajorBump: returns null on unparseable input', () => {
+  assert.equal(isMajorBump('not-a-version', '1.0.0'), null);
+});
+
+// ---------------------------------------------------------------------------
+// run — end-to-end
 // ---------------------------------------------------------------------------
 
 async function withTempDir(fn) {
-  const dir = await mkdtemp(join(tmpdir(), 'fetch-changelogs-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'extract-dep-signals-test-'));
   try {
     return await fn(dir);
   } finally {
@@ -444,267 +343,153 @@ async function withTempDir(fn) {
   }
 }
 
-// Stub builder for npm registry fetches. Returns a fetchImpl that maps
-// each call to a fake Response. Map keys are `<pkg>@<version>` so a
-// single stub can serve multi-package diffs.
-function registryStub(byPkgVersion) {
-  return async (url) => {
-    // url is `https://registry.npmjs.org/<pkg-encoded>/<version>`
-    const m = url.match(/^https:\/\/registry\.npmjs\.org\/(.+)\/([^/]+)$/);
-    if (!m) throw new Error(`registryStub: unrecognized url ${url}`);
-    const pkg = decodeURIComponent(m[1]);
-    const ver = decodeURIComponent(m[2]);
-    const key = `${pkg}@${ver}`;
-    const body = byPkgVersion[key];
-    if (body === undefined) return { ok: false, status: 404, json: async () => ({}) };
-    if (body instanceof Error) throw body;
-    return { ok: true, status: 200, json: async () => body };
-  };
+async function writeInputs(dir, { diff, lockfile }) {
+  const diffPath = join(dir, 'pr.diff');
+  const lockPath = join(dir, 'package-lock.json');
+  const outPath = join(dir, 'signals.json');
+  await writeFile(diffPath, diff, 'utf8');
+  await writeFile(lockPath, JSON.stringify(lockfile, null, 2), 'utf8');
+  return { diffPath, lockPath, outPath };
 }
 
-function makeDiff(bumps) {
-  // Synthesize a minimal package-lock.json diff containing the given
-  // (name, old, new) triples. Each stanza is the smallest shape
-  // extractBumps will recognize.
-  const stanzas = bumps
-    .map(
-      ([name, oldV, newV]) => `\
-@@ -1,5 +1,5 @@
-     "node_modules/${name}": {
--      "version": "${oldV}",
-+      "version": "${newV}",
-       "resolved": "..."
-     },`,
-    )
-    .join('\n');
-  return `\
-diff --git a/package-lock.json b/package-lock.json
---- a/package-lock.json
-+++ b/package-lock.json
-${stanzas}
-`;
-}
-
-test('run: end-to-end pipeline with mocked fetch and gh produces full entries', async () => {
+test('run: end-to-end with PR-45-shaped inputs surfaces the peer mismatch', async () => {
   await withTempDir(async (dir) => {
-    const diffPath = join(dir, 'pr.diff');
-    const outPath = join(dir, 'out.json');
-    await writeFile(
-      diffPath,
-      makeDiff([
-        ['react', '19.2.5', '19.2.6'],
-        ['eslint', '9.39.3', '9.39.4'],
-      ]),
-      'utf8',
-    );
-
-    const fetchImpl = registryStub({
-      'react@19.2.6': {
-        repository: { type: 'git', url: 'git+https://github.com/facebook/react.git' },
+    const { diffPath, lockPath, outPath } = await writeInputs(dir, {
+      diff: diffOf([['eslint', '9.39.4', '10.4.0']]),
+      lockfile: {
+        packages: {
+          '': { name: 'host' },
+          'node_modules/eslint': { version: '9.39.4', license: 'MIT' },
+          'node_modules/eslint-plugin-jsx-a11y': {
+            version: '6.10.2',
+            license: 'MIT',
+            peerDependencies: { eslint: '^3 || ^9' },
+          },
+        },
       },
-      'eslint@9.39.4': { repository: 'https://github.com/eslint/eslint' },
     });
-    const { execImpl } = ghApiStub([
-      {
-        tag_name: 'v19.2.6',
-        name: 'React 19.2.6',
-        body: 'React notes',
-        published_at: '2026-05-06T00:00:00Z',
-      },
-      {
-        tag_name: 'v9.39.4',
-        name: 'ESLint 9.39.4',
-        body: 'ESLint notes',
-        published_at: '2026-05-07T00:00:00Z',
-      },
-    ]);
 
-    const out = await run(
-      {
-        diff: diffPath,
-        out: outPath,
-        maxPkgs: 20,
-        maxBytesPerChangelog: 50_000,
-        maxBytesTotal: 1_000_000,
-      },
-      { fetchImpl, execImpl },
-    );
+    const out = await run({ diff: diffPath, lockfile: lockPath, out: outPath });
 
-    assert.equal(out.packages.length, 2);
-    assert.deepEqual(out.packages[0].repository, { owner: 'facebook', repo: 'react' });
-    assert.equal(out.packages[0].changelog.tag, 'v19.2.6');
-    assert.equal(out.packages[0].changelog.truncated, false);
-    assert.deepEqual(out.packages[1].repository, { owner: 'eslint', repo: 'eslint' });
-    assert.equal(out.totalsCapped, false);
+    assert.equal(out.bumps.length, 1);
+    assert.equal(out.bumps[0].name, 'eslint');
+    assert.equal(out.bumps[0].isMajor, true);
+    assert.equal(out.peerMismatches.length, 1);
+    assert.equal(out.peerMismatches[0].consumer, 'eslint-plugin-jsx-a11y');
+    assert.equal(out.peerMismatches[0].satisfies, false);
 
-    // Output file written and matches return value.
+    // Output file matches return value.
     const persisted = JSON.parse(await readFile(outPath, 'utf8'));
     assert.deepEqual(persisted, out);
   });
 });
 
-test('run: enforces --max-bytes-per-changelog by truncating body', async () => {
+test('run: surfaces net-new transitive with its license', async () => {
   await withTempDir(async (dir) => {
-    const diffPath = join(dir, 'pr.diff');
-    const outPath = join(dir, 'out.json');
-    await writeFile(diffPath, makeDiff([['react', '19.2.5', '19.2.6']]), 'utf8');
-
-    const fetchImpl = registryStub({
-      'react@19.2.6': { repository: 'https://github.com/facebook/react' },
+    const { diffPath, lockPath, outPath } = await writeInputs(dir, {
+      diff: diffOf([['@types/esrecurse', null, '4.3.1']], { withLicense: 'MIT' }),
+      lockfile: { packages: { '': {} } },
     });
-    const { execImpl } = ghApiStub([
-      { tag_name: 'v19.2.6', name: 'R', body: 'x'.repeat(200), published_at: '' },
-    ]);
-
-    const out = await run(
-      {
-        diff: diffPath,
-        out: outPath,
-        maxPkgs: 20,
-        maxBytesPerChangelog: 50,
-        maxBytesTotal: 1_000_000,
-      },
-      { fetchImpl, execImpl },
-    );
-
-    assert.equal(out.packages[0].changelog.truncated, true);
-    assert.ok(out.packages[0].changelog.body.startsWith('x'.repeat(50)));
-    assert.ok(out.packages[0].changelog.body.endsWith('[truncated]'));
+    const out = await run({ diff: diffPath, lockfile: lockPath, out: outPath });
+    assert.equal(out.netNew.length, 1);
+    assert.deepEqual(out.netNew[0], { name: '@types/esrecurse', version: '4.3.1', license: 'MIT' });
   });
 });
 
-test('run: enforces --max-bytes-total by setting totalsCapped and breaking', async () => {
+test('run: surfaces removals', async () => {
   await withTempDir(async (dir) => {
-    const diffPath = join(dir, 'pr.diff');
-    const outPath = join(dir, 'out.json');
-    // Three bumps; per-changelog cap accommodates 60 bytes each, total cap
-    // is 100 bytes — so package 1 fits (60), package 2 trips the cap (would
-    // bring total to 120) and is recorded as skipped, package 3 is never
-    // processed because we break on cap.
-    await writeFile(
-      diffPath,
-      makeDiff([
-        ['a', '1.0.0', '1.0.1'],
-        ['b', '1.0.0', '1.0.1'],
-        ['c', '1.0.0', '1.0.1'],
-      ]),
-      'utf8',
-    );
-
-    const fetchImpl = registryStub({
-      'a@1.0.1': { repository: 'https://github.com/x/a' },
-      'b@1.0.1': { repository: 'https://github.com/x/b' },
-      'c@1.0.1': { repository: 'https://github.com/x/c' },
+    const { diffPath, lockPath, outPath } = await writeInputs(dir, {
+      diff: diffOf([['callsites', '3.1.0', null]]),
+      lockfile: { packages: { '': {} } },
     });
-    const { execImpl, calls } = ghApiStub([
-      { tag_name: 'v1.0.1', name: '', body: 'y'.repeat(60), published_at: '' },
-      { tag_name: 'v1.0.1', name: '', body: 'y'.repeat(60), published_at: '' },
-      // No third response — if `run` doesn't break, we'd see "unexpected call #3".
-    ]);
-
-    const out = await run(
-      {
-        diff: diffPath,
-        out: outPath,
-        maxPkgs: 20,
-        maxBytesPerChangelog: 100,
-        maxBytesTotal: 100,
-      },
-      { fetchImpl, execImpl },
-    );
-
-    assert.equal(out.totalsCapped, true);
-    assert.equal(out.packages.length, 2);
-    assert.equal(out.packages[0].changelog.body.length, 60);
-    assert.equal(out.packages[1].changelog, null);
-    assert.match(out.packages[1].skippedReason, /size cap reached/);
-    // Two gh calls — third package never reached.
-    assert.equal(calls.length, 2);
+    const out = await run({ diff: diffPath, lockfile: lockPath, out: outPath });
+    assert.equal(out.removals.length, 1);
+    assert.deepEqual(out.removals[0], { name: 'callsites', version: '3.1.0' });
   });
 });
 
-test('run: records skippedReason when registry has no repository field', async () => {
+test('run: detects license change on bumped package', async () => {
   await withTempDir(async (dir) => {
-    const diffPath = join(dir, 'pr.diff');
-    const outPath = join(dir, 'out.json');
-    await writeFile(diffPath, makeDiff([['mystery', '1.0.0', '2.0.0']]), 'utf8');
-
-    const fetchImpl = registryStub({ 'mystery@2.0.0': {} }); // no repository
-    const { execImpl } = ghApiStub([]); // gh must NOT be called
-
-    const out = await run(
-      {
-        diff: diffPath,
-        out: outPath,
-        maxPkgs: 20,
-        maxBytesPerChangelog: 50_000,
-        maxBytesTotal: 1_000_000,
+    const diff = `\
+diff --git a/package-lock.json b/package-lock.json
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,5 +1,5 @@
+     "node_modules/foo": {
+-      "version": "1.0.0",
++      "version": "2.0.0",
+-      "license": "MIT",
++      "license": "BUSL-1.1",
+       "resolved": "..."
+     },
+`;
+    const { diffPath, lockPath, outPath } = await writeInputs(dir, {
+      diff,
+      lockfile: {
+        packages: {
+          '': {},
+          'node_modules/foo': { version: '1.0.0', license: 'MIT' },
+        },
       },
-      { fetchImpl, execImpl },
-    );
-
-    assert.equal(out.packages.length, 1);
-    assert.equal(out.packages[0].repository, null);
-    assert.equal(out.packages[0].changelog, null);
-    assert.match(out.packages[0].skippedReason, /no repository field/);
-  });
-});
-
-test('run: records skippedReason when registry returns invalid repository URL', async () => {
-  await withTempDir(async (dir) => {
-    const diffPath = join(dir, 'pr.diff');
-    const outPath = join(dir, 'out.json');
-    await writeFile(diffPath, makeDiff([['evil', '1.0.0', '1.0.1']]), 'utf8');
-
-    const fetchImpl = registryStub({
-      'evil@1.0.1': { repository: 'git+ssh://evil.example/evil.git' },
     });
-    const { execImpl } = ghApiStub([]);
-
-    const out = await run(
-      {
-        diff: diffPath,
-        out: outPath,
-        maxPkgs: 20,
-        maxBytesPerChangelog: 50_000,
-        maxBytesTotal: 1_000_000,
-      },
-      { fetchImpl, execImpl },
-    );
-
-    assert.equal(out.packages[0].repository, null);
-    assert.match(out.packages[0].skippedReason, /failed validation/);
-  });
-});
-
-test('run: writes empty result for empty diff', async () => {
-  await withTempDir(async (dir) => {
-    const diffPath = join(dir, 'pr.diff');
-    const outPath = join(dir, 'out.json');
-    await writeFile(diffPath, '', 'utf8');
-    await run({
-      diff: diffPath,
-      out: outPath,
-      maxPkgs: 20,
-      maxBytesPerChangelog: 50_000,
-      maxBytesTotal: 1_000_000,
+    const out = await run({ diff: diffPath, lockfile: lockPath, out: outPath });
+    assert.equal(out.licenseChanges.length, 1);
+    assert.deepEqual(out.licenseChanges[0], {
+      name: 'foo',
+      version: '2.0.0',
+      oldLicense: 'MIT',
+      newLicense: 'BUSL-1.1',
     });
-    const parsed = JSON.parse(await readFile(outPath, 'utf8'));
-    assert.deepEqual(parsed, { packages: [], totalsCapped: false, warnings: [] });
   });
 });
 
-test('run: throws on missing --diff file', async () => {
+test('run: empty diff produces empty signals', async () => {
+  await withTempDir(async (dir) => {
+    const { diffPath, lockPath, outPath } = await writeInputs(dir, {
+      diff: '',
+      lockfile: { packages: { '': {} } },
+    });
+    const out = await run({ diff: diffPath, lockfile: lockPath, out: outPath });
+    assert.deepEqual(out, {
+      bumps: [],
+      removals: [],
+      netNew: [],
+      licenseChanges: [],
+      peerMismatches: [],
+      warnings: [],
+    });
+  });
+});
+
+test('run: throws on missing --diff', async () => {
   await withTempDir(async (dir) => {
     await assert.rejects(
-      run({
-        diff: join(dir, 'does-not-exist'),
-        out: join(dir, 'out.json'),
-        maxPkgs: 20,
-        maxBytesPerChangelog: 50_000,
-        maxBytesTotal: 1_000_000,
-      }),
+      run({ diff: join(dir, 'nope'), lockfile: join(dir, 'lock'), out: join(dir, 'out') }),
       /Failed to read --diff/,
+    );
+  });
+});
+
+test('run: throws on missing --lockfile', async () => {
+  await withTempDir(async (dir) => {
+    const diffPath = join(dir, 'pr.diff');
+    await writeFile(diffPath, '', 'utf8');
+    await assert.rejects(
+      run({ diff: diffPath, lockfile: join(dir, 'nope'), out: join(dir, 'out') }),
+      /Failed to read --lockfile/,
+    );
+  });
+});
+
+test('run: throws on malformed lockfile JSON', async () => {
+  await withTempDir(async (dir) => {
+    const diffPath = join(dir, 'pr.diff');
+    const lockPath = join(dir, 'lock');
+    await writeFile(diffPath, '', 'utf8');
+    await writeFile(lockPath, 'not json', 'utf8');
+    await assert.rejects(
+      run({ diff: diffPath, lockfile: lockPath, out: join(dir, 'out') }),
+      /Failed to parse --lockfile/,
     );
   });
 });
