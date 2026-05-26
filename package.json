@@ -20,7 +20,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test-storybook": "vitest --project=storybook --run",
-    "prepare": "husky && npx playwright install chromium"
+    "prepare": "husky && npx playwright install --with-deps chromium"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
