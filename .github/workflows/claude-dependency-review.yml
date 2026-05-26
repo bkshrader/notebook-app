@@ -1,10 +1,11 @@
 name: Claude Dependency Review
 
 # Advisory review of Dependabot PRs. Claude reads the diff, the PR
-# metadata, and pre-fetched GitHub Releases changelogs for each bumped
-# package, then posts a comment with a LOW/MEDIUM/HIGH risk verdict and
-# bulleted findings (license compatibility, transitive-surface changes,
-# breaking-change indicators, whether the diff is lockfile-only).
+# metadata (which contains Dependabot's embedded release notes), and a
+# structured `signals.json` derived from the diff + the base-ref
+# package-lock.json (peer-dep mismatches, license changes, net-new
+# transitives, bumps, removals). It then posts a comment with a
+# LOW/MEDIUM/HIGH risk verdict and bulleted findings.
 #
 # Claude does NOT gate merging. Merge gating remains the seven CI gates
 # in ci.yml. The human reviewer reads Claude's comment as one input.
@@ -27,13 +28,19 @@ name: Claude Dependency Review
 #     `github.actor` in Dependabot-pushed-from-fork scenarios.
 #
 #   - The fetch step runs `gh pr diff`, `gh pr view`, and
-#     `node scripts/extract-dep-signals.mjs` — all pure data operations
-#     that do not install or execute upstream package code. `npm ci` is
-#     deliberately NOT run in this workflow. The extractor does not
-#     touch the network at all; it transforms the local PR diff plus
-#     the checked-out base-ref `package-lock.json` into structured
+#     `node scripts/extract-dep-signals.mjs`. The extractor itself
+#     does not touch the network — it transforms the local PR diff
+#     plus the checked-out base-ref `package-lock.json` into structured
 #     risk signals (bumps, removals, net-new transitives, license
 #     changes, peer-dep mismatches).
+#
+#     We do run `npm ci --ignore-scripts` once before the extractor so
+#     it can `import semver`. `--ignore-scripts` is the standard
+#     protection used by every other CI gate against upstream
+#     lifecycle-script execution. Crucially, the lockfile we install
+#     from is the BASE REF lockfile (because the checkout step pins to
+#     `pull_request.base.sha`), not the PR's lockfile — so a malicious
+#     PR cannot inject new deps into this install step.
 #
 #   - Release notes for the bumped packages come from Dependabot's own
 #     PR body (`pr.json.body`), not a separate fetch. Dependabot
@@ -147,6 +154,25 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 1
           persist-credentials: false
+
+      # Pin Node version to match the rest of CI (see .github/workflows/ci.yml).
+      # `extract-dep-signals.mjs` uses ESM imports + Node 24 built-ins; relying
+      # on the runner-image default would drift over time.
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      # Install devDependencies so `extract-dep-signals.mjs` can import
+      # `semver`. `--ignore-scripts` blocks any package's lifecycle
+      # scripts from executing — the standard protection used by every
+      # CI gate. Because we checked out the BASE REF (not the PR's
+      # merge commit), the lockfile we install from is the one on
+      # `main`, not the PR's — so a malicious PR can't inject new deps
+      # into this install step.
+      - name: Install dev dependencies (no scripts)
+        run: npm ci --ignore-scripts
 
       # GH_TOKEN is scoped to this step so it does not bleed into the
       # Claude step (which uses OIDC-minted credentials). The diff size
