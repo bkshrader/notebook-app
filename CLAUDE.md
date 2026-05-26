@@ -15,7 +15,7 @@ When adding a feature: add a roadmap line + create `docs/features/<kebab-name>/O
 
 ## Commands
 
-Run `npm run` or read `package.json` to discover scripts. No test runner is installed yet; when one lands, document it here only if its invocation isn't obvious from `package.json`.
+Run `npm run` or read `package.json` to discover scripts. Story tests run via `npm run test-storybook` (Vitest + Playwright chromium). Document any future test runner here only if its invocation isn't obvious from `package.json`.
 
 CI gates on `lint`, `format:check`, `typecheck`, `build`, `audit:fallow`, `npm audit --audit-level=high`, and `license-check` (production deps must have an AGPL-3.0-or-later compatible license per the allow list in `.github/workflows/ci.yml`). Run all seven before declaring work done.
 

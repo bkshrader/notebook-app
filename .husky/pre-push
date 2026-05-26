@@ -1,23 +1,21 @@
 # Mirrors CI gates. Ordered cheap -> expensive so failures surface fast.
 # Bypass: `git push --no-verify` or `HUSKY=0 git push`.
 
-set -e
-
-npm run typecheck
+npm run typecheck || exit 1
 
 npx license-checker \
   --production \
   --excludePrivatePackages \
-  --onlyAllow "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;BSD;MPL-2.0;BlueOak-1.0.0;CC0-1.0;CC-BY-4.0;Unlicense;Python-2.0;Zlib;AGPL-3.0-or-later;AGPL-3.0-only;GPL-3.0-or-later;GPL-3.0-only;LGPL-3.0-or-later"
+  --onlyAllow "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;BSD;MPL-2.0;BlueOak-1.0.0;CC0-1.0;CC-BY-4.0;Unlicense;Python-2.0;Zlib;AGPL-3.0-or-later;AGPL-3.0-only;GPL-3.0-or-later;GPL-3.0-only;LGPL-3.0-or-later" || exit 1
 
-npm audit --audit-level=high
+npm audit --audit-level=high || exit 1
 
 if git rev-parse --verify --quiet origin/main >/dev/null; then
-  npm run audit:fallow -- --base origin/main
+  npm run audit:fallow -- --base origin/main || exit 1
 else
-  npm run audit:fallow
+  npm run audit:fallow || exit 1
 fi
 
-npm run build
+npm run build || exit 1
 
-npm run test-storybook
+npm run test-storybook || exit 1
