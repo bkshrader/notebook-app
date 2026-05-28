@@ -40,16 +40,20 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      # `write` is required for the `code-review` plugin to post the
-      # review comment. `id-token: write` below is independent — it's for
-      # OIDC token issuance to the Claude GitHub App, not for repo
-      # writes. Note: granting this permission is necessary but not
-      # sufficient — the plugin also needs an explicit
-      # `--allowedTools` allowlist on the action step so the
-      # github_inline_comment MCP server is actually registered. See the
-      # comment on `claude_args` in the action step below.
+      # `pull-requests: write` covers `mcp__github_inline_comment__*`
+      # (review comments). `issues: write` is required for the plugin's
+      # no-issues fallback path `Bash(gh pr comment:*)` — `gh pr
+      # comment` POSTs to `/repos/{owner}/{repo}/issues/{number}/comments`,
+      # the Issues API. Without it the fallback returns 403 and counts
+      # as a permission denial. `id-token: write` below is independent —
+      # OIDC token issuance to the Claude GitHub App, not repo writes.
+      # Note: these permissions are necessary but not sufficient — the
+      # plugin also needs an explicit `--allowedTools` allowlist on the
+      # action step so the github_inline_comment MCP server is actually
+      # registered. See the comment on `claude_args` in the action step
+      # below.
       pull-requests: write
-      issues: read
+      issues: write
       id-token: write # OIDC token issuance; not repo write. See ADR.
 
     steps:
