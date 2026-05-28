@@ -6,7 +6,20 @@ import prettier from 'eslint-config-prettier';
 
 export default tseslint.config(
   {
-    ignores: ['**/node_modules/', '**/out/', '**/dist/', '**/storybook-static/'],
+    ignores: [
+      '**/node_modules/',
+      '**/out/',
+      '**/dist/',
+      '**/storybook-static/',
+      // Nested worktrees under `.claude/worktrees/` are independent
+      // checkouts of this repo and must not be linted as part of the
+      // main repo — they have their own commits, hooks, and lint
+      // surface. Without this exclusion, every concurrent Claude
+      // session in another worktree pollutes the main repo's lint
+      // output. CI doesn't see this because CI checks out a fresh
+      // repo with no nested worktrees; local pre-push does.
+      '.claude/worktrees/',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
