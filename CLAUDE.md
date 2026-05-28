@@ -13,6 +13,14 @@ Before proposing features, scoping work, or making technical recommendations, re
 
 When adding a feature: add a roadmap line + create `docs/features/<kebab-name>/OVERVIEW.md`. When removing or merging a feature: delete the directory, collapse the roadmap line, and grep for inbound links.
 
+## Storybook MCP
+
+Before doing any React UI, frontend, or component work, call the `storybook-mcp` MCP server (registered in [`.mcp.json`](./.mcp.json)) to read live component manifests, generate stories, and run interaction tests against the running Storybook.
+
+The server is exposed at `http://localhost:6006/mcp` when Storybook is running locally (`npm run storybook`). If the server is unreachable, start Storybook first.
+
+The MCP server is the source of truth for what components exist, what props they take, and what stories already cover them. Prefer it over re-reading the codebase for those facts.
+
 ## Commands
 
 Run `npm run` or read `package.json` to discover scripts. Story tests run via `npm run test-storybook` (Vitest + Playwright chromium). Document any future test runner here only if its invocation isn't obvious from `package.json`.
