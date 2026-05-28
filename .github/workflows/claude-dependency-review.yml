@@ -137,10 +137,13 @@ jobs:
           # so naming the bot explicitly here (instead of `*`) keeps the
           # surface narrow. See ADR "Bot-actor allowlist."
           allowed_bots: 'dependabot[bot]'
-          claude_args: '--model claude-sonnet-4-6 --allowedTools "Read,Grep,Glob"'
+          claude_args: '--model claude-sonnet-4-6 --allowedTools "Read,Grep,Glob,mcp__github__add_issue_comment"'
           prompt: |
             You are reviewing a Dependabot pull request for risk. Post ONE
-            comment on the PR with a risk verdict and findings.
+            comment on the PR with a risk verdict and findings, using the
+            `mcp__github__add_issue_comment` tool. This is the ONLY way your
+            review reaches a human — if you finish without calling it, your
+            output is discarded.
 
             === FILESYSTEM ===
 
@@ -339,6 +342,8 @@ jobs:
             Do not edit any files. Do not run shell commands. Do not
             fetch URLs. Use `Read` for the input files (`.claude-dep-review/`
             and the trusted policy docs) and `Grep` for codebase searches.
+            Finish by calling `mcp__github__add_issue_comment` exactly once
+            with the formatted comment body.
 
       # Preserve the fetched inputs for forensics. 30-day retention is
       # enough to investigate post-merge surprises; no secrets are in
