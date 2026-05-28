@@ -54,7 +54,16 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      pull-requests: write # advisory comment
+      # `pull-requests: write` AND `issues: write` are both required.
+      # `mcp__github__add_issue_comment` (the only write tool allowed
+      # below) posts via the Issues API — top-level PR comments are
+      # `/repos/{owner}/{repo}/issues/{number}/comments` under the hood.
+      # Without `issues: write` the github-mcp-server container returns
+      # 403 and Claude reports `permission_denials_count` > 0 with no
+      # comment posted (observed on PR #58 with 6 denials before this
+      # was added).
+      pull-requests: write
+      issues: write
       id-token: write # OIDC token issuance; not repo write. See ADR.
 
     steps:
