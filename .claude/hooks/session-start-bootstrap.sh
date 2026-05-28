@@ -125,6 +125,20 @@ bootstrap_husky() {
     return 0
   fi
 
+  # Ghost-worktree guard: husky's installer does a literal
+  # `fs.existsSync('.git')` check (no parent traversal) and silently
+  # returns a non-empty error string while still exiting 0 if the
+  # CWD has no `.git` reference. That happens when `$target` is a
+  # filesystem directory left behind after `git worktree remove` (or
+  # similar) — git no longer considers it a worktree, and CWD-bound
+  # tools like husky give up silently. Detect and skip with a loud
+  # notice so the main-repo bootstrap below doesn't have its work
+  # masked by a useless prepare invocation in the ghost dir.
+  if [ ! -e "$target/.git" ]; then
+    echo "session-start-bootstrap: $label '$target' has no .git file/dir — likely a ghost worktree left behind after 'git worktree remove'. Skipping; remove the empty directory or restore the worktree to silence this notice." >&2
+    return 0
+  fi
+
   # Worktrees typically don't have their own node_modules — npm's
   # parent-directory traversal picks up the main repo's node_modules
   # instead. If neither location has husky installed, `npm run
@@ -133,6 +147,15 @@ bootstrap_husky() {
   # path probe).
   if ! (cd "$target" && npm run prepare >&2); then
     echo "session-start-bootstrap: 'npm run prepare' failed in $label ($target); hooks may not fire there. If the error above mentions 'husky: command not found', run 'npm ci' in that directory or the parent repo." >&2
+    return 0
+  fi
+
+  # Post-condition check: husky's CLI exits 0 even when it silently
+  # no-ops (e.g. it returns an error STRING but exits zero). Verify
+  # the wrapper actually materialized so a silent no-op doesn't slip
+  # past as "bootstrap succeeded."
+  if [ ! -f "$target/.husky/_/pre-commit" ]; then
+    echo "session-start-bootstrap: $label '$target' — 'npm run prepare' exited 0 but .husky/_/pre-commit is still missing. Husky's installer probably silently no-op'd; hooks won't fire there until manually bootstrapped." >&2
     return 0
   fi
 }
