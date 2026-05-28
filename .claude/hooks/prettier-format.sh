@@ -17,6 +17,32 @@ if [ -z "$FILE" ] || [ ! -f "$FILE" ]; then
   exit 0
 fi
 
+# Scope check: only format files that live inside $CLAUDE_PROJECT_DIR.
+# Without this the hook would happily reformat absolute-path writes outside
+# the repo (e.g. ~/.claude/projects/.../memory/*.md), where Prettier falls
+# back to its defaults because no project-local config is in scope.
+if [ -z "${CLAUDE_PROJECT_DIR:-}" ]; then
+  echo "prettier-format: CLAUDE_PROJECT_DIR not set, skipping." >&2
+  exit 0
+fi
+# Resolve both sides to absolute paths so the prefix check is robust to
+# symlinks, worktrees, and mixed forward/backslash separators on Windows.
+# `realpath` is available in Git-Bash; fall back to the raw paths if not.
+if command -v realpath >/dev/null 2>&1; then
+  ABS_FILE="$(realpath -m -- "$FILE" 2>/dev/null || echo "$FILE")"
+  ABS_PROJECT="$(realpath -m -- "$CLAUDE_PROJECT_DIR" 2>/dev/null || echo "$CLAUDE_PROJECT_DIR")"
+else
+  ABS_FILE="$FILE"
+  ABS_PROJECT="$CLAUDE_PROJECT_DIR"
+fi
+case "$ABS_FILE" in
+  "$ABS_PROJECT"/*) ;;
+  *)
+    # Out of scope — do nothing.
+    exit 0
+    ;;
+esac
+
 if command -v npx >/dev/null 2>&1; then
   RUNNER=(npx --no-install prettier)
 elif command -v prettier >/dev/null 2>&1; then
