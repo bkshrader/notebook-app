@@ -73,6 +73,23 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 0
 fi
 
+# Path-form normalization for the main-repo == worktree comparison
+# below. On Windows + Git-Bash, `$PWD` is POSIX form (`/e/Bradley/...`)
+# while `git rev-parse` returns the Windows form (`E:/Bradley/...`).
+# These compare as unequal even when they point at the same directory,
+# which would cause the script to run the bootstrap twice against the
+# main repo (harmless because the existence check short-circuits, but
+# wasteful and confusing in traces). `cygpath -u` is the canonical
+# converter on Git-Bash and Cygwin; on non-Windows it isn't present
+# and paths are already POSIX, so we no-op there.
+to_posix() {
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -u -- "$1" 2>/dev/null || echo "$1"
+  else
+    echo "$1"
+  fi
+}
+
 # Resolve the main repo working tree from the worktree we're in. In a
 # linked worktree, `git rev-parse --git-common-dir` returns the path
 # to the main repo's `.git` directory (or `.git` itself when run from
@@ -87,9 +104,10 @@ if command -v git >/dev/null 2>&1; then
   if [ -n "$git_common_dir" ] && [ -d "$git_common_dir" ]; then
     # git-common-dir is the main repo's `.git` (typically). Its parent
     # is the main repo's working tree.
-    MAIN_REPO="$(dirname "$git_common_dir")"
+    MAIN_REPO="$(to_posix "$(dirname "$git_common_dir")")"
   fi
 fi
+PWD_POSIX="$(to_posix "$PWD")"
 
 bootstrap_husky() {
   # Run husky's installer from $1 if and only if its `.husky/_/pre-commit`
@@ -124,7 +142,9 @@ bootstrap_husky "$PWD" "worktree"
 
 # 2. Also bootstrap the main repo if it's a different path AND missing
 #    its wrapper. Commits via `git -C <main repo>` from this session
-#    would otherwise skip hooks (PR #68 regression).
-if [ -n "$MAIN_REPO" ] && [ "$MAIN_REPO" != "$PWD" ]; then
+#    would otherwise skip hooks (PR #68 regression). The PWD vs
+#    MAIN_REPO compare uses normalized POSIX forms so a Windows-form
+#    `git rev-parse` result doesn't spuriously trip the guard.
+if [ -n "$MAIN_REPO" ] && [ "$MAIN_REPO" != "$PWD_POSIX" ]; then
   bootstrap_husky "$MAIN_REPO" "main repo"
 fi
