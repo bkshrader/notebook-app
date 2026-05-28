@@ -7,7 +7,7 @@
 
 ## Context and Problem Statement
 
-Dependabot opens PRs for npm and github-actions ecosystem updates weekly ([CI overview](../OVERVIEW.md)). Without grouping, each outdated dependency gets its own PR; for a project with N>100 transitive devDeps this is a triage-cost problem. With grouping, related packages that need to upgrade together (peer-dep-coupled ecosystems like vite + vitest + @vitejs/*) move as one PR, but the grouping rules themselves become non-obvious.
+Dependabot opens PRs for npm and github-actions ecosystem updates weekly ([CI overview](../OVERVIEW.md)). Without grouping, each outdated dependency gets its own PR; for a project with N>100 transitive devDeps this is a triage-cost problem. With grouping, related packages that need to upgrade together (peer-dep-coupled ecosystems like vite + vitest + @vitejs/\*) move as one PR, but the grouping rules themselves become non-obvious.
 
 The original config (committed in `a32b919` as part of the initial CI scaffold) used two structural groups defined by `dependency-type`:
 
