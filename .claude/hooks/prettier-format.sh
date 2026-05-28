@@ -40,16 +40,36 @@ if [ -z "${CLAUDE_PROJECT_DIR:-}" ]; then
   echo "prettier-format: CLAUDE_PROJECT_DIR not set, skipping." >&2
   exit 0
 fi
+
+# Path-form normalization. On Windows + Git-Bash, the two inputs arrive
+# in different forms: $FILE comes from Claude tool input as a Windows
+# path (`E:\Bradley\...` or `E:/Bradley/...`), while $CLAUDE_PROJECT_DIR
+# is typically set from a shell context to a POSIX path (`/e/Bradley/...`).
+# `realpath` preserves whichever form it's given, so the two strings
+# never share a prefix even though they point to the same directory.
+# The fix is to coerce both to the same form before comparing.
+#
+# `cygpath -u` is the canonical way to convert Windows → POSIX in
+# Git-Bash and Cygwin. On non-Windows systems cygpath isn't present;
+# the paths there are already POSIX and need no conversion.
+to_posix() {
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -u -- "$1" 2>/dev/null || echo "$1"
+  else
+    echo "$1"
+  fi
+}
+
 # Resolve both sides to absolute paths so the prefix check is robust to
 # symlinks, worktrees, and mixed forward/backslash separators on Windows.
 # `realpath` is available in Git-Bash; fall back to the raw paths if not.
 if command -v realpath >/dev/null 2>&1; then
-  ABS_FILE="$(realpath -m -- "$FILE" 2>/dev/null || echo "$FILE")"
-  ABS_PROJECT="$(realpath -m -- "$CLAUDE_PROJECT_DIR" 2>/dev/null || echo "$CLAUDE_PROJECT_DIR")"
+  ABS_FILE="$(realpath -m -- "$(to_posix "$FILE")" 2>/dev/null || to_posix "$FILE")"
+  ABS_PROJECT="$(realpath -m -- "$(to_posix "$CLAUDE_PROJECT_DIR")" 2>/dev/null || to_posix "$CLAUDE_PROJECT_DIR")"
   debug "realpath available; ABS_FILE=$ABS_FILE ABS_PROJECT=$ABS_PROJECT"
 else
-  ABS_FILE="$FILE"
-  ABS_PROJECT="$CLAUDE_PROJECT_DIR"
+  ABS_FILE="$(to_posix "$FILE")"
+  ABS_PROJECT="$(to_posix "$CLAUDE_PROJECT_DIR")"
   debug "realpath unavailable; ABS_FILE=$ABS_FILE ABS_PROJECT=$ABS_PROJECT"
 fi
 case "$ABS_FILE" in
