@@ -36,7 +36,7 @@ The allow list is duplicated by design: `.github/workflows/ci.yml` enforces it; 
 
 ### Dependency hygiene
 
-- **`.github/dependabot.yml`** — npm + github-actions ecosystems on weekly cadence. **7-day cooldown** between a release's npm publish and the corresponding Dependabot PR opening, so yank windows close before we bump.
+- **`.github/dependabot.yml`** — npm + github-actions ecosystems on weekly cadence. **7-day cooldown** between a release's npm publish and the corresponding Dependabot PR opening, so yank windows close before we bump. **Grouping** consolidates peer-coupled ecosystems (`vite-ecosystem`, `storybook`, `eslint`, `playwright`, `electron`, `react`) into single PRs; everything else gets one PR per package. See [`adrs/dependabot-grouping.md`](adrs/dependabot-grouping.md) for why there's no catch-all group and what that implies for auto-merge.
 
 ## Threat model
 
@@ -51,6 +51,7 @@ The ADRs in this directory capture decisions that are non-obvious, hard to rever
 - [`ci-threat-model.md`](adrs/ci-threat-model.md) — the malicious-fork-PR threat model that governs every other CI decision. Foundational.
 - [`claude-dependency-review.md`](adrs/claude-dependency-review.md) — the Claude-driven Dependabot review workflow. Why Claude over Copilot, why `pull_request` over `pull_request_target`, why Dependabot secrets namespace, why local signal extractor over network changelog fetcher, why three-dot git diff, why identity gating via `pull_request.user.login`.
 - [`claude-code-action-pinning.md`](adrs/claude-code-action-pinning.md) — the deliberate choice to pin `anthropics/claude-code-action@v1` to a moving tag rather than a SHA. Standard "pin to SHA" security advice is wrong for this specific dependency.
+- [`dependabot-grouping.md`](adrs/dependabot-grouping.md) — why the Dependabot config uses six named pattern groups and no catch-all, why the original dev/prod split was removed, and why auto-merge would require revisiting the grouping shape before being enabled.
 
 ## Conventions worth knowing
 
