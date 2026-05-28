@@ -27,19 +27,31 @@ fi
 
 cd "$CWD"
 
-# Invoke ESLint via `node ./node_modules/eslint/bin/eslint.js` rather than `npx`.
+# Invoke ESLint via `node <resolved eslint>` rather than `npx`.
 # On Windows, `npx --no-install` still pays ~5s of wrapper overhead per call;
-# spawning node directly avoids that and the existence check is a cheap stat
-# instead of a process spawn.
-ESLINT_BIN="./node_modules/eslint/bin/eslint.js"
-
+# resolving the bin path with Node's own require resolution and spawning it
+# directly avoids that.
+#
+# `require.resolve('eslint/bin/eslint.js')` walks `node_modules/` upward from
+# the current CWD, which is what we need so this hook works from a git
+# worktree that has no `./node_modules/` of its own (it'll find the parent
+# repo's install). The hardcoded `./node_modules/...` path the previous
+# version used would silently skip in that case.
 if ! command -v node >/dev/null 2>&1; then
   echo "eslint-stop: node not on PATH, skipping." >&2
   exit 0
 fi
 
-if [ ! -f "$ESLINT_BIN" ]; then
-  echo "eslint-stop: eslint not installed in this project, skipping." >&2
+# Resolve via `eslint/package.json` rather than `eslint/bin/eslint.js` —
+# the latter isn't in eslint's package `exports` map (ERR_PACKAGE_PATH_NOT_EXPORTED).
+# `package.json` is always exported; joining its dirname with the bin
+# relative path gives the same result as the old hardcoded
+# `./node_modules/eslint/bin/eslint.js`, but follows Node's resolution
+# upward to a parent repo's install when the CWD lacks its own
+# `node_modules/`.
+ESLINT_BIN="$(node -e "try{const p=require('path');const pkg=require.resolve('eslint/package.json');process.stdout.write(p.join(p.dirname(pkg),'bin/eslint.js'))}catch(_){}" 2>/dev/null || true)"
+if [ -z "$ESLINT_BIN" ] || [ ! -f "$ESLINT_BIN" ]; then
+  echo "eslint-stop: eslint not installed in this project (resolved=$ESLINT_BIN), skipping." >&2
   exit 0
 fi
 
