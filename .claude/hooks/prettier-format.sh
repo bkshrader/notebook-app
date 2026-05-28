@@ -4,18 +4,6 @@ set -euo pipefail
 # PostToolUse hook: runs `prettier --write` on the file just edited, but only
 # if Prettier is configured to handle it (supported parser + not ignored).
 # Fails open with a stderr notice on any error so editing is never blocked.
-#
-# Debug tracing: set PRETTIER_FORMAT_DEBUG=1 in the environment to get a
-# stderr breadcrumb at every early-exit point + the prettier exit codes.
-# Useful when investigating "why didn't the hook reformat this file" cases,
-# especially on worktrees where realpath resolution differs from the main
-# checkout. Off by default to keep normal sessions quiet.
-
-debug() {
-  if [ "${PRETTIER_FORMAT_DEBUG:-0}" = "1" ]; then
-    echo "prettier-format[debug]: $*" >&2
-  fi
-}
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "prettier-format: jq not on PATH, skipping." >&2
@@ -25,10 +13,7 @@ fi
 INPUT="$(cat)"
 FILE="$(jq -r '.tool_input.file_path // empty' <<<"$INPUT")"
 
-debug "raw FILE=$FILE"
-
 if [ -z "$FILE" ] || [ ! -f "$FILE" ]; then
-  debug "FILE empty or not a regular file, skipping"
   exit 0
 fi
 
@@ -66,27 +51,22 @@ to_posix() {
 if command -v realpath >/dev/null 2>&1; then
   ABS_FILE="$(realpath -m -- "$(to_posix "$FILE")" 2>/dev/null || to_posix "$FILE")"
   ABS_PROJECT="$(realpath -m -- "$(to_posix "$CLAUDE_PROJECT_DIR")" 2>/dev/null || to_posix "$CLAUDE_PROJECT_DIR")"
-  debug "realpath available; ABS_FILE=$ABS_FILE ABS_PROJECT=$ABS_PROJECT"
 else
   ABS_FILE="$(to_posix "$FILE")"
   ABS_PROJECT="$(to_posix "$CLAUDE_PROJECT_DIR")"
-  debug "realpath unavailable; ABS_FILE=$ABS_FILE ABS_PROJECT=$ABS_PROJECT"
 fi
 case "$ABS_FILE" in
-  "$ABS_PROJECT"/*) debug "scope check passed" ;;
+  "$ABS_PROJECT"/*) ;;
   *)
     # Out of scope — do nothing.
-    debug "scope check failed (ABS_FILE not under ABS_PROJECT), skipping"
     exit 0
     ;;
 esac
 
 if command -v npx >/dev/null 2>&1; then
   RUNNER=(npx --no-install prettier)
-  debug "using npx runner"
 elif command -v prettier >/dev/null 2>&1; then
   RUNNER=(prettier)
-  debug "using PATH prettier"
 else
   echo "prettier-format: prettier not found, skipping." >&2
   exit 0
@@ -101,13 +81,9 @@ set +e
 CHECK_STATUS=$?
 set -e
 
-debug "prettier --check exit=$CHECK_STATUS (0=ok, 1=needs-format, 2=unsupported)"
-
 if [ "$CHECK_STATUS" -eq 1 ]; then
   if ! "${RUNNER[@]}" --write --log-level warn "$FILE" >&2; then
     echo "prettier-format: prettier --write failed on $FILE, skipping." >&2
-  else
-    debug "prettier --write completed"
   fi
 fi
 
