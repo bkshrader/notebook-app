@@ -52,6 +52,7 @@ The ADRs in this directory capture decisions that are non-obvious, hard to rever
 - [`claude-dependency-review.md`](adrs/claude-dependency-review.md) — the Claude-driven Dependabot review workflow. Why Claude over Copilot, why `pull_request` over `pull_request_target`, why Dependabot secrets namespace, why local signal extractor over network changelog fetcher, why three-dot git diff, why identity gating via `pull_request.user.login`.
 - [`claude-code-action-pinning.md`](adrs/claude-code-action-pinning.md) — the deliberate choice to pin `anthropics/claude-code-action@v1` to a moving tag rather than a SHA. Standard "pin to SHA" security advice is wrong for this specific dependency.
 - [`dependabot-grouping.md`](adrs/dependabot-grouping.md) — why the Dependabot config uses six named pattern groups and no catch-all, why the original dev/prod split was removed, and why auto-merge would require revisiting the grouping shape before being enabled.
+- [`hook-environments.md`](adrs/hook-environments.md) — the four invariants every `.claude/hooks/*` and `.husky/*` hook has to satisfy to fire correctly across worktrees and the main repo, and the chronology of seven incidents (May 2026) that surfaced them. Read this before touching any hook script.
 
 ## Conventions worth knowing
 
