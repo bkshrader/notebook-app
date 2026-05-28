@@ -40,14 +40,14 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      # `write` is required for the `code-review` plugin to post the review
-      # comment. `id-token: write` below is independent — it's for OIDC
-      # token issuance to the Claude GitHub App, not for repo writes.
-      # Without `pull-requests: write` here, the plugin completes its
-      # analysis but every comment-posting tool call is denied by the
-      # harness; the run reports `permission_denials_count` > 0 and no
-      # review comment ever appears on the PR. (Failure mode observed on
-      # PR #62, where the run completed cleanly with 18 denials.)
+      # `write` is required for the `code-review` plugin to post the
+      # review comment. `id-token: write` below is independent — it's for
+      # OIDC token issuance to the Claude GitHub App, not for repo
+      # writes. Note: granting this permission is necessary but not
+      # sufficient — the plugin also needs an explicit
+      # `--allowedTools` allowlist on the action step so the
+      # github_inline_comment MCP server is actually registered. See the
+      # comment on `claude_args` in the action step below.
       pull-requests: write
       issues: read
       id-token: write # OIDC token issuance; not repo write. See ADR.
@@ -74,4 +74,21 @@ jobs:
           prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
           # Sonnet 4.6 — sufficient for routine review; predictable cost.
           # Bump to Opus for deeper review.
-          claude_args: '--model claude-sonnet-4-6'
+          #
+          # --allowedTools mirrors the `code-review` plugin's own frontmatter
+          # (`plugins/code-review/commands/code-review.md`). In agent mode
+          # the action does NOT read the plugin's `allowed-tools:` line —
+          # it gates MCP-server registration on the workflow's
+          # `--allowedTools` flag (claude-code-action's
+          # `src/mcp/install-mcp-server.ts`: the github_inline_comment
+          # server is only spawned when an `mcp__github_inline_comment__*`
+          # or `mcp__github__*` entry is present). Without this list the
+          # plugin's posting step is denied silently
+          # (`permission_denials_count` > 0, "No buffered inline
+          # comments", no PR comment). Observed on PR #62 (18 denials) and
+          # PR #66 (2 denials) before this fix. See
+          # adrs/claude-code-action-pinning.md for the agent-mode
+          # mechanics rationale.
+          claude_args: >-
+            --model claude-sonnet-4-6
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"
