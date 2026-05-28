@@ -53,7 +53,7 @@ Chosen option: **Option 4 — codify the per-environment hook contract**, with e
 
 ### Concrete hook responsibilities
 
-- **`husky-bootstrap.sh` (SessionStart + CwdChanged)** — bootstrap husky in EXACTLY the environment the triggering event points at. The target directory is read from the hook's stdin payload — `new_cwd` for CwdChanged, `cwd` for SessionStart — with `CLAUDE_PROJECT_DIR` as a fallback for manual invocation; one stdin-driven script serves both events. No cross-environment reach: it does not resolve or bootstrap the main repo from a worktree. Repairs any worktree-scope `core.hooksPath` override (`git config --worktree --unset core.hooksPath`); skips loudly on a ghost worktree (`[ ! -e .git ]`); requires a local husky install (`[ -d node_modules/husky ]`) and emits a notice to `npm install` if absent rather than leaning on a parent; runs `npm run prepare`; verifies `.husky/_/pre-commit` materialized. It is wired to CwdChanged as well as SessionStart so that moving into a different checkout mid-session (e.g. a `cd` into a sibling worktree) re-runs the same per-environment check. **WorktreeCreate is deliberately NOT wired** — that event replaces git's default worktree-creation behavior (the hook must perform the creation and print the new worktree's absolute path, or creation fails), so a bootstrap-only hook there would break `claude --worktree`; a new worktree is instead bootstrapped by the SessionStart that fires when a session opens in it.
+- **`husky-bootstrap.sh` (SessionStart + CwdChanged)** — bootstrap husky in EXACTLY the environment the triggering event points at. The target directory is read from the hook's stdin payload — `new_cwd` for CwdChanged, `cwd` for SessionStart — with `CLAUDE_PROJECT_DIR` as a fallback for manual invocation; one stdin-driven script serves both events. No cross-environment reach: it does not resolve or bootstrap the main repo from a worktree. Repairs any worktree-scope `core.hooksPath` override (`git config --worktree --unset core.hooksPath`); skips loudly on a ghost worktree (`[ ! -e .git ]`); requires a local husky install (`[ -d node_modules/husky ]`) and emits a notice to `npm install` if absent rather than leaning on a parent; runs the prepare script directly (`node scripts/prepare.mjs`, not `npm run prepare` — directness over an extra npm process); verifies `.husky/_/pre-commit` materialized. It is wired to CwdChanged as well as SessionStart so that moving into a different checkout mid-session (e.g. a `cd` into a sibling worktree) re-runs the same per-environment check. **WorktreeCreate is deliberately NOT wired** — that event replaces git's default worktree-creation behavior (the hook must perform the creation and print the new worktree's absolute path, or creation fails), so a bootstrap-only hook there would break `claude --worktree`; a new worktree is instead bootstrapped by the SessionStart that fires when a session opens in it.
 
 - **`fallow-gate.sh` (PreToolUse Bash)** — gate Claude's `git commit` / `git push` invocations on `fallow audit` verdict. Resolves `fallow` via PATH and `npx --no-install`.
 
@@ -67,7 +67,7 @@ Chosen option: **Option 4 — codify the per-environment hook contract**, with e
 
 ## Chronology of failures
 
-Over a dozen commits across eight incidents, in commit order. Each one fixed a real symptom; several introduced or re-exposed a different one — incident 8 reverts parts of incident 7.
+Over a dozen commits across nine chronology entries, in commit order. Entries 1–8 are failures (a merged-broken PR, silently-skipped gates, a reformatted-wrong-file, a self-defeating pair); entry 9 is the husky-CI-pattern adoption. Several entries introduced or re-exposed a different problem — incident 8 reverts parts of incident 7.
 
 ### Incident 1 — eslint hook crashed inside worktrees (2026-05-25, commit [`09594f7`](https://github.com/bkshrader/notebook-app/commit/09594f7))
 
@@ -128,6 +128,17 @@ The redesign abandoned the cross-environment approach entirely (see invariants 2
 
 So `fa5bfa4`/`2d98b97`/`a66acfc` (incident 7's bootstrap-the-main-repo work) and `00719ea` (incident 7's eslint upward-resolution) are all superseded. `4821dbe`'s ignore entries stay (they're correct for runs from the main checkout; invariant 4 explains the interaction).
 
+### Incident 9 — `prepare` adopts husky's CI/Docker pattern via `scripts/prepare.mjs` (2026-05-28)
+
+`prepare` was `"husky && npx playwright install --with-deps chromium"` — a bare `husky` call that throws if husky isn't installed (a deps-only / production install). Husky documents a guard for exactly this ([CI server and Docker](https://typicode.github.io/husky/how-to.html#ci-server-and-docker)): skip when `NODE_ENV === 'production'` or `CI === 'true'`, and dynamic-`import('husky')` only after the guard so the import is never reached when husky is absent.
+
+Adopted the pattern but kept the file under `scripts/prepare.mjs` (not `.husky/install.mjs`) so all repo automation lives in one place. `prepare` is now `node scripts/prepare.mjs`. Structure: guard first, then husky, then the Playwright install — both husky and Playwright are thus local-dev-only and consistent. Notes:
+
+- **No CI workflow actually runs `prepare`** — every workflow uses `npm ci --ignore-scripts`, and the two that need Playwright (`ci.yml`, `a11y-axe.yml`) install it via explicit `npx playwright install` steps. So the guard is defensive (a stray `npm install` on a `CI=true`/prod box), and Playwright-before-vs-after-guard has no CI impact; after-guard was chosen to keep both steps local-only.
+- **husky's silent no-op is surfaced.** `husky()` returns an empty string on success and a non-empty diagnostic (e.g. `.git can't be found`) on a no-op; `prepare.mjs` logs the diagnostic as a warning rather than discarding it.
+- **Playwright failure is non-fatal.** Wrapped in try/catch with a stderr notice — husky is the load-bearing part and already ran; an offline/`--with-deps`-needs-sudo failure must not break `prepare`.
+- **`husky-bootstrap.sh` now calls `node scripts/prepare.mjs` directly** (not `npm run prepare`), checking the file exists first. The session env has neither `CI` nor `NODE_ENV` set (verified), so the guard never trips during a bootstrap; the post-condition check still catches any silent no-op.
+
 ## Pros and Cons of the Options
 
 ### Option 1 — Per-hook hardening with no global model
@@ -151,7 +162,7 @@ So `fa5bfa4`/`2d98b97`/`a66acfc` (incident 7's bootstrap-the-main-repo work) and
 
 - **Good**, because the invariants are written down. Future "why didn't this fire?" debugging starts with: "did it fail one of the five invariants?" instead of "what's broken this time?"
 - **Good**, because each invariant maps to a real incident, so we don't pay for hypothetical robustness.
-- **Good**, because the chronology section is a regression-test catalog: any future hook rewrite has to re-pass all eight incidents.
+- **Good**, because the chronology section is a regression-test catalog: any future hook rewrite has to re-pass all the failure incidents (entries 1–8).
 - **Bad**, because the contract is only as good as the next incident we haven't seen yet. The first violation of a 5th invariant won't be caught by these four.
 
 ## Positive Consequences

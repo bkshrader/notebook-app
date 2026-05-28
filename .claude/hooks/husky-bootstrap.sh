@@ -136,8 +136,8 @@ if [ ! -e .git ]; then
   exit 0
 fi
 
-if ! command -v npm >/dev/null 2>&1; then
-  echo "husky-bootstrap: npm not on PATH; cannot bootstrap husky. Hooks won't fire here until bootstrapped manually (run 'npm install')." >&2
+if ! command -v node >/dev/null 2>&1; then
+  echo "husky-bootstrap: node not on PATH; cannot bootstrap husky. Hooks won't fire here until bootstrapped manually (run 'npm install')." >&2
   exit 0
 fi
 
@@ -154,12 +154,18 @@ if [ ! -d node_modules/husky ]; then
   exit 0
 fi
 
-# Run prepare to materialize this environment's `.husky/_/`. Output to
-# stderr so it doesn't pollute the session's user-facing transcript.
-# (`prepare` also runs `npx playwright install` per package.json; that
-# cost is accepted here per project decision.)
-if ! npm run prepare >&2; then
-  echo "husky-bootstrap: 'npm run prepare' failed in '$PWD'; hooks may not fire here. See the error above." >&2
+# Materialize this environment's `.husky/_/` by running the repo's
+# prepare script directly (`node scripts/prepare.mjs`) rather than
+# `npm run prepare` — directness avoids an extra npm process and is
+# explicit about what we're invoking. prepare.mjs runs husky and (when
+# not in CI/prod) the Playwright install; both are idempotent. Output
+# to stderr so it doesn't pollute the session's user-facing transcript.
+if [ ! -f scripts/prepare.mjs ]; then
+  echo "husky-bootstrap: scripts/prepare.mjs not found in '$PWD'; cannot bootstrap. Run 'npm install' here." >&2
+  exit 0
+fi
+if ! node scripts/prepare.mjs >&2; then
+  echo "husky-bootstrap: 'node scripts/prepare.mjs' failed in '$PWD'; hooks may not fire here. See the error above." >&2
   exit 0
 fi
 
