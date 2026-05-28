@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: github/codeql-action/init@v4
+      - uses: github/codeql-action/init@v4.35.5
         with:
           languages: javascript-typescript
           # `build-mode: none` is the modern recommendation for JS/TS —
@@ -37,6 +37,6 @@ jobs:
           # autobuild step (which would otherwise execute project code) is
           # eliminated. Closes a fork-PR code-execution channel.
           build-mode: none
-      - uses: github/codeql-action/analyze@v4
+      - uses: github/codeql-action/analyze@v4.35.5
         with:
           category: '/language:javascript-typescript'
