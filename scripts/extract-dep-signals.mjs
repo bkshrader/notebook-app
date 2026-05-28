@@ -163,27 +163,76 @@ export function parseDepKey(key) {
 //     separate `version:` line, not the key.
 //
 // The key line in a unified diff is the package key prefixed by `+`/`-`
-// and the two-space lockfile indent. Scoped names are single-quoted in
-// the YAML (because a leading `@` needs quoting), so the regex tolerates
-// an optional surrounding quote.
-const PKG_KEY_LINE = /^([+-])\s{2,4}'?((?:@[^@'/]+\/)?[^@'\s/]+@[^':\s]+)'?\s*:\s*$/;
+// and the EXACTLY-two-space lockfile indent. Scoped names are
+// single-quoted in the YAML (because a leading `@` needs quoting), so
+// the regex tolerates an optional surrounding quote.
+//
+// The indent is pinned to exactly two spaces (`\s{2}` then a non-space)
+// because that is the only depth at which `packages:`/`snapshots:`
+// section keys sit; `importers:` version lines are deeper (8 spaces)
+// and so never match.
+const PKG_KEY_LINE = /^([+-]) {2}(\S.*)$/;
+// A package key, once we've confirmed we're on a 2-space-indented line
+// in the `packages:` section: optional surrounding quotes around
+// `name@version` with no whitespace. The peer-context-bearing
+// `snapshots:` keys are excluded by SECTION, not by this pattern (their
+// shape is `name@version(...)`, which this would still match — hence the
+// section gate is load-bearing, not the regex).
+const PKG_KEY_BODY = /^'?((?:@[^@'/]+\/)?[^@'\s/]+@[^'\s]+?)'?:$/;
 const FILE_HEADER = /^\+\+\+ b\/(.+)$/;
+// Top-level YAML section marker — `packages:` / `snapshots:` /
+// `importers:` / `settings:` at column 0. In a unified diff these appear
+// either as context/added/removed content (prefixed by ` `/`+`/`-` then
+// the bare word at column 0) OR as the trailing context of a hunk header
+// (`@@ -a,b +c,d @@ packages:`). Both forms are recognized so the parser
+// always knows which section a key line belongs to.
+const SECTION_CONTENT = /^[ +-](packages|snapshots|importers|settings):\s*$/;
+const HUNK_HEADER_SECTION = /^@@ .* @@\s*(packages|snapshots|importers|settings):/;
 
 // The lockfile path we look for in the diff's `+++ b/<path>` header. A
 // PR that touches the lockfile shows it here; anything else is ignored.
 const LOCKFILE_NAME = 'pnpm-lock.yaml';
 
+// A bare hunk header (`@@ -a,b +c,d @@[ optional context]`). When the
+// trailing context does NOT name a section, the hunk has jumped to an
+// unknown location, so the parser must drop any section it was tracking
+// rather than carry a stale `packages` into what might be `snapshots`
+// content.
+const HUNK_HEADER = /^@@ /;
+
 // Classify one diff line. Returns one of:
 //   { kind: 'file', isLockfile: bool }                 — file header
+//   { kind: 'section', section: string }               — section marker
+//   { kind: 'hunk' }                                   — section-less hunk header
 //   { kind: 'depKey', sign: '+'|'-', name, version }   — added/removed key
 //   { kind: 'other' }
+//
+// Section detection runs BEFORE the generic hunk check so a hunk header
+// carrying a section name (which also begins with `@@`) is classified as
+// a section, not as a section-resetting bare hunk.
+//
+// Ordered regex-dispatch over the line kinds we care about — each branch
+// is one match + struct construction. Cyclomatic count is just the
+// number of line kinds; extracting per-kind helpers would move the
+// dispatch up a level without reducing real complexity. Branch coverage
+// comes via extractDepChanges' tests, not direct unit tests of this
+// helper (hence the CRAP-only finding).
+// fallow-ignore-next-line complexity
 function matchDiffLine(line) {
   const fileMatch = line.match(FILE_HEADER);
   if (fileMatch) return { kind: 'file', isLockfile: fileMatch[1] === LOCKFILE_NAME };
-  const keyMatch = line.match(PKG_KEY_LINE);
-  if (keyMatch) {
-    const parsed = parseDepKey(keyMatch[2]);
-    if (parsed) return { kind: 'depKey', sign: keyMatch[1], ...parsed };
+  const hunkSection = line.match(HUNK_HEADER_SECTION);
+  if (hunkSection) return { kind: 'section', section: hunkSection[1] };
+  if (HUNK_HEADER.test(line)) return { kind: 'hunk' };
+  const sectionContent = line.match(SECTION_CONTENT);
+  if (sectionContent) return { kind: 'section', section: sectionContent[1] };
+  const keyLine = line.match(PKG_KEY_LINE);
+  if (keyLine) {
+    const body = keyLine[2].match(PKG_KEY_BODY);
+    if (body) {
+      const parsed = parseDepKey(body[1]);
+      if (parsed) return { kind: 'depKey', sign: keyLine[1], ...parsed };
+    }
   }
   return { kind: 'other' };
 }
@@ -197,10 +246,20 @@ function matchDiffLine(line) {
 // distinct version as its own `packages:` key). classifyChanges below
 // turns these sets into bump/removal/netNew entries.
 //
-// Only lines inside the `pnpm-lock.yaml` file section count — the
-// file-header gate flips `inLockfile` so a `packages:`-shaped key that
-// happens to appear in some other file's diff (e.g. a doc code block)
-// is ignored.
+// Two gates decide whether a key line counts:
+//   1. `inLockfile` — we're inside the `pnpm-lock.yaml` file section of
+//      the diff (a `packages:`-shaped key in some other file, e.g. a doc
+//      code block, is ignored).
+//   2. `section === 'packages'` — we're inside the `packages:` section,
+//      NOT `snapshots:` / `importers:` / `settings:`. This is
+//      load-bearing: `snapshots:` keys carry `(peer-context)` suffixes
+//      (`name@version(peer@x)`) at the SAME 2-space indent as packages
+//      keys, so without the section gate they'd be matched and then
+//      mis-split by parseDepKey's `lastIndexOf('@')` into garbage
+//      name/version pairs, inflating every real Dependabot bump with
+//      phantom removals/netNew. Section is reset to null on a hunk
+//      header that doesn't re-state the section, so a stale `packages`
+//      is never carried across a hunk boundary into snapshots content.
 //
 // CRAP-only finding from the per-line event-kind dispatch in the loop
 // body; splitting it would move the dispatch up a level without
@@ -209,6 +268,7 @@ function matchDiffLine(line) {
 export function extractDepChanges(diff) {
   const byName = new Map();
   let inLockfile = false;
+  let section = null;
 
   const slot = (name) => {
     let s = byName.get(name);
@@ -223,9 +283,15 @@ export function extractDepChanges(diff) {
     const ev = matchDiffLine(line);
     if (ev.kind === 'file') {
       inLockfile = ev.isLockfile;
+      section = null;
     } else if (!inLockfile) {
       continue;
-    } else if (ev.kind === 'depKey') {
+    } else if (ev.kind === 'section') {
+      section = ev.section;
+    } else if (ev.kind === 'hunk') {
+      // Section-less hunk header: location jumped, section unknown.
+      section = null;
+    } else if (ev.kind === 'depKey' && section === 'packages') {
       const s = slot(ev.name);
       (ev.sign === '-' ? s.removed : s.added).add(ev.version);
     }
@@ -236,7 +302,10 @@ export function extractDepChanges(diff) {
 // Turn the per-name added/removed version sets into classified changes.
 // Returns { bumps, removals, netNew, warnings }.
 //
-// Classification per package name:
+// Classification per package name (after cancelling any version present
+// on BOTH a `-` and a `+` line — that's diff context churn, e.g. a key
+// re-emitted because its resolution block was reordered, not a real
+// change):
 //   - removed AND added, one each → bump (old=removed, new=added).
 //   - removed AND added, but not 1:1 → ambiguous multi-version shuffle;
 //     emit each removed as a removal and each added as a netNew, plus a
@@ -252,8 +321,13 @@ export function classifyChanges(byName) {
   const warnings = [];
 
   for (const { name, removed, added } of byName.values()) {
-    const rem = [...removed];
-    const add = [...added];
+    // Cancel versions on both sides: a `-foo@1.0.0` paired with a
+    // `+foo@1.0.0` is an unchanged key the diff happened to re-render,
+    // not a bump-to-itself. Without this, such a pair would classify as
+    // a phantom bump with oldVersion === newVersion.
+    const rem = [...removed].filter((v) => !added.has(v));
+    const add = [...added].filter((v) => !removed.has(v));
+    if (rem.length === 0 && add.length === 0) continue;
     if (rem.length === 1 && add.length === 1) {
       bumps.push({ name, oldVersion: rem[0], newVersion: add[0] });
     } else {

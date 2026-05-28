@@ -172,6 +172,101 @@ test('extractDepChanges: same name at one removed + one added IS a bump', () => 
   assert.deepEqual(bumps, [{ name: 'eslint', oldVersion: '9.39.4', newVersion: '10.4.0' }]);
 });
 
+test('extractDepChanges: ignores snapshots-section keys (peer-context suffixes)', () => {
+  // THE REGRESSION TEST. A real `git diff pnpm-lock.yaml` for a bump
+  // touches BOTH the `packages:` section (clean `name@version` keys) AND
+  // the `snapshots:` section, where keys carry `(peer-context)` suffixes
+  // at the SAME 2-space indent. Without section tracking, the snapshot
+  // keys match the key regex and parseDepKey mis-splits them on the last
+  // `@` into garbage name/version pairs, inflating removals/netNew. Only
+  // the packages-section bump must survive.
+  const diff = [
+    'diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml',
+    '--- a/pnpm-lock.yaml',
+    '+++ b/pnpm-lock.yaml',
+    '@@ -1000,7 +1000,7 @@ packages:',
+    '-  eslint@9.39.4:',
+    '+  eslint@10.4.0:',
+    '     resolution: {integrity: sha512-x}',
+    '@@ -5000,8 +5000,8 @@ snapshots:',
+    "-  '@eslint-community/eslint-utils@4.9.1(eslint@9.39.4(jiti@2.7.0))':",
+    "+  '@eslint-community/eslint-utils@4.9.1(eslint@10.4.0(jiti@2.7.0))':",
+    '     dependencies:',
+    '       eslint: 9.39.4',
+  ].join('\n');
+  const { bumps, removals, netNew } = classifyChanges(extractDepChanges(diff));
+  assert.deepEqual(bumps, [{ name: 'eslint', oldVersion: '9.39.4', newVersion: '10.4.0' }]);
+  assert.deepEqual(removals, [], 'snapshot keys must not become removals');
+  assert.deepEqual(netNew, [], 'snapshot keys must not become netNew');
+});
+
+test('extractDepChanges: a section-less hunk header resets the section', () => {
+  // If a hunk in the packages: section is followed by a hunk header that
+  // does NOT re-state the section (git couldn't find an enclosing
+  // top-level key as context), the parser must NOT carry `packages` into
+  // what is actually snapshots content. A snapshot-shaped key after the
+  // bare hunk header must be dropped.
+  const diff = [
+    'diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml',
+    '--- a/pnpm-lock.yaml',
+    '+++ b/pnpm-lock.yaml',
+    '@@ -1000,3 +1000,3 @@ packages:',
+    '-  react@19.2.5:',
+    '+  react@19.2.6:',
+    '@@ -5000,3 +5000,3 @@',
+    "-  'react-dom@19.2.5(react@19.2.5)':",
+    "+  'react-dom@19.2.6(react@19.2.6)':",
+  ].join('\n');
+  const { bumps, removals, netNew } = classifyChanges(extractDepChanges(diff));
+  assert.deepEqual(bumps, [{ name: 'react', oldVersion: '19.2.5', newVersion: '19.2.6' }]);
+  assert.deepEqual(removals, []);
+  assert.deepEqual(netNew, []);
+});
+
+test('extractDepChanges: ignores importers-section version lines', () => {
+  // The `importers:` section lists direct deps as a bare `name:` key with
+  // the resolved version on a deeper-indented `version:` line. Neither
+  // shape should be parsed as a dep key.
+  const diff = [
+    'diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml',
+    '--- a/pnpm-lock.yaml',
+    '+++ b/pnpm-lock.yaml',
+    '@@ -10,7 +10,7 @@ importers:',
+    '       eslint:',
+    '         specifier: ^9.39.4',
+    '-        version: 9.39.4(jiti@2.7.0)',
+    '+        version: 10.4.0(jiti@2.7.0)',
+  ].join('\n');
+  assert.equal(extractDepChanges(diff).size, 0);
+});
+
+test('classifyChanges: a version on BOTH sides cancels (no phantom no-op bump)', () => {
+  // Diff context churn can re-render an unchanged key as both `-foo@1.0.0`
+  // and `+foo@1.0.0` (e.g. its resolution block was reordered). That is
+  // not a bump-to-itself; both must cancel and produce no signal.
+  const byName = new Map([
+    ['foo', { name: 'foo', removed: new Set(['1.0.0']), added: new Set(['1.0.0']) }],
+  ]);
+  const { bumps, removals, netNew } = classifyChanges(byName);
+  assert.deepEqual(bumps, []);
+  assert.deepEqual(removals, []);
+  assert.deepEqual(netNew, []);
+});
+
+test('classifyChanges: cancels the shared version but keeps a real bump alongside', () => {
+  // foo@1.0.0 churns (both sides) while foo also genuinely bumps
+  // 1.0.0 -> 2.0.0 is not this case; here foo@1.0.0 is unchanged and
+  // foo@2.0.0 is net-new — after cancelling 1.0.0 only the 2.0.0 add
+  // remains, classified as netNew (single-sided), not a bump.
+  const byName = new Map([
+    ['foo', { name: 'foo', removed: new Set(['1.0.0']), added: new Set(['1.0.0', '2.0.0']) }],
+  ]);
+  const { bumps, removals, netNew } = classifyChanges(byName);
+  assert.deepEqual(bumps, []);
+  assert.deepEqual(removals, []);
+  assert.deepEqual(netNew, [{ name: 'foo', version: '2.0.0' }]);
+});
+
 test('extractDepChanges: ignores keys outside the pnpm-lock.yaml file section', () => {
   // A `packages:`-shaped key appearing in some OTHER file's diff (here a
   // markdown doc) must not be counted. The file-header gate handles this.

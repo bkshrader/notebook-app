@@ -3,10 +3,10 @@ name: Claude Dependency Review
 # Advisory review of Dependabot PRs. Claude reads the diff, the PR
 # metadata (which contains Dependabot's embedded release notes), and a
 # structured `signals.json` derived from the diff + the base-ref
-# `pnpm-lock.yaml` (peer-dep mismatches, license changes, net-new
-# transitives, bumps, removals). Posts one comment with a LOW/MEDIUM/HIGH
-# verdict. Advisory only — merge gating remains the seven CI gates in
-# ci.yml.
+# `pnpm-lock.yaml` (peer-dep mismatches, net-new transitives, bumps,
+# removals — no license data; pnpm's lockfile records no per-package
+# license string). Posts one comment with a LOW/MEDIUM/HIGH verdict.
+# Advisory only — merge gating remains the seven CI gates in ci.yml.
 #
 # Full design rationale (threat model, why pull_request and not
 # pull_request_target, why Dependabot secrets namespace, why local
@@ -234,14 +234,24 @@ jobs:
 
                The signals carry NO license strings — pnpm's lockfile
                doesn't record them. To assess license risk you must read
-               each net-new package's own manifest:
-               `Read node_modules/<name>/package.json` and look at its
-               `license` field. (The base ref is installed, so net-new
-               packages from this PR will NOT be present in
-               `node_modules` — only packages already in the base tree
-               are. For a net-new package you cannot read locally, say
-               "license not verifiable from base tree" and defer to the
-               `license-check` CI gate rather than guessing.)
+               each package's own manifest from the installed tree. Under
+               pnpm's strict layout the path depends on whether it's a
+               direct or transitive dependency:
+                 - direct dep:     `node_modules/<name>/package.json`
+                 - transitive dep: `node_modules/.pnpm/<name>@<version>/node_modules/<name>/package.json`
+                   (for a scoped name the `.pnpm` dir flattens the slash:
+                   `@scope/pkg@1.2.3` → `node_modules/.pnpm/@scope+pkg@1.2.3/node_modules/@scope/pkg/package.json`)
+               Read the `license` field. If you don't know a package's
+               exact installed version, `Glob` for
+               `node_modules/.pnpm/<name>@*/node_modules/<name>/package.json`
+               to find it.
+
+               (The base ref is installed, so net-new packages introduced
+               by THIS PR will NOT be present in the tree at all — only
+               packages already in the base tree are. For a net-new
+               package you cannot read locally, say "license not
+               verifiable from base tree" and defer to the `license-check`
+               CI gate rather than guessing.)
 
                For every license string you CAN resolve, cross-reference
                it against `docs/licenses/in-use.md` (allow list) and
