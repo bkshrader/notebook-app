@@ -1,15 +1,21 @@
 // extract-dep-signals.test.mjs — unit tests for the dependency-review
 // signal extractor. Coverage focuses on:
 //
-//   1. Stanza extraction from PR diffs (bumps, removals, net-new,
-//      license-only diffs).
-//   2. Lockfile indexing — package name dedup, license/peer-dep
-//      surfacing.
-//   3. Peer-range satisfaction — the highest-signal output. The killer
+//   1. name@version key parsing (scoped + unscoped).
+//   2. Dep-change extraction from pnpm-lock.yaml PR diffs (bumps,
+//      removals, net-new, multi-version shuffles).
+//   3. Lockfile indexing — peer-dep surfacing, multiple versions of one
+//      package kept separate.
+//   4. Peer-range satisfaction — the highest-signal output. The killer
 //      test case is the real-world PR 45 shape: bump eslint past the
 //      range its plugin's peerDependencies declare.
-//   4. Major-bump detection, including the 0.x convention.
-//   5. End-to-end run() with synthesized inputs.
+//   5. Major-bump detection, including the 0.x convention.
+//   6. End-to-end run() with synthesized inputs.
+//
+// pnpm's lockfile records NO per-package license string, so there are no
+// license-signal tests — that capability was dropped in the npm→pnpm
+// migration (see extract-dep-signals.mjs header and the package-manager
+// ADR).
 //
 // Run with: node --test scripts/extract-dep-signals.test.mjs
 
@@ -18,10 +24,13 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { stringify as stringifyYaml } from 'yaml';
 
 import {
   parseArgs,
-  extractStanzaChanges,
+  parseDepKey,
+  extractDepChanges,
+  classifyChanges,
   extractBumps,
   indexLockfile,
   findPeerMismatches,
@@ -56,264 +65,138 @@ test('parseArgs: missing value rejected', () => {
 });
 
 // ---------------------------------------------------------------------------
-// extractStanzaChanges + extractBumps
+// parseDepKey
 // ---------------------------------------------------------------------------
 
-// Helper: synthesize a minimal package-lock.json diff. Each entry is
+test('parseDepKey: unscoped package', () => {
+  assert.deepEqual(parseDepKey('react@19.2.6'), { name: 'react', version: '19.2.6' });
+});
+
+test('parseDepKey: scoped package splits on the last @', () => {
+  assert.deepEqual(parseDepKey('@babel/core@7.29.7'), {
+    name: '@babel/core',
+    version: '7.29.7',
+  });
+});
+
+test('parseDepKey: prerelease version', () => {
+  assert.deepEqual(parseDepKey('foo@1.0.0-rc.1'), { name: 'foo', version: '1.0.0-rc.1' });
+});
+
+test('parseDepKey: returns null for keys without a version @', () => {
+  assert.equal(parseDepKey('react'), null);
+  assert.equal(parseDepKey('@scope/pkg'), null); // bare scope, no version
+});
+
+// ---------------------------------------------------------------------------
+// extractDepChanges + classifyChanges + extractBumps
+// ---------------------------------------------------------------------------
+
+// Helper: synthesize a minimal pnpm-lock.yaml diff. Each entry is
 // `[name, oldVer, newVer]` where any of oldVer/newVer may be null to
-// signal removal / net-new.
-function diffOf(entries, { withLicense = null } = {}) {
-  const stanzas = entries
-    .map(([name, oldV, newV]) => {
-      if (oldV && newV) {
-        // bump
-        return `\
-@@ -1,5 +1,5 @@
-     "node_modules/${name}": {
--      "version": "${oldV}",
-+      "version": "${newV}",
-${withLicense ? `       "license": "${withLicense}",\n` : ''}\
-       "resolved": "..."
-     },`;
-      } else if (oldV) {
-        // removal: stanza disappears entirely
-        return `\
-@@ -1,5 +1,1 @@
--    "node_modules/${name}": {
--      "version": "${oldV}",
--      "resolved": "..."
--    },`;
-      } else {
-        // netNew: stanza appears
-        return `\
-@@ -1,1 +1,5 @@
-+    "node_modules/${name}": {
-+      "version": "${newV}",
-${withLicense ? `+      "license": "${withLicense}",\n` : ''}\
-+      "resolved": "..."
-+    },`;
-      }
-    })
-    .join('\n');
-  return `\
-diff --git a/package-lock.json b/package-lock.json
---- a/package-lock.json
-+++ b/package-lock.json
-${stanzas}
-`;
+// signal removal / net-new. Scoped names are single-quoted in the YAML
+// key, matching how pnpm writes them.
+function keyLine(sign, name, version) {
+  const key = `${name}@${version}`;
+  const quoted = name.startsWith('@') ? `'${key}'` : key;
+  return `${sign}  ${quoted}:`;
 }
 
-// Test helper: the stanza-changes map is keyed by lockfile path. Most
-// tests use synthetic diffs where path === `node_modules/<name>`; this
-// helper looks up the entry by name without leaking that detail into
-// every assertion.
-function findByName(stanzaMap, name) {
-  for (const e of stanzaMap.values()) {
-    if (e.name === name) return e;
-  }
-  return undefined;
+function diffOf(entries) {
+  const lines = entries.flatMap(([name, oldV, newV]) => {
+    const out = [];
+    if (oldV) {
+      out.push(keyLine('-', name, oldV), `-    resolution: {integrity: sha512-OLD}`);
+    }
+    if (newV) {
+      out.push(keyLine('+', name, newV), `+    resolution: {integrity: sha512-NEW}`);
+    }
+    return out;
+  });
+  return [
+    'diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml',
+    '--- a/pnpm-lock.yaml',
+    '+++ b/pnpm-lock.yaml',
+    '@@ -118,10 +118,10 @@ packages:',
+    ...lines,
+  ].join('\n');
 }
 
-test('extractStanzaChanges: classifies bump / removal / netNew', () => {
+test('extractDepChanges + classifyChanges: bump / removal / netNew', () => {
   const diff = diffOf([
     ['react', '19.2.5', '19.2.6'], // bump
     ['old-pkg', '1.0.0', null], // removal
     ['new-pkg', null, '2.0.0'], // netNew
   ]);
-  const { changes: m } = extractStanzaChanges(diff);
-  assert.equal(findByName(m, 'react').kind, 'bump');
-  assert.equal(findByName(m, 'react').oldVersion, '19.2.5');
-  assert.equal(findByName(m, 'react').newVersion, '19.2.6');
-  assert.equal(findByName(m, 'old-pkg').kind, 'removal');
-  assert.equal(findByName(m, 'old-pkg').oldVersion, '1.0.0');
-  assert.equal(findByName(m, 'new-pkg').kind, 'netNew');
-  assert.equal(findByName(m, 'new-pkg').newVersion, '2.0.0');
+  const { bumps, removals, netNew } = classifyChanges(extractDepChanges(diff));
+  assert.deepEqual(bumps, [{ name: 'react', oldVersion: '19.2.5', newVersion: '19.2.6' }]);
+  assert.deepEqual(removals, [{ name: 'old-pkg', version: '1.0.0' }]);
+  assert.deepEqual(netNew, [{ name: 'new-pkg', version: '2.0.0' }]);
 });
 
-test('extractStanzaChanges: captures license diff alongside version', () => {
-  const diff = `\
-diff --git a/package-lock.json b/package-lock.json
---- a/package-lock.json
-+++ b/package-lock.json
-@@ -1,5 +1,5 @@
-     "node_modules/foo": {
--      "version": "1.0.0",
-+      "version": "2.0.0",
--      "license": "MIT",
-+      "license": "ISC",
-       "resolved": "..."
-     },
-`;
-  const { changes: m } = extractStanzaChanges(diff);
-  assert.equal(findByName(m, 'foo').oldLicense, 'MIT');
-  assert.equal(findByName(m, 'foo').newLicense, 'ISC');
-});
-
-test('extractStanzaChanges: handles scoped packages', () => {
+test('extractDepChanges: handles scoped packages', () => {
   const diff = diffOf([['@axe-core/playwright', '4.11.2', '4.11.3']]);
-  const { changes: m } = extractStanzaChanges(diff);
-  assert.equal(findByName(m, '@axe-core/playwright').kind, 'bump');
+  const { bumps } = classifyChanges(extractDepChanges(diff));
+  assert.deepEqual(bumps, [
+    { name: '@axe-core/playwright', oldVersion: '4.11.2', newVersion: '4.11.3' },
+  ]);
 });
 
-test('extractStanzaChanges: handles single-level nested node_modules paths', () => {
-  // npm hoists most deps but sometimes nests; the path uses
-  // `node_modules/parent/node_modules/child`. The leaf name should
-  // still be findable in the result.
-  const diff = `\
-diff --git a/package-lock.json b/package-lock.json
---- a/package-lock.json
-+++ b/package-lock.json
-@@ -1,5 +1,5 @@
-     "node_modules/some-parent/node_modules/nested-child": {
--      "version": "1.0.0",
-+      "version": "1.0.1",
-       "resolved": "..."
-     },
-`;
-  const { changes: m } = extractStanzaChanges(diff);
-  assert.equal(findByName(m, 'nested-child').kind, 'bump');
+test('classifyChanges: multi-version shuffle is NOT a fake bump', () => {
+  // A Dependabot rollup removes two resolutions of `semver` and adds two
+  // others. There's no unambiguous old→new pairing, so we report each as
+  // a separate removal/netNew plus a warning, never a fabricated bump.
+  const diff = diffOf([
+    ['semver', '5.7.2', null],
+    ['semver', '6.3.1', null],
+    ['semver', null, '7.7.4'],
+    ['semver', null, '7.8.1'],
+  ]);
+  const { bumps, removals, netNew, warnings } = classifyChanges(extractDepChanges(diff));
+  assert.equal(bumps.length, 0);
+  assert.equal(removals.length, 2);
+  assert.equal(netNew.length, 2);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /multi-version change for semver/);
 });
 
-test('extractStanzaChanges: handles deeply nested node_modules paths', () => {
-  // Defense against regression in the PKG_KEY regex: a transitive dep
-  // can nest more than one level deep
-  // (parent/node_modules/middle/node_modules/leaf).
-  const diff = `\
-diff --git a/package-lock.json b/package-lock.json
---- a/package-lock.json
-+++ b/package-lock.json
-@@ -1,5 +1,5 @@
-     "node_modules/parent/node_modules/middle/node_modules/leaf": {
--      "version": "1.0.0",
-+      "version": "1.0.1",
-       "resolved": "..."
-     },
-`;
-  const { changes: m } = extractStanzaChanges(diff);
-  assert.equal(findByName(m, 'leaf').kind, 'bump');
+test('extractDepChanges: same name at one removed + one added IS a bump', () => {
+  // The clean 1:1 case — even though pnpm keys are distinct, a single
+  // removed version paired with a single added version is the canonical
+  // bump shape.
+  const diff = diffOf([
+    ['eslint', '9.39.4', null],
+    ['eslint', null, '10.4.0'],
+  ]);
+  const { bumps } = classifyChanges(extractDepChanges(diff));
+  assert.deepEqual(bumps, [{ name: 'eslint', oldVersion: '9.39.4', newVersion: '10.4.0' }]);
 });
 
-test('extractStanzaChanges: keeps distinct copies of same-named package separate', () => {
-  // Real-world shape: a Dependabot rollup removes one copy of a
-  // package at version X (under one path) and adds another at version
-  // Y (under a different path). Dedup-by-name would merge them into a
-  // fake "X → Y bump." Path-keying keeps them as separate
-  // removal + netNew entries.
-  const diff = `\
-diff --git a/package-lock.json b/package-lock.json
---- a/package-lock.json
-+++ b/package-lock.json
-@@ -1,5 +1,1 @@
--    "node_modules/parent-a/node_modules/semver": {
--      "version": "5.7.2",
--      "resolved": "..."
--    },
-@@ -100,1 +100,5 @@
-+    "node_modules/parent-b/node_modules/semver": {
-+      "version": "7.8.1",
-+      "resolved": "..."
-+    },
-`;
-  const { changes: m } = extractStanzaChanges(diff);
-  // Expect 2 distinct entries (one removal, one netNew), both with
-  // name 'semver'.
-  const entries = [...m.values()].filter((e) => e.name === 'semver');
-  assert.equal(entries.length, 2);
-  const removal = entries.find((e) => e.kind === 'removal');
-  const netNew = entries.find((e) => e.kind === 'netNew');
-  assert.ok(removal, 'removal not found');
-  assert.ok(netNew, 'netNew not found');
-  assert.equal(removal.oldVersion, '5.7.2');
-  assert.equal(netNew.newVersion, '7.8.1');
+test('extractDepChanges: ignores keys outside the pnpm-lock.yaml file section', () => {
+  // A `packages:`-shaped key appearing in some OTHER file's diff (here a
+  // markdown doc) must not be counted. The file-header gate handles this.
+  const diff = [
+    'diff --git a/docs/example.md b/docs/example.md',
+    '--- a/docs/example.md',
+    '+++ b/docs/example.md',
+    '@@ -1,2 +1,2 @@',
+    '+  react@19.2.6:',
+    '-  react@19.2.5:',
+  ].join('\n');
+  assert.equal(extractDepChanges(diff).size, 0);
 });
 
-test('extractStanzaChanges: resets state on @@ hunk boundaries', () => {
-  // Defense against cross-stanza leakage: a hunk ends mid-stanza, then
-  // the next hunk begins with no fresh "node_modules/..." key. Without
-  // hunk-boundary handling, any version/license lines in the second
-  // hunk would be mis-attributed to the first hunk's package.
-  const diff = `\
-diff --git a/package-lock.json b/package-lock.json
---- a/package-lock.json
-+++ b/package-lock.json
-@@ -1,3 +1,3 @@
-     "node_modules/first-pkg": {
--      "version": "1.0.0",
-+      "version": "1.0.1",
-@@ -50,3 +50,3 @@
--      "version": "9.0.0",
-+      "version": "9.0.1",
-`;
-  const { changes: m } = extractStanzaChanges(diff);
-  // Only first-pkg should be reported with its real versions; the
-  // second-hunk version lines belong to no recognized stanza and
-  // should be dropped.
-  const firstPkg = findByName(m, 'first-pkg');
-  assert.ok(firstPkg, 'first-pkg not found');
-  assert.equal(firstPkg.oldVersion, '1.0.0');
-  assert.equal(firstPkg.newVersion, '1.0.1');
-  // The orphan version lines must NOT have been attached to first-pkg
-  // (which would have overwritten its real values).
-  assert.notEqual(firstPkg.oldVersion, '9.0.0');
-  assert.notEqual(firstPkg.newVersion, '9.0.1');
+test('extractDepChanges: ignores resolution/integrity lines, only keys count', () => {
+  // Only the `name@version:` key lines drive classification; the
+  // resolution lines beneath them must not be parsed as deps.
+  const diff = diffOf([['react', '19.2.5', '19.2.6']]);
+  const byName = extractDepChanges(diff);
+  assert.equal(byName.size, 1);
+  assert.ok(byName.has('react'));
 });
 
-test('extractStanzaChanges: orphan field lines do not leak into the NEXT stanza either', () => {
-  // The previous hunk-boundary fix stopped orphan version lines from
-  // leaking into the PREVIOUS stanza, but missed the other half: if
-  // those orphan lines accumulated into pending while currentPath was
-  // null (between clearStanza and the next setStanza), they would
-  // leak into the NEXT stanza when commit() ran for it.
-  //
-  // This diff: first-pkg gets a clean bump. A hunk boundary, then
-  // orphan version lines, then a fresh stanza for second-pkg with
-  // only a newVersion. The buggy implementation would have reported
-  // second-pkg as a bump from 9.0.0 to 2.0.1 (oldVersion leaking
-  // from the orphan).
-  const diff = `\
-diff --git a/package-lock.json b/package-lock.json
---- a/package-lock.json
-+++ b/package-lock.json
-@@ -1,3 +1,3 @@
-     "node_modules/first-pkg": {
--      "version": "1.0.0",
-+      "version": "1.0.1",
-@@ -50,3 +50,3 @@
--      "version": "9.0.0",
-+      "version": "9.0.1",
-@@ -100,1 +100,5 @@
-+    "node_modules/second-pkg": {
-+      "version": "2.0.1",
-+      "resolved": "..."
-+    },
-`;
-  const { changes: m } = extractStanzaChanges(diff);
-  const secondPkg = findByName(m, 'second-pkg');
-  assert.ok(secondPkg, 'second-pkg not found');
-  // second-pkg should be a netNew (only newVersion present), NOT a
-  // bump from 9.0.0.
-  assert.equal(secondPkg.kind, 'netNew');
-  assert.equal(secondPkg.newVersion, '2.0.1');
-  assert.equal(secondPkg.oldVersion, undefined);
-});
-
-test('extractStanzaChanges: ignores non-lockfile diffs', () => {
-  const diff = `\
-diff --git a/package.json b/package.json
---- a/package.json
-+++ b/package.json
-@@ -1,3 +1,3 @@
-     "node_modules/react": {
--      "version": "19.2.5",
-+      "version": "19.2.6"
-     }
-`;
-  // The file header gate ensures package.json hunks are skipped.
-  assert.equal(extractStanzaChanges(diff).changes.size, 0);
-});
-
-test('extractStanzaChanges: returns empty for empty diff', () => {
-  assert.equal(extractStanzaChanges('').changes.size, 0);
+test('extractDepChanges: returns empty for empty diff', () => {
+  assert.equal(extractDepChanges('').size, 0);
 });
 
 test('extractBumps: back-compat shape', () => {
@@ -330,71 +213,67 @@ test('extractBumps: back-compat shape', () => {
 // indexLockfile
 // ---------------------------------------------------------------------------
 
-test('indexLockfile: keeps distinct copies of same-named package path-keyed', () => {
+test('indexLockfile: keys by name@version and surfaces peerDependencies', () => {
   const lock = {
     packages: {
-      '': { name: 'host' },
-      'node_modules/foo': { version: '1.0.0', license: 'MIT', peerDependencies: { bar: '^1' } },
-      'node_modules/some-parent/node_modules/foo': { version: '2.0.0', license: 'ISC' },
+      'foo@1.0.0': { resolution: {}, peerDependencies: { bar: '^1' } },
+      'foo@2.0.0': { resolution: {} },
     },
   };
   const idx = indexLockfile(lock);
-  // Path-keyed: both resolutions of `foo` are kept separate so
-  // findPeerMismatches and buildBumpEntry don't lose data.
+  // Both resolutions of `foo` kept separate.
   assert.equal(idx.size, 2);
-  assert.equal(idx.get('node_modules/foo').name, 'foo');
-  assert.equal(idx.get('node_modules/foo').version, '1.0.0');
-  assert.equal(idx.get('node_modules/foo').license, 'MIT');
-  assert.deepEqual(idx.get('node_modules/foo').peerDependencies, { bar: '^1' });
-  assert.equal(idx.get('node_modules/some-parent/node_modules/foo').version, '2.0.0');
-  assert.equal(idx.get('node_modules/some-parent/node_modules/foo').license, 'ISC');
+  assert.equal(idx.get('foo@1.0.0').name, 'foo');
+  assert.equal(idx.get('foo@1.0.0').version, '1.0.0');
+  assert.deepEqual(idx.get('foo@1.0.0').peerDependencies, { bar: '^1' });
+  assert.equal(idx.get('foo@2.0.0').version, '2.0.0');
+  assert.deepEqual(idx.get('foo@2.0.0').peerDependencies, {});
 });
 
-test('indexLockfile: skips root entry', () => {
-  const lock = { packages: { '': { name: 'host', version: '0.0.0' } } };
-  assert.equal(indexLockfile(lock).size, 0);
+test('indexLockfile: scoped names parsed correctly', () => {
+  const lock = { packages: { '@babel/core@7.29.7': { resolution: {} } } };
+  const idx = indexLockfile(lock);
+  assert.equal(idx.get('@babel/core@7.29.7').name, '@babel/core');
+  assert.equal(idx.get('@babel/core@7.29.7').version, '7.29.7');
+});
+
+test('indexLockfile: handles missing packages map', () => {
+  assert.equal(indexLockfile({}).size, 0);
 });
 
 test('indexLockfile: handles missing peerDependencies as empty object', () => {
-  const lock = { packages: { 'node_modules/foo': { version: '1.0.0' } } };
-  const idx = indexLockfile(lock);
-  assert.deepEqual(idx.get('node_modules/foo').peerDependencies, {});
+  const lock = { packages: { 'foo@1.0.0': { resolution: {} } } };
+  assert.deepEqual(indexLockfile(lock).get('foo@1.0.0').peerDependencies, {});
 });
 
 // ---------------------------------------------------------------------------
 // findPeerMismatches — the headline feature
 // ---------------------------------------------------------------------------
 
-// Test helper: build a path-keyed baseIndex from a flat `name → meta`
-// shape. Most peer-mismatch tests don't care about path details; they
-// just need each consumer to have its own lockfile slot. This puts
-// each entry under `node_modules/<name>`.
-function pathIndex(entries) {
-  return new Map(entries.map(([name, meta]) => [`node_modules/${name}`, { name, ...meta }]));
+// Test helper: build a name@version-keyed baseIndex from a flat
+// `[name, version, peerDeps]` shape.
+function lockIndex(entries) {
+  return new Map(
+    entries.map(([name, version, peerDependencies = {}]) => [
+      `${name}@${version}`,
+      { name, version, peerDependencies },
+    ]),
+  );
 }
 
 test('findPeerMismatches: real-world PR 45 shape (eslint 9→10, jsx-a11y stuck at ^9)', () => {
-  // This is the exact scenario that drove the rewrite. jsx-a11y@6.10.2
-  // declares its eslint peer as `^3 || ... || ^9`. Bumping eslint to
-  // 10.4.0 must produce a single mismatch entry.
+  // jsx-a11y@6.10.2 declares its eslint peer as `^3 || ... || ^9`.
+  // Bumping eslint to 10.4.0 must produce a single mismatch entry.
   const bumps = [{ name: 'eslint', newVersion: '10.4.0' }];
-  const baseIndex = pathIndex([
-    ['eslint', { version: '9.39.4', peerDependencies: {} }],
-    [
-      'eslint-plugin-jsx-a11y',
-      {
-        version: '6.10.2',
-        peerDependencies: { eslint: '^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9' },
-      },
-    ],
+  const baseIndex = lockIndex([
+    ['eslint', '9.39.4', {}],
+    ['eslint-plugin-jsx-a11y', '6.10.2', { eslint: '^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9' }],
     [
       'typescript-eslint',
-      {
-        version: '8.59.4',
-        peerDependencies: { eslint: '^8.57.0 || ^9.0.0 || ^10.0.0', typescript: '>=4.8.4' },
-      },
+      '8.59.4',
+      { eslint: '^8.57.0 || ^9.0.0 || ^10.0.0', typescript: '>=4.8.4' },
     ],
-    ['eslint-config-prettier', { version: '10.1.8', peerDependencies: { eslint: '>=7.0.0' } }],
+    ['eslint-config-prettier', '10.1.8', { eslint: '>=7.0.0' }],
   ]);
   const out = findPeerMismatches(bumps, baseIndex);
   assert.equal(out.length, 1);
@@ -406,20 +285,14 @@ test('findPeerMismatches: real-world PR 45 shape (eslint 9→10, jsx-a11y stuck 
   assert.match(out[0].declaredRange, /\^9$/);
 });
 
-test('findPeerMismatches: catches peer ranges from non-hoisted same-name copies', () => {
-  // Regression test for the indexLockfile dedup-by-name bug surfaced
-  // by the second-round code review. The hoisted `foo@1.0.0` has no
-  // peer on eslint; the nested `foo@2.0.0` declares `peerDependencies.eslint: ^9`.
-  // The old name-dedup implementation kept only the hoisted copy and
-  // missed the peer entirely. Path-keying surfaces both, so a bump
-  // past `^9` flags the nested copy.
+test('findPeerMismatches: catches peer ranges from a non-hoisted same-name copy', () => {
+  // The hoisted `foo@1.0.0` has no peer on eslint; a second resolution
+  // `foo@2.0.0` declares `peerDependencies.eslint: ^9`. Both are distinct
+  // name@version keys, so a bump past `^9` flags the 2.0.0 copy.
   const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
-  const baseIndex = new Map([
-    ['node_modules/foo', { name: 'foo', version: '1.0.0', peerDependencies: {} }],
-    [
-      'node_modules/parent/node_modules/foo',
-      { name: 'foo', version: '2.0.0', peerDependencies: { eslint: '^9' } },
-    ],
+  const baseIndex = lockIndex([
+    ['foo', '1.0.0', {}],
+    ['foo', '2.0.0', { eslint: '^9' }],
   ]);
   const out = findPeerMismatches(bumps, baseIndex);
   assert.equal(out.length, 1);
@@ -428,82 +301,43 @@ test('findPeerMismatches: catches peer ranges from non-hoisted same-name copies'
   assert.equal(out[0].declaredRange, '^9');
 });
 
-test('findPeerMismatches: dedupes when same consumer-resolution appears at multiple paths', () => {
-  // Workspace pinning or repeated transitive references can put
-  // `foo@1.0.0` at multiple lockfile paths with the same peer range.
-  // We want one mismatch entry, not N copies.
-  const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
-  const baseIndex = new Map([
-    ['node_modules/foo', { name: 'foo', version: '1.0.0', peerDependencies: { eslint: '^9' } }],
-    [
-      'node_modules/parent-a/node_modules/foo',
-      { name: 'foo', version: '1.0.0', peerDependencies: { eslint: '^9' } },
-    ],
-    [
-      'node_modules/parent-b/node_modules/foo',
-      { name: 'foo', version: '1.0.0', peerDependencies: { eslint: '^9' } },
-    ],
-  ]);
-  const out = findPeerMismatches(bumps, baseIndex);
-  assert.equal(out.length, 1);
-});
-
-test('findPeerMismatches: distinguishes consumers with undefined version by path', () => {
-  // Workspace and `file:` lockfile entries can lack a `version` field.
-  // Dedup-by-name+version would collide all of them on the same
-  // sentinel key when they really might be distinct logical
-  // consumers. The path fallback keeps them separate.
-  const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
-  const baseIndex = new Map([
-    ['node_modules/workspace-a', { name: 'workspace-a', peerDependencies: { eslint: '^9' } }],
-    ['node_modules/workspace-b', { name: 'workspace-b', peerDependencies: { eslint: '^9' } }],
-  ]);
-  const out = findPeerMismatches(bumps, baseIndex);
-  assert.equal(out.length, 2);
-  assert.deepEqual(out.map((m) => m.consumer).sort(), ['workspace-a', 'workspace-b']);
-});
-
 test('findPeerMismatches: skips consumers that are themselves being bumped', () => {
-  // If eslint AND its plugin are both bumping, we have no way to know
-  // the plugin's new peer range from local data. Better to under-report.
   const bumps = [
     { name: 'eslint', newVersion: '10.0.0' },
     { name: 'eslint-plugin-jsx-a11y', newVersion: '7.0.0' },
   ];
-  const baseIndex = pathIndex([
-    ['eslint-plugin-jsx-a11y', { version: '6.10.2', peerDependencies: { eslint: '^9' } }],
-  ]);
+  const baseIndex = lockIndex([['eslint-plugin-jsx-a11y', '6.10.2', { eslint: '^9' }]]);
   assert.deepEqual(findPeerMismatches(bumps, baseIndex), []);
 });
 
 test('findPeerMismatches: ignores consumers with no peer on bumped package', () => {
   const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
-  const baseIndex = pathIndex([
-    ['unrelated', { version: '1.0.0', peerDependencies: { other: '^1' } }],
-  ]);
+  const baseIndex = lockIndex([['unrelated', '1.0.0', { other: '^1' }]]);
   assert.deepEqual(findPeerMismatches(bumps, baseIndex), []);
 });
 
 test('findPeerMismatches: flags unparseable range as incompatible', () => {
-  // semver.satisfies returns false (not throws) on malformed ranges as
-  // of semver@7.x. This is the right behavior for us — we shouldn't
-  // silently pass an upstream declaration we can't interpret. Verify
-  // it surfaces with satisfies=false.
   const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
-  const baseIndex = pathIndex([
-    ['weird-consumer', { version: '1.0.0', peerDependencies: { eslint: 'not-a-real-range' } }],
-  ]);
+  const baseIndex = lockIndex([['weird-consumer', '1.0.0', { eslint: 'not-a-real-range' }]]);
   const out = findPeerMismatches(bumps, baseIndex);
   assert.equal(out.length, 1);
   assert.equal(out[0].consumer, 'weird-consumer');
   assert.equal(out[0].satisfies, false);
 });
 
+test('findPeerMismatches: ignores non-string declared ranges', () => {
+  // A malformed lockfile could carry a non-string peer range. We skip it
+  // rather than throw — better to under-report than crash the review.
+  const bumps = [{ name: 'eslint', newVersion: '10.0.0' }];
+  const baseIndex = new Map([
+    ['weird@1.0.0', { name: 'weird', version: '1.0.0', peerDependencies: { eslint: { foo: 1 } } }],
+  ]);
+  assert.deepEqual(findPeerMismatches(bumps, baseIndex), []);
+});
+
 test('findPeerMismatches: satisfies=true (no entry) when new version IS in range', () => {
   const bumps = [{ name: 'eslint', newVersion: '9.39.4' }];
-  const baseIndex = pathIndex([
-    ['eslint-plugin-jsx-a11y', { version: '6.10.2', peerDependencies: { eslint: '^9' } }],
-  ]);
+  const baseIndex = lockIndex([['eslint-plugin-jsx-a11y', '6.10.2', { eslint: '^9' }]]);
   assert.deepEqual(findPeerMismatches(bumps, baseIndex), []);
 });
 
@@ -533,9 +367,6 @@ test('isMajorBump: handles v-prefix and pre-release tags', () => {
 });
 
 test('isMajorBump: RC-to-RC churn on same numeric version IS major', () => {
-  // Prereleases exist to ship breaking experiments; one RC to the
-  // next is exactly the kind of bump where the breaking-change scan
-  // matters most.
   assert.equal(isMajorBump('1.0.0-rc.1', '1.0.0-rc.2'), true);
 });
 
@@ -544,20 +375,14 @@ test('isMajorBump: alpha-to-beta track change IS major', () => {
 });
 
 test('isMajorBump: prerelease to stable on same numeric version IS major', () => {
-  // 1.0.0-rc.5 → 1.0.0 is a release boundary — the prerelease tag
-  // identifies the pre-stable build, and dropping it changes the
-  // resolved artifact.
   assert.equal(isMajorBump('1.0.0-rc.5', '1.0.0'), true);
 });
 
 test('isMajorBump: stable to prerelease IS major', () => {
-  // Going stable → prerelease is unusual but should be flagged.
   assert.equal(isMajorBump('1.0.0', '1.0.0-experimental.1'), true);
 });
 
 test('isMajorBump: stable to same stable is NOT major', () => {
-  // Sanity: the prerelease rule must not false-positive on plain
-  // version equality.
   assert.equal(isMajorBump('1.0.0', '1.0.0'), false);
 });
 
@@ -580,10 +405,10 @@ async function withTempDir(fn) {
 
 async function writeInputs(dir, { diff, lockfile }) {
   const diffPath = join(dir, 'pr.diff');
-  const lockPath = join(dir, 'package-lock.json');
+  const lockPath = join(dir, 'pnpm-lock.yaml');
   const outPath = join(dir, 'signals.json');
   await writeFile(diffPath, diff, 'utf8');
-  await writeFile(lockPath, JSON.stringify(lockfile, null, 2), 'utf8');
+  await writeFile(lockPath, stringifyYaml(lockfile), 'utf8');
   return { diffPath, lockPath, outPath };
 }
 
@@ -592,12 +417,11 @@ test('run: end-to-end with PR-45-shaped inputs surfaces the peer mismatch', asyn
     const { diffPath, lockPath, outPath } = await writeInputs(dir, {
       diff: diffOf([['eslint', '9.39.4', '10.4.0']]),
       lockfile: {
+        lockfileVersion: '9.0',
         packages: {
-          '': { name: 'host' },
-          'node_modules/eslint': { version: '9.39.4', license: 'MIT' },
-          'node_modules/eslint-plugin-jsx-a11y': {
-            version: '6.10.2',
-            license: 'MIT',
+          'eslint@9.39.4': { resolution: { integrity: 'sha512-x' } },
+          'eslint-plugin-jsx-a11y@6.10.2': {
+            resolution: { integrity: 'sha512-y' },
             peerDependencies: { eslint: '^3 || ^9' },
           },
         },
@@ -619,15 +443,15 @@ test('run: end-to-end with PR-45-shaped inputs surfaces the peer mismatch', asyn
   });
 });
 
-test('run: surfaces net-new transitive with its license', async () => {
+test('run: surfaces net-new transitive', async () => {
   await withTempDir(async (dir) => {
     const { diffPath, lockPath, outPath } = await writeInputs(dir, {
-      diff: diffOf([['@types/esrecurse', null, '4.3.1']], { withLicense: 'MIT' }),
-      lockfile: { packages: { '': {} } },
+      diff: diffOf([['@types/esrecurse', null, '4.3.1']]),
+      lockfile: { lockfileVersion: '9.0', packages: {} },
     });
     const out = await run({ diff: diffPath, lockfile: lockPath, out: outPath });
     assert.equal(out.netNew.length, 1);
-    assert.deepEqual(out.netNew[0], { name: '@types/esrecurse', version: '4.3.1', license: 'MIT' });
+    assert.deepEqual(out.netNew[0], { name: '@types/esrecurse', version: '4.3.1' });
   });
 });
 
@@ -635,7 +459,7 @@ test('run: surfaces removals', async () => {
   await withTempDir(async (dir) => {
     const { diffPath, lockPath, outPath } = await writeInputs(dir, {
       diff: diffOf([['callsites', '3.1.0', null]]),
-      lockfile: { packages: { '': {} } },
+      lockfile: { lockfileVersion: '9.0', packages: {} },
     });
     const out = await run({ diff: diffPath, lockfile: lockPath, out: outPath });
     assert.equal(out.removals.length, 1);
@@ -643,53 +467,17 @@ test('run: surfaces removals', async () => {
   });
 });
 
-test('run: detects license change on bumped package', async () => {
-  await withTempDir(async (dir) => {
-    const diff = `\
-diff --git a/package-lock.json b/package-lock.json
---- a/package-lock.json
-+++ b/package-lock.json
-@@ -1,5 +1,5 @@
-     "node_modules/foo": {
--      "version": "1.0.0",
-+      "version": "2.0.0",
--      "license": "MIT",
-+      "license": "BUSL-1.1",
-       "resolved": "..."
-     },
-`;
-    const { diffPath, lockPath, outPath } = await writeInputs(dir, {
-      diff,
-      lockfile: {
-        packages: {
-          '': {},
-          'node_modules/foo': { version: '1.0.0', license: 'MIT' },
-        },
-      },
-    });
-    const out = await run({ diff: diffPath, lockfile: lockPath, out: outPath });
-    assert.equal(out.licenseChanges.length, 1);
-    assert.deepEqual(out.licenseChanges[0], {
-      name: 'foo',
-      version: '2.0.0',
-      oldLicense: 'MIT',
-      newLicense: 'BUSL-1.1',
-    });
-  });
-});
-
 test('run: empty diff produces empty signals', async () => {
   await withTempDir(async (dir) => {
     const { diffPath, lockPath, outPath } = await writeInputs(dir, {
       diff: '',
-      lockfile: { packages: { '': {} } },
+      lockfile: { lockfileVersion: '9.0', packages: {} },
     });
     const out = await run({ diff: diffPath, lockfile: lockPath, out: outPath });
     assert.deepEqual(out, {
       bumps: [],
       removals: [],
       netNew: [],
-      licenseChanges: [],
       peerMismatches: [],
       warnings: [],
     });
@@ -716,12 +504,13 @@ test('run: throws on missing --lockfile', async () => {
   });
 });
 
-test('run: throws on malformed lockfile JSON', async () => {
+test('run: throws on malformed lockfile YAML', async () => {
   await withTempDir(async (dir) => {
     const diffPath = join(dir, 'pr.diff');
-    const lockPath = join(dir, 'lock');
+    const lockPath = join(dir, 'pnpm-lock.yaml');
     await writeFile(diffPath, '', 'utf8');
-    await writeFile(lockPath, 'not json', 'utf8');
+    // A scalar (not a mapping) at the top level is rejected.
+    await writeFile(lockPath, 'just a string', 'utf8');
     await assert.rejects(
       run({ diff: diffPath, lockfile: lockPath, out: join(dir, 'out') }),
       /Failed to parse --lockfile/,

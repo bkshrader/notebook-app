@@ -63,8 +63,14 @@ case "$ABS_FILE" in
     ;;
 esac
 
-if command -v npx >/dev/null 2>&1; then
-  RUNNER=(npx --no-install prettier)
+# Prefer the project-local prettier binary directly — under pnpm's strict
+# layout it's symlinked into node_modules/.bin, and a direct spawn avoids
+# the wrapper overhead of `pnpm exec`. Fall back to `pnpm exec` (resolves
+# via the workspace), then a global `prettier` on PATH.
+if [ -x "node_modules/.bin/prettier" ]; then
+  RUNNER=(node_modules/.bin/prettier)
+elif command -v pnpm >/dev/null 2>&1; then
+  RUNNER=(pnpm exec prettier)
 elif command -v prettier >/dev/null 2>&1; then
   RUNNER=(prettier)
 else

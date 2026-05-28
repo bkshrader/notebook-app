@@ -12,8 +12,8 @@ on:
     types: [opened, synchronize, ready_for_review, reopened]
     # Allowlist of code-and-code-adjacent paths. Docs-only PRs skip
     # Claude review; new top-level configs need explicit additions
-    # here. Excluded by design: `package-lock.json` (covered by
-    # npm-audit + license-check + dep-review workflow); appearance-only
+    # here. Excluded by design: `pnpm-lock.yaml` (covered by
+    # pnpm-audit + license-check + dep-review workflow); appearance-only
     # files (`.prettierrc*`, `.gitattributes`).
     paths:
       - 'src/**' # application source

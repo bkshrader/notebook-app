@@ -1,4 +1,4 @@
-// `npm run prepare` entry point.
+// `pnpm run prepare` entry point.
 //
 // Adapted from husky's documented "CI server and Docker" pattern
 // (https://typicode.github.io/husky/how-to.html#ci-server-and-docker),
@@ -6,18 +6,18 @@
 // in one place.
 //
 // Why the guard: when only production `dependencies` are installed
-// (CI with `npm ci --ignore-scripts`, or a Docker prod build), the
-// husky devDependency is absent and a bare `husky` call would throw.
-// The guard exits cleanly before importing husky in those
-// environments. Note: every CI workflow here already uses
-// `npm ci --ignore-scripts`, so `prepare` never actually runs in CI —
-// the guard is defensive (covers a stray `npm install` on a box that
-// sets CI=true / NODE_ENV=production).
+// (CI with `pnpm install --frozen-lockfile --ignore-scripts`, or a
+// Docker prod build), the husky devDependency is absent and a bare
+// `husky` call would throw. The guard exits cleanly before importing
+// husky in those environments. Note: every CI workflow here already
+// uses `pnpm install --ignore-scripts`, so `prepare` never actually
+// runs in CI — the guard is defensive (covers a stray `pnpm install`
+// on a box that sets CI=true / NODE_ENV=production).
 //
 // Order: guard FIRST, then husky + playwright together. Both steps are
 // thus local-dev only and stay consistent — neither runs in CI/prod.
-// Playwright in CI comes from explicit `npx playwright install` steps
-// in the workflows, not from here.
+// Playwright in CI comes from explicit `pnpm exec playwright install`
+// steps in the workflows, not from here.
 
 import { execSync } from 'node:child_process';
 
@@ -37,7 +37,7 @@ if (process.env.NODE_ENV === 'production' || process.env.CI === 'true') {
 //
 // On a no-op we set a non-zero exit code (deferred via `process.exitCode`
 // so the Playwright step below still runs) so callers see failure rather
-// than a misleading exit 0. The bare `npm install` lifecycle has no
+// than a misleading exit 0. The bare `pnpm install` lifecycle has no
 // post-condition check of its own — unlike husky-bootstrap.sh — so a
 // silent exit 0 here would let a caller believe hooks were installed
 // when they were not.
@@ -55,12 +55,12 @@ if (result) {
 // once the browser is already cached. `--with-deps` is a no-op on
 // Windows/macOS and installs system libs on Linux.
 try {
-  // `execSync` (shell) rather than `execFileSync` so `npx` resolves to
-  // `npx.cmd` on Windows; execFileSync wouldn't find the `.cmd` shim.
+  // `execSync` (shell) rather than `execFileSync` so `pnpm` resolves to
+  // `pnpm.cmd` on Windows; execFileSync wouldn't find the `.cmd` shim.
   // The command is a hardcoded literal with NO interpolation or user
   // input, so there is no command-injection surface here — the shell
   // is used only for cross-platform executable resolution.
-  execSync('npx playwright install --with-deps chromium', {
+  execSync('pnpm exec playwright install --with-deps chromium', {
     stdio: 'inherit',
   });
 } catch (err) {
@@ -68,6 +68,6 @@ try {
   // Linux, etc.) must not break `prepare` — husky is the load-bearing
   // part and already ran above. Surface a notice and continue.
   console.warn(
-    `prepare: 'npx playwright install --with-deps chromium' failed (${err.code ?? err.message}); local Storybook/a11y tests may need it installed manually.`,
+    `prepare: 'pnpm exec playwright install --with-deps chromium' failed (${err.code ?? err.message}); local Storybook/a11y tests may need it installed manually.`,
   );
 }

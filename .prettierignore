@@ -2,7 +2,7 @@ node_modules/
 out/
 dist/
 storybook-static/
-package-lock.json
+pnpm-lock.yaml
 # Nested worktrees under `.claude/worktrees/` are independent checkouts
 # of this repo. See the matching block in eslint.config.mjs.
 .claude/worktrees/

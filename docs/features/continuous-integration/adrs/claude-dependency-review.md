@@ -7,9 +7,9 @@
 
 ## Context and Problem Statement
 
-Dependabot opens PRs for npm and github-actions ecosystem updates weekly. The project has seven blocking CI gates (`lint`, `format:check`, `typecheck`, `build`, `audit:fallow`, `npm audit --audit-level=high`, `license-check`) which catch a lot of regressions, but not all of them. Specifically, they don't catch:
+Dependabot opens PRs for npm-registry and github-actions ecosystem updates weekly. The project has seven blocking CI gates (`lint`, `format:check`, `typecheck`, `build`, `audit:fallow`, `pnpm audit --audit-level high`, `license-check`) which catch a lot of regressions, but not all of them. Specifically, they don't catch:
 
-- **Peer-dep incompatibilities.** `npm audit --audit-level=high` ignores peer ranges. `eslint-plugin-jsx-a11y@6.10.2` declares `eslint: ^3 || ... || ^9`; bumping eslint to v10 breaks lint at runtime but passes all seven gates.
+- **Peer-dep incompatibilities.** `pnpm audit --audit-level high` ignores peer ranges. `eslint-plugin-jsx-a11y@6.10.2` declares `eslint: ^3 || ... || ^9`; bumping eslint to v10 breaks lint at runtime but passes all seven gates.
 - **License drift.** `license-check` enforces _production_ deps against the allow list. devDep license drift (often the leading edge of a license change) is invisible.
 - **Transitive surface expansion.** A bump that adds 60 new transitives gets the same green-check treatment as one that adds zero. The human reviewer has to read the lockfile diff to know.
 - **Major-version breaking-change exposure.** The gates run a build and a typecheck. They don't grep our source for usage of APIs the changelog says were removed.
@@ -36,20 +36,21 @@ The maintainer is one person; the cost of triaging every Dependabot PR manually 
 
 Chosen option: **Option 5 — Claude + local signal extractor**, implemented in `.github/workflows/claude-dependency-review.yml` and `scripts/extract-dep-signals.mjs`.
 
-The path from Option 4 to Option 5 went through a simulated dry-run of the original prompt on PR 45. The simulation revealed that the highest-value signal on that PR was **not** in any changelog — it was the fact that `eslint-plugin-jsx-a11y@6.10.2`'s `peerDependencies.eslint` field is `^3 || ... || ^9`, which doesn't cover the new `eslint@10.4.0`. That data lives in `package-lock.json`, never in a changelog. The fetcher was looking in the wrong place.
+The path from Option 4 to Option 5 went through a simulated dry-run of the original prompt on PR 45. The simulation revealed that the highest-value signal on that PR was **not** in any changelog — it was the fact that `eslint-plugin-jsx-a11y@6.10.2`'s `peerDependencies.eslint` field is `^3 || ... || ^9`, which doesn't cover the new `eslint@10.4.0`. That data lives in the lockfile (then `package-lock.json`, now `pnpm-lock.yaml`), never in a changelog. The fetcher was looking in the wrong place.
 
-The extractor reads the diff plus the base-ref `package-lock.json` and emits a structured `signals.json`:
+The extractor reads the diff plus the base-ref lockfile and emits a structured `signals.json`:
 
 ```json
 {
-  "bumps":          [{ "name", "oldVersion", "newVersion", "oldLicense", "newLicense", "isMajor" }, ...],
+  "bumps":          [{ "name", "oldVersion", "newVersion", "isMajor" }, ...],
   "removals":       [{ "name", "version" }, ...],
-  "netNew":         [{ "name", "version", "license" }, ...],
-  "licenseChanges": [{ "name", "version", "oldLicense", "newLicense" }, ...],
+  "netNew":         [{ "name", "version" }, ...],
   "peerMismatches": [{ "consumer", "consumerVersion", "bumpedPackage", "declaredRange", "newVersion", "satisfies" }, ...],
   "warnings":       [...]
 }
 ```
+
+> **Updated by [package-manager.md](package-manager.md) (2026-05-28).** This ADR was authored when the project used npm; the extractor then read `package-lock.json` and could derive license signals from it (`licenseChanges`, plus `*License` fields on `bumps`/`netNew`). The npm→pnpm migration rewrote the extractor to parse `pnpm-lock.yaml`, whose format records **no per-package license string**. License signals were therefore dropped from the output shape (reflected above). License compatibility is now enforced solely by the `license-check` CI gate; the review prompt's license dimension is best-effort, resolving licenses from the installed base tree's `node_modules/<pkg>/package.json` where present. The peer-mismatch headline feature is unaffected — pnpm's `packages:` entries still carry `peerDependencies`.
 
 Claude reads `signals.json`, `pr.diff`, `pr.json` (which carries Dependabot's embedded release-notes block in `body`), and the trusted license docs. It posts one PR comment with a LOW/MEDIUM/HIGH verdict structured around five review dimensions: peer-compat (HIGH-by-default per mismatch), license findings, breaking changes weighted by real codebase usage (via `Grep` against the base-ref filesystem), transitive surface, and diff shape.
 
@@ -65,9 +66,9 @@ Claude reads `signals.json`, `pr.diff`, `pr.json` (which carries Dependabot's em
 ### Negative Consequences
 
 - Spotlighting is only partial defense against prompt injection in release notes. A sufficiently sophisticated injection in a Dependabot-embedded release-notes block could manipulate Claude's output. The advisory-only stance and the narrow tool allowlist (`Read,Grep,Glob` + `Bash(gh pr comment:*)`) are the backstops. If real-world usage surfaces injection attempts, the upgrade path is to revoke `Bash(gh pr comment:*)` from the allowlist and add a separate post-step that reads Claude's stdout transcript and posts a sanitized comment via `gh pr comment`.
-- License-removal-only stanzas (no version change, just a license line diff) are silently dropped or under-surfaced. This is a real but narrow gap; documented in the script header.
-- `indexLockfile` formerly dedupped by bare package name and lost peer ranges declared on non-hoisted copies. Fixed by keying the index by full lockfile path; see commit `a36a8f0`. Mentioned here because it's a load-bearing correctness property of the headline feature.
-- The extractor depends on `semver` (ISC-licensed; already deep in our transitive tree). That requires `npm ci --ignore-scripts` to run as a workflow step. The install runs against the BASE REF lockfile (because checkout is pinned to `base.sha`), not the PR's — so a malicious PR cannot inject new deps into this install.
+- License drift is no longer surfaced at all (pnpm-era; see the update note above). The `license-check` CI gate remains the production-dep enforcement point, but devDep license changes that the npm-era extractor would have flagged now pass this review silently.
+- `indexLockfile` keys the index by the lockfile's `name@version` key, so multiple resolutions of the same package (and the peer ranges each declares) stay distinct. This is a load-bearing correctness property of the headline feature. (Under npm this was achieved by keying on the full nested-`node_modules` lockfile path; pnpm's flat `name@version` keys give the same distinctness for free.)
+- The extractor depends on `semver` and `yaml` (both ISC-licensed direct devDependencies — `yaml` was promoted from transitive to direct so it resolves under pnpm's strict, non-hoisted `node_modules` layout). That requires `pnpm install --frozen-lockfile --ignore-scripts` to run as a workflow step. The install runs against the BASE REF lockfile (because checkout is pinned to `base.sha`), not the PR's — so a malicious PR cannot inject new deps into this install.
 
 ## Pros and Cons of the Options
 
@@ -101,7 +102,7 @@ Claude reads `signals.json`, `pr.diff`, `pr.json` (which carries Dependabot's em
 
 ### Option 5 — Claude + local signal extractor (chosen)
 
-- **Good**, because the headline signal (peer-mismatch) is captured deterministically from `package-lock.json`, then fed to Claude as structured input. Claude's job is to weight risk and write the comment, not to spot the mismatch.
+- **Good**, because the headline signal (peer-mismatch) is captured deterministically from the lockfile (`pnpm-lock.yaml`), then fed to Claude as structured input. Claude's job is to weight risk and write the comment, not to spot the mismatch.
 - **Good**, because release notes come from Dependabot's own embedding in `pr.json.body` — no separate fetch, no parser surface, no truncation concerns.
 - **Good**, because the extractor is testable and deterministic (45 unit tests in `scripts/extract-dep-signals.test.mjs`). When Claude misbehaves, we can still trust the structured signals.
 - **Good**, because the no-network property simplifies the security review: the extractor cannot exfiltrate, cannot reach for malicious registries, cannot be MITM'd.
@@ -121,9 +122,9 @@ Claude reads `signals.json`, `pr.diff`, `pr.json` (which carries Dependabot's em
 
 ### Checkout, install, and diff
 
-- **Checkout pinned to `pull_request.base.sha`.** Two reasons. (a) The "breaking-change weighted by real usage" dimension requires Claude to `Grep` the codebase as it exists pre-merge; the default merge commit would include the PR's changes and mask callsites. (b) The lockfile we `npm ci` against is the base-ref lockfile, not the PR's — so a malicious PR can't inject new deps into the install step.
+- **Checkout pinned to `pull_request.base.sha`.** Two reasons. (a) The "breaking-change weighted by real usage" dimension requires Claude to `Grep` the codebase as it exists pre-merge; the default merge commit would include the PR's changes and mask callsites. (b) The lockfile we `pnpm install` against is the base-ref lockfile, not the PR's — so a malicious PR can't inject new deps into the install step.
 - **`fetch-depth: 0` (full history)** so that the three-dot `git diff` can compute the merge base of base and head.
-- **`npm ci --ignore-scripts`.** Standard protection used by every CI gate. Blocks upstream lifecycle-script execution.
+- **`pnpm install --frozen-lockfile --ignore-scripts`.** Standard protection used by every CI gate. `--frozen-lockfile` forbids lockfile mutation (the CI equivalent of `npm ci`); `--ignore-scripts` blocks upstream lifecycle-script execution.
 - **`git fetch origin pull/N/head` then `git diff BASE...HEAD` (three-dot)** to compute the PR's contribution to the diff. Three-dot is load-bearing: two-dot would include intervening main-advance changes as phantom removals, producing fake bumps in the extractor. GitHub's `.diff` media-type endpoint also silently truncates very large diffs (the `gh pr diff` route), which is the second reason to use local `git diff` instead.
 - **`gh pr view --json title,body,additions,deletions,changedFiles,labels,author`** for metadata. The body carries Dependabot's release notes.
 - **Diff size cap (500 KB) fails closed.** A PR that exceeds the cap declines Claude review and surfaces a workflow error. The right behavior is human-triages-manually, not silent skip.

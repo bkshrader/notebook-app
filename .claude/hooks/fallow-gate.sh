@@ -29,11 +29,14 @@ fi
 if command -v fallow >/dev/null 2>&1; then
   RUNNER=(fallow)
   BIN_DESC="$(command -v fallow)"
-elif command -v npx >/dev/null 2>&1 && VER_PROBE="$(npx --no-install fallow --version 2>/dev/null || true)" && [[ "$VER_PROBE" == fallow* ]]; then
-  RUNNER=(npx --no-install fallow)
-  BIN_DESC="npx --no-install fallow"
+elif command -v pnpm >/dev/null 2>&1 && VER_PROBE="$(pnpm exec fallow --version 2>/dev/null || true)" && [[ "$VER_PROBE" == fallow* ]]; then
+  # `pnpm exec` runs an already-installed workspace binary (it never
+  # fetches from the registry), so it's the pnpm analogue of
+  # `npx --no-install`.
+  RUNNER=(pnpm exec fallow)
+  BIN_DESC="pnpm exec fallow"
 else
-  echo "fallow-gate: fallow binary not found (tried PATH and npx --no-install), skipping audit." >&2
+  echo "fallow-gate: fallow binary not found (tried PATH and pnpm exec), skipping audit." >&2
   exit 0
 fi
 
@@ -49,7 +52,7 @@ if [ -n "$MIN_VERSION" ] && [ -n "$VERSION" ]; then
       echo "fallow-gate: blocked: $BIN_DESC is fallow $VERSION, below required $MIN_VERSION."
       echo "fallow-gate: older binaries miss the uncommitted-changes fix (v2.46.0) and can"
       echo "fallow-gate: silently pass audits that would otherwise fail."
-      echo "fallow-gate: upgrade the fallow on PATH (e.g. npm install -g fallow@latest or"
+      echo "fallow-gate: upgrade the fallow on PATH (e.g. pnpm add -g fallow@latest or"
       echo "fallow-gate: cargo install fallow-cli), or set FALLOW_GATE_MIN_VERSION= to disable."
     } >&2
     exit 2

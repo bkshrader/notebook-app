@@ -1,0 +1,25 @@
+# pnpm dependency-build allow list.
+#
+# pnpm does NOT run dependency lifecycle scripts (preinstall/install/postinstall)
+# by default — a supply-chain hardening default that npm lacks. Only packages
+# listed under `onlyBuiltDependencies` may run their build scripts during a
+# local `pnpm install`; everything else is installed inert.
+#
+# Why each entry is here:
+#   - esbuild: its postinstall resolves and installs the platform-specific
+#     binary into the package's own bin dir. vite/electron-vite bundle through
+#     esbuild, so the build chain depends on it.
+#   - electron-winstaller: its install script selects the 7-Zip binary for the
+#     host arch, used when `electron-builder` produces a Windows installer
+#     (`pnpm dist`). Inert installs would break Windows packaging.
+#
+# Note: electron itself is NOT listed — recent electron has no gated lifecycle
+# script; @electron/get fetches the runtime binary lazily on first use, so it
+# needs no build-script approval.
+#
+# CI installs with `--ignore-scripts`, so none of these run on CI — CI never
+# runs a native binary it didn't need to build. This list governs local
+# installs only, where dev and packaging do need them.
+onlyBuiltDependencies:
+  - esbuild
+  - electron-winstaller

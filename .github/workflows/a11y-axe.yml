@@ -11,7 +11,7 @@ name: a11y (axe-core, full-surface)
 # scanning.
 #
 # BEFORE BROADENING THE TRIGGER (e.g. to `pull_request`) — checklist:
-#   - Keep `--ignore-scripts` on `npm ci` (fork PR can ship malicious postinstall).
+#   - Keep `--ignore-scripts` on `pnpm install` (fork PR can ship malicious postinstall).
 #   - Keep `permissions: contents: read` (no job here needs write).
 #   - Keep `timeout-minutes` set (caps any compromise duration).
 #   - Add `concurrency:` group so fork PRs cannot spam runner minutes.
@@ -34,18 +34,19 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - run: corepack enable
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci --ignore-scripts
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Install Playwright browser (chromium)
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
       - name: Run axe-core via Playwright
         run: |
           echo "TODO: implement once the Electron app has rendered routes."
           echo "Per-story axe coverage already runs in ci.yml (storybook job)."
           echo "Expected shape here:"
-          echo "  npx playwright test tests/a11y/"
+          echo "  pnpm exec playwright test tests/a11y/"
           echo "Each test launches the Electron app (playwright-electron),"
           echo "navigates to a route, and calls AxeBuilder(...).analyze()."

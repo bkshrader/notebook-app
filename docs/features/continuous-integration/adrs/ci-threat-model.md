@@ -49,7 +49,7 @@ Every "do we need to defend against this?" decision is answered by asking: "is t
 ### Negative Consequences
 
 - A maintainer-account compromise is unmitigated by CI. The mitigation lives at the GitHub account level (2FA + hardware keys + `npm config set sign-git-commit true` for npm publishes if/when we publish). This must be re-stated whenever the project considers adding additional maintainers — the model would need to be revisited.
-- A sophisticated supply-chain attack that bypasses the seven CI gates AND the Claude dep-review advisory could land in `main` and then execute on the next workflow run that does `npm ci`. We mitigate via `--ignore-scripts` on every `npm ci` (script execution is the dominant risk shape) and via the Claude dep-review surfacing peer-dep / license / transitive changes. This is genuine residual risk; the alternative ("review every transitive bump manually") is not workable for a solo maintainer.
+- A sophisticated supply-chain attack that bypasses the seven CI gates AND the Claude dep-review advisory could land in `main` and then execute on the next workflow run that does `pnpm install`. We mitigate via `--ignore-scripts` on every `pnpm install` (script execution is the dominant risk shape), via pnpm's default of not running dependency build scripts outside the `onlyBuiltDependencies` allow list, and via the Claude dep-review surfacing peer-dep / transitive changes. This is genuine residual risk; the alternative ("review every transitive bump manually") is not workable for a solo maintainer.
 
 ## Pros and Cons of the Options
 
@@ -78,7 +78,7 @@ The model is enforced through these patterns, applied uniformly:
 
 - **`permissions: contents: read` at workflow level.** Per-job permissions only widen this when a specific step needs more.
 - **`persist-credentials: false` on every checkout.** No workflow step can later invoke `git push` with the runner's default token.
-- **`--ignore-scripts` on every `npm ci`.** Blanket protection against upstream lifecycle-script execution; matches the dominant supply-chain attack shape.
+- **`--ignore-scripts` on every `pnpm install`.** Blanket protection against upstream lifecycle-script execution; matches the dominant supply-chain attack shape. Reinforced by pnpm's default of not building dependencies outside the `onlyBuiltDependencies` allow list.
 - **`pull_request`, never `pull_request_target`.** The canonical "pwn request" footgun is out of scope by construction.
 - **Identity gates use `pull_request.user.login` rather than `github.actor`.** The former is the actual PR author; the latter can be influenced by the triggering event in fork-PR scenarios.
 - **Checkouts pin to `pull_request.base.sha`, not the merge commit**, when the workflow's job is to analyze the PR's diff against pre-merge code. The merge commit would include the PR's changes and obscure what was actually being introduced.
