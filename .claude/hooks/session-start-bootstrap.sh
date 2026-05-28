@@ -1,48 +1,52 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# SessionStart hook: bootstrap husky hooks so pre-commit/pre-push fire
-# in BOTH the worktree this session is bound to AND the main repo,
-# regardless of which one `git commit` runs against.
+# SessionStart hook: bootstrap husky hooks in THIS session's environment
+# (the worktree or main repo `CLAUDE_PROJECT_DIR` points at) so that
+# pre-commit/pre-push fire for commits made there.
 #
-# Why both: `CLAUDE_PROJECT_DIR` is typically a worktree, but tool
-# calls in the session may operate on the main repo via absolute paths
-# (`git -C /main/repo commit ...` or even just editing files there).
-# If the main repo's `.husky/_/` is missing, those commits silently
-# skip all hooks because `core.hooksPath = .husky/_` resolves to a
-# non-existent directory and git just no-ops on missing hook files.
-# The PR #68 format-check regression landed exactly this way.
+# Design principle — no cross-environment reach. Git resolves
+# `core.hooksPath = .husky/_` (a RELATIVE path in shared local-scope
+# config) per working tree at hook-invocation time: a `git commit` in
+# worktree X looks for `X/.husky/_/pre-commit`; a commit in the main
+# repo looks for `<main>/.husky/_/pre-commit` (githooks(5): "Git
+# changes its working directory to ... the root of the working tree
+# before invoking the hook"). So EVERY environment auto-detects itself
+# — there is no need to reach from a worktree into the main repo to
+# make main-repo commits safe. The only requirement is that each
+# environment which receives a commit has its OWN `.husky/_/`
+# materialized. This hook ensures that for the environment the session
+# is bound to; the main repo (or any other worktree) is guarded when a
+# session is bound to IT.
 #
-# Three failure modes this hook addresses:
+# An earlier version (PR #69) bootstrapped both the worktree AND the
+# main repo from a single session, to paper over a session committing
+# into the main repo via absolute paths from a worktree. That was
+# fixing a symptom of crossing environments rather than the cause. The
+# cause is "commit into an environment whose `.husky/_/` was never
+# materialized" — addressed per-environment, here.
 #
-# 1. Missing wrapper in worktree: `.husky/_/` doesn't exist in the new
-#    worktree because `npm install` was never run there. Husky's
-#    `.husky/_/` wrapper is load-bearing (puts `node_modules/.bin` on
-#    PATH for lint-staged/prettier, honors HUSKY=0, sources
-#    ~/.config/husky/init.sh, runs hooks under `sh -e`). Without it,
-#    git silently no-ops on `core.hooksPath` and pre-commit/pre-push
-#    don't fire. Fix: run `npm run prepare`, which materializes
-#    `.husky/_/`.
+# Two failure modes this hook addresses, both within this environment:
 #
-# 2. Missing wrapper in main repo: same symptom as (1), but in the
-#    main repo. The session-start-bootstrap historically only fixed
-#    the worktree (the value of `CLAUDE_PROJECT_DIR`). Commits made
-#    via `git -C <main repo>` from a worktree session hit a missing
-#    `.husky/_/` and skipped all hooks. Fix: also bootstrap the main
-#    repo on session start.
+# 1. Missing wrapper: `.husky/_/` doesn't exist because `npm install`
+#    was never run here. Husky's `.husky/_/` wrapper is load-bearing
+#    (puts `node_modules/.bin` on PATH for lint-staged/prettier, honors
+#    HUSKY=0, sources ~/.config/husky/init.sh, runs hooks under
+#    `sh -e`). Without it, git silently no-ops on `core.hooksPath` and
+#    pre-commit/pre-push don't fire. Fix: run `npm run prepare`, which
+#    materializes `.husky/_/` — but ONLY if husky is installed locally
+#    (see the local-install check below; we do not lean on a parent
+#    repo's install).
 #
-# 3. Worktree-scope hooksPath override: an upstream tool (likely the
+# 2. Worktree-scope hooksPath override: an upstream tool (likely the
 #    worktree-creation flow) wrote an absolute `core.hooksPath` to
-#    `.git/worktrees/<name>/config.worktree`. Worktree-scope wins
-#    over local-scope per git's config precedence, and the absolute
-#    path points at the MAIN repo's `.husky/_/` instead of this
-#    worktree's. Result: hook lookups in this worktree resolve to a
-#    sibling worktree's hook scripts (or nothing, if the main repo's
-#    `.husky/_/` is empty). Fix: `git config --worktree --unset
-#    core.hooksPath`, falling back to the shared local-scope relative
-#    value (`.husky/_`) which git resolves per-worktree at hook
-#    invocation time (githooks(5): "Git changes its working directory
-#    to ... the root of the working tree before invoking the hook").
+#    `.git/worktrees/<name>/config.worktree`. Worktree-scope wins over
+#    local-scope per git's config precedence, and the absolute path
+#    points at the MAIN repo's `.husky/_/` instead of this worktree's.
+#    Result: hook lookups in this worktree resolve to a sibling
+#    worktree's hook scripts (or nothing). Fix: `git config --worktree
+#    --unset core.hooksPath`, falling back to the shared local-scope
+#    relative value (`.husky/_`).
 #
 # See: https://github.com/typicode/husky/blob/main/index.js
 #      https://git-scm.com/docs/git-config (--worktree, scope precedence)
@@ -56,118 +60,68 @@ cd "${CLAUDE_PROJECT_DIR:-.}" || {
   exit 0
 }
 
-# Repair the worktree-scope hooksPath override. Run from within the
-# worktree (after the cd above) so `git config --worktree` resolves to
-# THIS worktree's config.worktree, not whichever one happened to be
-# CWD when the hook was invoked. The `--get` probe is what
-# distinguishes "no override exists, skip" from "override exists, drop
-# it".
+# Repair the worktree-scope hooksPath override. Run from within this
+# environment (after the cd above) so `git config --worktree` resolves
+# to THIS worktree's config.worktree, not whichever one happened to be
+# CWD when the hook was invoked. The `--get` probe is what distinguishes
+# "no override exists, skip" from "override exists, drop it".
 if command -v git >/dev/null 2>&1 \
    && git config --worktree --get core.hooksPath >/dev/null 2>&1; then
   git config --worktree --unset core.hooksPath 2>/dev/null || true
   echo "session-start-bootstrap: removed worktree-scope core.hooksPath override; falling back to shared local-scope value." >&2
 fi
 
-if ! command -v npm >/dev/null 2>&1; then
-  echo "session-start-bootstrap: npm not on PATH; cannot bootstrap husky. Hooks won't fire until bootstrapped manually." >&2
+# Idempotent fast-path: if this environment's wrapper is already
+# materialized, there's nothing to do. Saves ~2.5s per session-start on
+# already-bootstrapped environments, which is the steady-state case.
+if [ -f .husky/_/pre-commit ]; then
   exit 0
 fi
 
-# Path-form normalization for the main-repo == worktree comparison
-# below. On Windows + Git-Bash, `$PWD` is POSIX form (`/e/Bradley/...`)
-# while `git rev-parse` returns the Windows form (`E:/Bradley/...`).
-# These compare as unequal even when they point at the same directory,
-# which would cause the script to run the bootstrap twice against the
-# main repo (harmless because the existence check short-circuits, but
-# wasteful and confusing in traces). `cygpath -u` is the canonical
-# converter on Git-Bash and Cygwin; on non-Windows it isn't present
-# and paths are already POSIX, so we no-op there.
-to_posix() {
-  if command -v cygpath >/dev/null 2>&1; then
-    cygpath -u -- "$1" 2>/dev/null || echo "$1"
-  else
-    echo "$1"
-  fi
-}
-
-# Resolve the main repo working tree from the worktree we're in. In a
-# linked worktree, `git rev-parse --git-common-dir` returns the path
-# to the main repo's `.git` directory (or `.git` itself when run from
-# the main repo). The main repo's working tree is its parent.
-#
-# `--path-format=absolute` forces an absolute path so the dirname
-# walk doesn't break on relative `.git` values. Fall back to no-op if
-# git is missing or the call fails.
-MAIN_REPO=""
-if command -v git >/dev/null 2>&1; then
-  git_common_dir="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
-  if [ -n "$git_common_dir" ] && [ -d "$git_common_dir" ]; then
-    # git-common-dir is the main repo's `.git` (typically). Its parent
-    # is the main repo's working tree.
-    MAIN_REPO="$(to_posix "$(dirname "$git_common_dir")")"
-  fi
+# Ghost-worktree guard: husky's installer does a literal
+# `fs.existsSync('.git')` check (no parent traversal) and silently
+# returns a non-empty error string while still exiting 0 if the CWD has
+# no `.git` reference. That happens when this directory is a filesystem
+# remnant left behind after `git worktree remove` — git no longer
+# considers it a worktree. Running `npm run prepare` here would no-op
+# silently; skip with a loud notice instead.
+if [ ! -e .git ]; then
+  echo "session-start-bootstrap: CLAUDE_PROJECT_DIR ('$PWD') has no .git file/dir — likely a ghost worktree left behind after 'git worktree remove'. Skipping husky bootstrap; remove the empty directory or restore the worktree." >&2
+  exit 0
 fi
-PWD_POSIX="$(to_posix "$PWD")"
 
-bootstrap_husky() {
-  # Run husky's installer from $1 if and only if its `.husky/_/pre-commit`
-  # is missing. Idempotent fast-path: if the wrapper is already there,
-  # skip. Saves ~2.5s per session-start on already-bootstrapped repos.
-  local target="$1"
-  local label="$2"
+if ! command -v npm >/dev/null 2>&1; then
+  echo "session-start-bootstrap: npm not on PATH; cannot bootstrap husky. Hooks won't fire here until bootstrapped manually (run 'npm install')." >&2
+  exit 0
+fi
 
-  if [ ! -d "$target" ]; then
-    echo "session-start-bootstrap: $label target '$target' does not exist; skipping." >&2
-    return 0
-  fi
+# Require a LOCAL husky install in this environment. We check for
+# `./node_modules/husky` directly (a filesystem stat scoped to THIS
+# checkout) rather than `require.resolve`, which would climb
+# node_modules upward and find a parent worktree's install — exactly
+# the cross-environment coupling this redesign removes, and which hides
+# the real problem (this environment was never provisioned). If husky
+# isn't installed here, tell the agent to install and stop — a
+# SessionStart hook can't block, so this is a loud notice rather than a
+# decision:block.
+if [ ! -d node_modules/husky ]; then
+  echo "session-start-bootstrap: husky is not installed in this checkout ('$PWD'). This is usually a fresh git worktree that was never provisioned. Run 'npm install' here to materialize node_modules and .husky/_/, otherwise pre-commit/pre-push will NOT fire for commits made in this environment." >&2
+  exit 0
+fi
 
-  if [ -f "$target/.husky/_/pre-commit" ]; then
-    return 0
-  fi
+# Run prepare to materialize this environment's `.husky/_/`. Output to
+# stderr so it doesn't pollute the session's user-facing transcript.
+# (`prepare` also runs `npx playwright install` per package.json; that
+# cost is accepted here per project decision.)
+if ! npm run prepare >&2; then
+  echo "session-start-bootstrap: 'npm run prepare' failed in '$PWD'; hooks may not fire here. See the error above." >&2
+  exit 0
+fi
 
-  # Ghost-worktree guard: husky's installer does a literal
-  # `fs.existsSync('.git')` check (no parent traversal) and silently
-  # returns a non-empty error string while still exiting 0 if the
-  # CWD has no `.git` reference. That happens when `$target` is a
-  # filesystem directory left behind after `git worktree remove` (or
-  # similar) — git no longer considers it a worktree, and CWD-bound
-  # tools like husky give up silently. Detect and skip with a loud
-  # notice so the main-repo bootstrap below doesn't have its work
-  # masked by a useless prepare invocation in the ghost dir.
-  if [ ! -e "$target/.git" ]; then
-    echo "session-start-bootstrap: $label '$target' has no .git file/dir — likely a ghost worktree left behind after 'git worktree remove'. Skipping; remove the empty directory or restore the worktree to silence this notice." >&2
-    return 0
-  fi
-
-  # Worktrees typically don't have their own node_modules — npm's
-  # parent-directory traversal picks up the main repo's node_modules
-  # instead. If neither location has husky installed, `npm run
-  # prepare` will fail with a "command not found" type error and we
-  # surface it as a notice (rather than pre-checking with a fragile
-  # path probe).
-  if ! (cd "$target" && npm run prepare >&2); then
-    echo "session-start-bootstrap: 'npm run prepare' failed in $label ($target); hooks may not fire there. If the error above mentions 'husky: command not found', run 'npm ci' in that directory or the parent repo." >&2
-    return 0
-  fi
-
-  # Post-condition check: husky's CLI exits 0 even when it silently
-  # no-ops (e.g. it returns an error STRING but exits zero). Verify
-  # the wrapper actually materialized so a silent no-op doesn't slip
-  # past as "bootstrap succeeded."
-  if [ ! -f "$target/.husky/_/pre-commit" ]; then
-    echo "session-start-bootstrap: $label '$target' — 'npm run prepare' exited 0 but .husky/_/pre-commit is still missing. Husky's installer probably silently no-op'd; hooks won't fire there until manually bootstrapped." >&2
-    return 0
-  fi
-}
-
-# 1. Bootstrap the worktree we're in (CLAUDE_PROJECT_DIR, already cd'd).
-bootstrap_husky "$PWD" "worktree"
-
-# 2. Also bootstrap the main repo if it's a different path AND missing
-#    its wrapper. Commits via `git -C <main repo>` from this session
-#    would otherwise skip hooks (PR #68 regression). The PWD vs
-#    MAIN_REPO compare uses normalized POSIX forms so a Windows-form
-#    `git rev-parse` result doesn't spuriously trip the guard.
-if [ -n "$MAIN_REPO" ] && [ "$MAIN_REPO" != "$PWD_POSIX" ]; then
-  bootstrap_husky "$MAIN_REPO" "main repo"
+# Post-condition check: husky's CLI exits 0 even when it silently
+# no-ops. Verify the wrapper actually materialized so a silent no-op
+# doesn't slip past as "bootstrap succeeded."
+if [ ! -f .husky/_/pre-commit ]; then
+  echo "session-start-bootstrap: 'npm run prepare' exited 0 but .husky/_/pre-commit is still missing in '$PWD'. Husky's installer probably silently no-op'd; hooks won't fire here until manually bootstrapped." >&2
+  exit 0
 fi
