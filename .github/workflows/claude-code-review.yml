@@ -40,20 +40,16 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      # `pull-requests: write` covers `mcp__github_inline_comment__*`
-      # (review comments). `issues: write` is required for the plugin's
-      # no-issues fallback path `Bash(gh pr comment:*)` — `gh pr
-      # comment` POSTs to `/repos/{owner}/{repo}/issues/{number}/comments`,
-      # the Issues API. Without it the fallback returns 403 and counts
-      # as a permission denial. `id-token: write` below is independent —
-      # OIDC token issuance to the Claude GitHub App, not repo writes.
+      # `pull-requests: write` covers both inline review comments (via
+      # `mcp__github_inline_comment__create_inline_comment`) and
+      # top-level PR comments (via `Bash(gh pr comment:*)`). `id-token:
+      # write` is OIDC token issuance to the Claude GitHub App, not
+      # repo writes. This matches Anthropic's canonical PR-review
+      # example in `anthropics/claude-code-action/docs/solutions.md`.
       # Note: these permissions are necessary but not sufficient — the
-      # plugin also needs an explicit `--allowedTools` allowlist on the
-      # action step so the github_inline_comment MCP server is actually
-      # registered. See the comment on `claude_args` in the action step
-      # below.
+      # `mcp__github_inline_comment__*` server is opt-in via the
+      # `--allowedTools` flag below.
       pull-requests: write
-      issues: write
       id-token: write # OIDC token issuance; not repo write. See ADR.
 
     steps:
@@ -86,13 +82,17 @@ jobs:
           # `--allowedTools` flag (claude-code-action's
           # `src/mcp/install-mcp-server.ts`: the github_inline_comment
           # server is only spawned when an `mcp__github_inline_comment__*`
-          # or `mcp__github__*` entry is present). Without this list the
-          # plugin's posting step is denied silently
-          # (`permission_denials_count` > 0, "No buffered inline
-          # comments", no PR comment). Observed on PR #62 (18 denials) and
-          # PR #66 (2 denials) before this fix. See
-          # adrs/claude-code-action-pinning.md for the agent-mode
-          # mechanics rationale.
+          # entry is present). Without this list the plugin's posting
+          # step is denied silently (`permission_denials_count` > 0,
+          # "No buffered inline comments", no PR comment). Observed on
+          # PR #62 (18 denials) and PR #66 (2 denials) before this fix.
+          # See adrs/claude-code-action-pinning.md for the agent-mode
+          # mechanics rationale. Pattern aligned with Anthropic's
+          # canonical "Automatic PR Code Review" example in
+          # `anthropics/claude-code-action/docs/solutions.md`; extra
+          # `gh issue`/`gh search` entries beyond the canonical four
+          # come from the plugin's own frontmatter (used by its
+          # "related issues" lookup step).
           claude_args: >-
             --model claude-sonnet-4-6
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"
