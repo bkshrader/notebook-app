@@ -120,13 +120,27 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       # Advisory check on the full tree, including devDeps. DevDep
       # advisories don't ship to users, but stale tooling is worth
-      # surfacing — failures annotate the run (yellow ⚠ on the checks
-      # tab) without blocking merge. The blocking step above already
-      # covered the prod-reachable findings, so this only adds signal
-      # for purely-dev advisories.
+      # surfacing. The blocking step above already covered the prod-
+      # reachable findings, so anything caught here is devDep-only.
       - name: Audit full tree (advisory; devDep findings non-blocking)
+        id: audit_full
         run: npm audit --audit-level=high
         continue-on-error: true
+      # Surface as a PR-level `::warning::` annotation so devDep
+      # advisories show up as a yellow ⚠ on the PR's merge box without
+      # requiring a click into the job log. Re-runs `npm audit --json`
+      # to extract a comma-separated package list for the warning text
+      # (cheap — npm caches the audit response from the previous step).
+      - name: Surface devDep advisories as a warning
+        if: steps.audit_full.outcome == 'failure'
+        run: |
+          pkgs=$(npm audit --json 2>/dev/null \
+            | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8"));
+                       process.stdout.write(Object.entries(j.vulnerabilities||{})
+                         .filter(([_,v])=>["high","critical"].includes(v.severity))
+                         .map(([k,_])=>k).join(", "));' \
+            || echo "see job log")
+          echo "::warning title=DevDep advisories::${pkgs}"
 
   license-check:
     # Gates that every redistributed (production) dep ships with an
