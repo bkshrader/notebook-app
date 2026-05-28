@@ -40,7 +40,15 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      pull-requests: read
+      # `write` is required for the `code-review` plugin to post the review
+      # comment. `id-token: write` below is independent — it's for OIDC
+      # token issuance to the Claude GitHub App, not for repo writes.
+      # Without `pull-requests: write` here, the plugin completes its
+      # analysis but every comment-posting tool call is denied by the
+      # harness; the run reports `permission_denials_count` > 0 and no
+      # review comment ever appears on the PR. (Failure mode observed on
+      # PR #62, where the run completed cleanly with 18 denials.)
+      pull-requests: write
       issues: read
       id-token: write # OIDC token issuance; not repo write. See ADR.
 

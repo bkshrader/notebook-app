@@ -1,6 +1,10 @@
 # Mirrors CI gates. Ordered cheap -> expensive so failures surface fast.
 # Bypass: `git push --no-verify` or `HUSKY=0 git push`.
 
+npm run lint || exit 1
+
+npm run format:check || exit 1
+
 npm run typecheck || exit 1
 
 npx license-checker \
@@ -8,7 +12,10 @@ npx license-checker \
   --excludePrivatePackages \
   --onlyAllow "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;BSD;MPL-2.0;BlueOak-1.0.0;CC0-1.0;CC-BY-4.0;Unlicense;Python-2.0;Zlib;AGPL-3.0-or-later;AGPL-3.0-only;GPL-3.0-or-later;GPL-3.0-only;LGPL-3.0-or-later" || exit 1
 
-npm audit --audit-level=high || exit 1
+# Prod-reachable advisories block (mirror CI). DevDep findings are
+# advisory-only — surfaced as a stderr notice but don't fail the push.
+npm audit --omit=dev --audit-level=high || exit 1
+npm audit --audit-level=high || echo "pre-push: devDep advisories found (non-blocking); see output above." >&2
 
 if git rev-parse --verify --quiet origin/main >/dev/null; then
   npm run audit:fallow -- --base origin/main || exit 1

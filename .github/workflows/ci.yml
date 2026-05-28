@@ -111,8 +111,50 @@ jobs:
       # actual package code. `--ignore-scripts` blocks lifecycle script
       # execution from any upgraded dep on PR runs.
       - run: npm ci --ignore-scripts
-      - name: Audit dependencies (fail on high+critical)
+      # Production deps are what we redistribute to users; high+ severity
+      # advisories that reach them are real attack surface and must block
+      # merge. `--omit=dev` excludes the devDependencies subtree from the
+      # walk, so this step only flags advisories with a prod-reachable
+      # path.
+      - name: Audit production deps (blocking)
+        run: npm audit --omit=dev --audit-level=high
+      # Advisory check on the full tree, including devDeps. DevDep
+      # advisories don't ship to users, but stale tooling is worth
+      # surfacing. The blocking step above already covered the prod-
+      # reachable findings, so anything caught here is devDep-only.
+      - name: Audit full tree (advisory; devDep findings non-blocking)
+        id: audit_full
         run: npm audit --audit-level=high
+        continue-on-error: true
+      # Surface each devDep advisory as a PR-level `::warning::`
+      # annotation so they appear as yellow ⚠ entries on the PR's
+      # merge box and Files Changed tab without requiring a click into
+      # the job log. One annotation per advisory; title carries package
+      # + severity + npm's advisory title, body carries the GHSA link
+      # and the consumer chain (which devDeps pull it in).
+      - name: Surface devDep advisories as warnings
+        if: steps.audit_full.outcome == 'failure'
+        run: |
+          npm audit --json 2>/dev/null | node -e '
+            const j = JSON.parse(require("fs").readFileSync(0, "utf8"));
+            const hi = Object.entries(j.vulnerabilities || {})
+              .filter(([_, v]) => ["high", "critical"].includes(v.severity));
+            for (const [name, v] of hi) {
+              // Pick the matching-severity advisory from `via` for the
+              // title (npm bundles multiple advisories per package; the
+              // top-severity one is what we want to surface).
+              const advisories = v.via.filter(x => typeof x === "object");
+              const top = advisories.find(a => a.severity === v.severity)
+                       || advisories[0];
+              const title = top ? top.title : `advisory in ${name}`;
+              const url = top ? top.url : "";
+              const effects = (v.effects || []).slice(0, 3).join(", ");
+              const tail = effects ? ` (via ${effects})` : "";
+              const annTitle = `${name} (${v.severity}) — ${title}`;
+              const annBody = url ? `${url}${tail}` : `unknown advisory${tail}`;
+              console.log(`::warning title=${annTitle}::${annBody}`);
+            }
+          '
 
   license-check:
     # Gates that every redistributed (production) dep ships with an

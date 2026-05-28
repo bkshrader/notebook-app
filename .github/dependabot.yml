@@ -7,6 +7,16 @@ updates:
     open-pull-requests-limit: 10
     cooldown:
       default-days: 7
+    # Named groups consolidate related upgrades that need to move together
+    # (peer-dep coupling, ecosystem coordination). Dependabot's pattern
+    # specificity ranks exact > no-wildcard > wildcard > universal-`*`, so
+    # named groups always win over an ungrouped wildcard. Packages that
+    # match no group get one PR each — the pre-grouping default.
+    #
+    # `eslint-plugin-storybook` is excluded from the eslint group because
+    # it matches both `storybook` (exact, score 1000) and the eslint
+    # group's `eslint-plugin-*` (wildcard, ~104). The explicit exclude
+    # disambiguates in favor of the storybook group.
     groups:
       vite-ecosystem:
         patterns:
@@ -66,16 +76,6 @@ updates:
           - '@types/react-dom'
         update-types:
           - major
-          - minor
-          - patch
-      dev-dependencies:
-        dependency-type: development
-        update-types:
-          - minor
-          - patch
-      prod-dependencies:
-        dependency-type: production
-        update-types:
           - minor
           - patch
     ignore:
