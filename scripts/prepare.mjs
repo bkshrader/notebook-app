@@ -34,10 +34,18 @@ if (process.env.NODE_ENV === 'production' || process.env.CI === 'true') {
 // git doesn't treat as a worktree) — surface that rather than letting
 // it pass quietly, since a silent no-op is the exact failure mode that
 // leaves commits ungated.
+//
+// On a no-op we set a non-zero exit code (deferred via `process.exitCode`
+// so the Playwright step below still runs) so callers see failure rather
+// than a misleading exit 0. The bare `npm install` lifecycle has no
+// post-condition check of its own — unlike husky-bootstrap.sh — so a
+// silent exit 0 here would let a caller believe hooks were installed
+// when they were not.
 const husky = (await import('husky')).default;
 const result = husky();
 if (result) {
   console.warn(`prepare: husky did not install hooks: ${result}`);
+  process.exitCode = 1;
 } else {
   console.log('prepare: husky hooks installed.');
 }

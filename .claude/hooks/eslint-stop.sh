@@ -13,9 +13,15 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 0
 fi
 
-INPUT="$(cat)"
-ACTIVE="$(jq -r '.stop_hook_active // false' <<<"$INPUT")"
-CWD="$(jq -r '.cwd // empty' <<<"$INPUT")"
+# `set -euo pipefail` is active. Guard the stdin read and both jq parses
+# with `|| true` so malformed/non-JSON stdin makes jq exit non-zero
+# WITHOUT aborting the script — an abort would surface as a Stop-hook
+# infra error rather than the documented fail-open (exit 0). On a parse
+# failure ACTIVE/CWD fall back to empty, which the checks below already
+# treat as "skip cleanly."
+INPUT="$(cat 2>/dev/null || true)"
+ACTIVE="$(jq -r '.stop_hook_active // false' <<<"$INPUT" 2>/dev/null || true)"
+CWD="$(jq -r '.cwd // empty' <<<"$INPUT" 2>/dev/null || true)"
 
 if [ "$ACTIVE" = "true" ]; then
   exit 0

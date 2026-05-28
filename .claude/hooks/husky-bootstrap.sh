@@ -78,18 +78,30 @@ set -euo pipefail
 # Fails open with a stderr notice — bootstrap failures warn but never
 # block the triggering event.
 
-# Resolve the target directory. Read stdin once (the hook payload). On
-# SessionStart/CwdChanged stdin is JSON; `jq` extracts the field. If jq
-# is missing or stdin isn't JSON, TARGET stays empty and we fall back
-# to the env var below. The `|| true` keeps `set -e` from aborting when
-# stdin is empty or jq fails.
+# Resolve the target directory. Drain stdin FIRST, unconditionally —
+# before we know whether jq is available. Two reasons this must not live
+# inside the `command -v jq` guard:
+#
+#   1. If stdin is read only when jq exists, a jq-less box never parses
+#      `new_cwd`, so CwdChanged silently falls back to CLAUDE_PROJECT_DIR
+#      (pinned at session start) and bootstraps the ORIGINAL root instead
+#      of the checkout just cd'd into — the exact event this hook was
+#      wired for becomes a no-op.
+#   2. An unconsumed stdin payload is inherited by the `node
+#      scripts/prepare.mjs` child (and its `execSync` grandchild), a
+#      latent coupling we'd rather not leave dangling.
+#
+# The `|| true` keeps `set -e` from aborting when stdin is empty.
+INPUT="$(cat 2>/dev/null || true)"
+
+# Parse the payload if jq is present. On SessionStart/CwdChanged stdin is
+# JSON; `jq` extracts the field (CwdChanged → new_cwd; SessionStart →
+# cwd; first non-empty wins). If jq is missing or stdin isn't JSON,
+# TARGET stays empty and we fall back to the env var below. The `|| true`
+# keeps `set -e` from aborting when jq fails.
 TARGET=""
-if command -v jq >/dev/null 2>&1; then
-  INPUT="$(cat 2>/dev/null || true)"
-  if [ -n "$INPUT" ]; then
-    # CwdChanged → new_cwd; SessionStart → cwd. First non-empty wins.
-    TARGET="$(jq -r '.new_cwd // .cwd // empty' <<<"$INPUT" 2>/dev/null || true)"
-  fi
+if [ -n "$INPUT" ] && command -v jq >/dev/null 2>&1; then
+  TARGET="$(jq -r '.new_cwd // .cwd // empty' <<<"$INPUT" 2>/dev/null || true)"
 fi
 # Fallback: CLAUDE_PROJECT_DIR is exported to all command hooks, and is
 # the right target for manual invocation (no stdin payload).
