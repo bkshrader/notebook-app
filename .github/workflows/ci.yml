@@ -111,8 +111,22 @@ jobs:
       # actual package code. `--ignore-scripts` blocks lifecycle script
       # execution from any upgraded dep on PR runs.
       - run: npm ci --ignore-scripts
-      - name: Audit dependencies (fail on high+critical)
+      # Production deps are what we redistribute to users; high+ severity
+      # advisories that reach them are real attack surface and must block
+      # merge. `--omit=dev` excludes the devDependencies subtree from the
+      # walk, so this step only flags advisories with a prod-reachable
+      # path.
+      - name: Audit production deps (blocking)
+        run: npm audit --omit=dev --audit-level=high
+      # Advisory check on the full tree, including devDeps. DevDep
+      # advisories don't ship to users, but stale tooling is worth
+      # surfacing — failures annotate the run (yellow ⚠ on the checks
+      # tab) without blocking merge. The blocking step above already
+      # covered the prod-reachable findings, so this only adds signal
+      # for purely-dev advisories.
+      - name: Audit full tree (advisory; devDep findings non-blocking)
         run: npm audit --audit-level=high
+        continue-on-error: true
 
   license-check:
     # Gates that every redistributed (production) dep ships with an

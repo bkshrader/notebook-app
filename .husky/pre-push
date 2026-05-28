@@ -1,6 +1,10 @@
 # Mirrors CI gates. Ordered cheap -> expensive so failures surface fast.
 # Bypass: `git push --no-verify` or `HUSKY=0 git push`.
 
+npm run lint || exit 1
+
+npm run format:check || exit 1
+
 npm run typecheck || exit 1
 
 npx license-checker \
