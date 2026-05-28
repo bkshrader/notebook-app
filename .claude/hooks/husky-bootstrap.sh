@@ -1,9 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# SessionStart hook: bootstrap husky hooks in THIS session's environment
-# (the worktree or main repo `CLAUDE_PROJECT_DIR` points at) so that
-# pre-commit/pre-push fire for commits made there.
+# Husky bootstrap hook — ensures pre-commit/pre-push fire for commits
+# made in THIS environment (the worktree or main repo the triggering
+# event points at).
+#
+# Wired to TWO Claude Code hook events (see .claude/settings.json):
+#
+#   - SessionStart — a session begins/resumes/clears/compacts. stdin
+#     payload carries `cwd`.
+#   - CwdChanged   — the working directory moves mid-session (e.g. a
+#     `cd` into a different checkout). stdin payload carries `new_cwd`
+#     (and `old_cwd`).
+#
+# We deliberately do NOT wire WorktreeCreate: that event REPLACES git's
+# default worktree-creation behavior (the hook must perform the
+# creation and print the new worktree's absolute path, or creation
+# fails). A bootstrap-only hook there would break `claude --worktree`.
+# A newly-created worktree is instead bootstrapped by the SessionStart
+# that fires when a session opens in it — and nothing commits in the
+# gap between creation and first session.
+#
+# Target-directory resolution (stdin-driven so one script serves both
+# events): read the hook payload from stdin and prefer `new_cwd`
+# (CwdChanged), then `cwd` (SessionStart). Fall back to the
+# `CLAUDE_PROJECT_DIR` env var (always exported to command hooks) for
+# manual invocation or if stdin is unavailable.
 #
 # Design principle — no cross-environment reach. Git resolves
 # `core.hooksPath = .husky/_` (a RELATIVE path in shared local-scope
@@ -15,9 +37,9 @@ set -euo pipefail
 # — there is no need to reach from a worktree into the main repo to
 # make main-repo commits safe. The only requirement is that each
 # environment which receives a commit has its OWN `.husky/_/`
-# materialized. This hook ensures that for the environment the session
-# is bound to; the main repo (or any other worktree) is guarded when a
-# session is bound to IT.
+# materialized. This hook ensures that for the environment the
+# triggering event points at; other environments are guarded when an
+# event fires pointing at THEM.
 #
 # An earlier version (PR #69) bootstrapped both the worktree AND the
 # main repo from a single session, to paper over a session committing
@@ -51,12 +73,36 @@ set -euo pipefail
 # See: https://github.com/typicode/husky/blob/main/index.js
 #      https://git-scm.com/docs/git-config (--worktree, scope precedence)
 #      https://git-scm.com/docs/githooks (relative-path resolution)
+#      https://code.claude.com/docs/en/hooks.md (SessionStart, CwdChanged)
 #
 # Fails open with a stderr notice — bootstrap failures warn but never
-# block a session from starting.
+# block the triggering event.
 
-cd "${CLAUDE_PROJECT_DIR:-.}" || {
-  echo "session-start-bootstrap: cannot cd to CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR:-.}; skipping." >&2
+# Resolve the target directory. Read stdin once (the hook payload). On
+# SessionStart/CwdChanged stdin is JSON; `jq` extracts the field. If jq
+# is missing or stdin isn't JSON, TARGET stays empty and we fall back
+# to the env var below. The `|| true` keeps `set -e` from aborting when
+# stdin is empty or jq fails.
+TARGET=""
+if command -v jq >/dev/null 2>&1; then
+  INPUT="$(cat 2>/dev/null || true)"
+  if [ -n "$INPUT" ]; then
+    # CwdChanged → new_cwd; SessionStart → cwd. First non-empty wins.
+    TARGET="$(jq -r '.new_cwd // .cwd // empty' <<<"$INPUT" 2>/dev/null || true)"
+  fi
+fi
+# Fallback: CLAUDE_PROJECT_DIR is exported to all command hooks, and is
+# the right target for manual invocation (no stdin payload).
+if [ -z "$TARGET" ]; then
+  TARGET="${CLAUDE_PROJECT_DIR:-}"
+fi
+if [ -z "$TARGET" ]; then
+  echo "husky-bootstrap: no target directory (stdin had no new_cwd/cwd and CLAUDE_PROJECT_DIR is unset); skipping." >&2
+  exit 0
+fi
+
+cd "$TARGET" || {
+  echo "husky-bootstrap: cannot cd to target '$TARGET'; skipping." >&2
   exit 0
 }
 
@@ -68,11 +114,11 @@ cd "${CLAUDE_PROJECT_DIR:-.}" || {
 if command -v git >/dev/null 2>&1 \
    && git config --worktree --get core.hooksPath >/dev/null 2>&1; then
   git config --worktree --unset core.hooksPath 2>/dev/null || true
-  echo "session-start-bootstrap: removed worktree-scope core.hooksPath override; falling back to shared local-scope value." >&2
+  echo "husky-bootstrap: removed worktree-scope core.hooksPath override; falling back to shared local-scope value." >&2
 fi
 
 # Idempotent fast-path: if this environment's wrapper is already
-# materialized, there's nothing to do. Saves ~2.5s per session-start on
+# materialized, there's nothing to do. Saves ~2.5s per fire on
 # already-bootstrapped environments, which is the steady-state case.
 if [ -f .husky/_/pre-commit ]; then
   exit 0
@@ -86,12 +132,12 @@ fi
 # considers it a worktree. Running `npm run prepare` here would no-op
 # silently; skip with a loud notice instead.
 if [ ! -e .git ]; then
-  echo "session-start-bootstrap: CLAUDE_PROJECT_DIR ('$PWD') has no .git file/dir — likely a ghost worktree left behind after 'git worktree remove'. Skipping husky bootstrap; remove the empty directory or restore the worktree." >&2
+  echo "husky-bootstrap: target ('$PWD') has no .git file/dir — likely a ghost worktree left behind after 'git worktree remove'. Skipping husky bootstrap; remove the empty directory or restore the worktree." >&2
   exit 0
 fi
 
 if ! command -v npm >/dev/null 2>&1; then
-  echo "session-start-bootstrap: npm not on PATH; cannot bootstrap husky. Hooks won't fire here until bootstrapped manually (run 'npm install')." >&2
+  echo "husky-bootstrap: npm not on PATH; cannot bootstrap husky. Hooks won't fire here until bootstrapped manually (run 'npm install')." >&2
   exit 0
 fi
 
@@ -101,11 +147,10 @@ fi
 # node_modules upward and find a parent worktree's install — exactly
 # the cross-environment coupling this redesign removes, and which hides
 # the real problem (this environment was never provisioned). If husky
-# isn't installed here, tell the agent to install and stop — a
-# SessionStart hook can't block, so this is a loud notice rather than a
-# decision:block.
+# isn't installed here, tell the agent to install — these events can't
+# block, so this is a loud notice.
 if [ ! -d node_modules/husky ]; then
-  echo "session-start-bootstrap: husky is not installed in this checkout ('$PWD'). This is usually a fresh git worktree that was never provisioned. Run 'npm install' here to materialize node_modules and .husky/_/, otherwise pre-commit/pre-push will NOT fire for commits made in this environment." >&2
+  echo "husky-bootstrap: husky is not installed in this checkout ('$PWD'). This is usually a fresh git worktree that was never provisioned. Run 'npm install' here to materialize node_modules and .husky/_/, otherwise pre-commit/pre-push will NOT fire for commits made in this environment." >&2
   exit 0
 fi
 
@@ -114,7 +159,7 @@ fi
 # (`prepare` also runs `npx playwright install` per package.json; that
 # cost is accepted here per project decision.)
 if ! npm run prepare >&2; then
-  echo "session-start-bootstrap: 'npm run prepare' failed in '$PWD'; hooks may not fire here. See the error above." >&2
+  echo "husky-bootstrap: 'npm run prepare' failed in '$PWD'; hooks may not fire here. See the error above." >&2
   exit 0
 fi
 
@@ -122,6 +167,6 @@ fi
 # no-ops. Verify the wrapper actually materialized so a silent no-op
 # doesn't slip past as "bootstrap succeeded."
 if [ ! -f .husky/_/pre-commit ]; then
-  echo "session-start-bootstrap: 'npm run prepare' exited 0 but .husky/_/pre-commit is still missing in '$PWD'. Husky's installer probably silently no-op'd; hooks won't fire here until manually bootstrapped." >&2
+  echo "husky-bootstrap: 'npm run prepare' exited 0 but .husky/_/pre-commit is still missing in '$PWD'. Husky's installer probably silently no-op'd; hooks won't fire here until manually bootstrapped." >&2
   exit 0
 fi
