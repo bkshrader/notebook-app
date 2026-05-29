@@ -7,11 +7,21 @@ An accessibility-first, local-first note-taking app for academics.
 Before proposing features, scoping work, or making technical recommendations, read the relevant files under `docs/`. The layout:
 
 - **`docs/ROADMAP.md`** — canonical version-by-version feature list. Intentionally terse; each entry links to its `docs/features/<slug>/OVERVIEW.md`. Start here.
-- **`docs/features/<slug>/OVERVIEW.md`** — per-feature design notes. Each links to relevant entries in `docs/references/`.
-- **`docs/references/<name>.md`** — deep dives on libraries, competitors, and adjacent tech, with license verdicts and accessibility analyses. Cite them when making technical proposals.
+- **`docs/GLOSSARY.md`** — the **source of truth for project terminology** (Library vs. Project, Note, sidecar, etc.). Capitalized terms in the docs carry the meaning defined here. See the Terminology rules below.
+- **`docs/features/<slug>/OVERVIEW.md`** — per-feature design notes. Each links to relevant entries in `docs/research/`.
+- **`docs/research/<name>.md`** — deep dives on libraries, competitors, and adjacent tech, with license verdicts and accessibility analyses. Cite them when making technical proposals.
 - **`docs/features/<slug>/adrs/<kebab-name>.md`** — Architecture Decision Records in [MADR](https://adr.github.io/madr/) format, scoped to the feature they affect. See `docs/features/accessibility/adrs/eslint-version.md` for the pattern. Write an ADR when a decision is non-obvious, hard to reverse, or trades off against project charter constraints — and when revisiting it later (e.g. on a dependency bump), update the existing ADR's status (`superseded`, `deprecated`) rather than deleting it.
 
 When adding a feature: add a roadmap line + create `docs/features/<kebab-name>/OVERVIEW.md`. When removing or merging a feature: delete the directory, collapse the roadmap line, and grep for inbound links.
+
+## Terminology
+
+[`docs/GLOSSARY.md`](./docs/GLOSSARY.md) is the **single source of truth for project terminology**. These rules are non-negotiable:
+
+- **Consult it before naming anything.** Before introducing a term for a project concept in docs, code, or conversation, check the glossary first.
+- **Reuse, don't reinvent.** If a concept already has a glossary term, use that exact term — do **not** coin a synonym or paraphrase for the same thing (e.g. don't say "notebook", "workspace", or "vault" when the term is **Library**, and don't conflate **Library** with **Project**).
+- **Keep it current.** Whenever a session defines, renames, or meaningfully refines a project term, update `docs/GLOSSARY.md` in the same change — add the new entry (or edit the existing one) so the glossary never drifts behind the work. Cross-link related entries.
+- **Respect the casing convention.** A capitalized glossary term in prose (e.g. "the Library", "a Project") carries its specific glossary meaning, not the generic English sense.
 
 ## Storybook MCP
 
@@ -38,12 +48,12 @@ The `license-check` allow list is duplicated in `.github/workflows/ci.yml` (mach
 
 ## Framework and tooling decisions (decided)
 
-These are load-bearing and were the output of explicit research; don't relitigate without cause. Full reasoning lives in `docs/references/`.
+These are load-bearing and were the output of explicit research; don't relitigate without cause. Full reasoning lives in `docs/research/`.
 
-- **Electron, not Tauri.** Bundled Chromium gives the strongest accessible-tree exposure to JAWS/NVDA/VoiceOver/Orca. See `docs/references/typescript-desktop-frameworks.md`.
-- **CodeMirror 6** for the editor. Real contenteditable substrate beats Monaco's canvas approach for screen readers. v2's "rich markdown editor" stays on CM6; do not propose swapping to TipTap/Lexical/BlockNote. See `docs/references/codemirror.md`.
-- **MathJax v4** for math rendering. Accessibility-strongest renderer; SRE-driven `aria-label` injection works regardless of screen-reader MathML support. See `docs/references/latex-libraries.md`.
-- **faster-whisper** for speech-to-text, with **Silero VAD** (voice-activity detection) gating it to skip silence and suppress `large-v3` hallucination. **Supertonic** for text-to-speech. All as Python sidecars. See `docs/references/whisper.md`, `docs/references/supertonic.md`.
+- **Electron, not Tauri.** Bundled Chromium gives the strongest accessible-tree exposure to JAWS/NVDA/VoiceOver/Orca. See `docs/research/typescript-desktop-frameworks.md`.
+- **CodeMirror 6** for the editor. Real contenteditable substrate beats Monaco's canvas approach for screen readers. v2's "rich markdown editor" stays on CM6; do not propose swapping to TipTap/Lexical/BlockNote. See `docs/research/codemirror.md`.
+- **MathJax v4** for math rendering. Accessibility-strongest renderer; SRE-driven `aria-label` injection works regardless of screen-reader MathML support. See `docs/research/latex-libraries.md`.
+- **faster-whisper** for speech-to-text, with **Silero VAD** (voice-activity detection) gating it to skip silence and suppress `large-v3` hallucination. **Supertonic** for text-to-speech. All as Python sidecars. See `docs/research/whisper.md`, `docs/research/supertonic.md`.
 - **BYO AI**, OpenAI-compatible endpoint per profile. We do **not** bundle a local LLM runtime. See `docs/features/byo-ai/OVERVIEW.md`.
 
 ## Non-negotiable constraints
