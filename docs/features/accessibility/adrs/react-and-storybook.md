@@ -20,8 +20,8 @@ Component-level a11y testing is the load-bearing concern. Per the [`e2e-a11y-inp
 
 - WCAG 2.1 AA is non-negotiable. Whatever we pick must support per-component axe-core scanning, not just full-page scanning.
 - AGPL-3.0-or-later compatibility ([see in-use.md](../../../licenses/in-use.md)) — anything linked must be permissive or AGPL-compatible.
-- Electron's bundled Chromium is already chosen for its accessible-tree exposure ([see typescript-desktop-frameworks reference](../../../references/typescript-desktop-frameworks.md)) — the framework must not regress that.
-- React Aria Components is the leading candidate for accessible primitives ([see related-libraries](../../../references/related-libraries.md)) — the framework should make adopting it easy.
+- Electron's bundled Chromium is already chosen for its accessible-tree exposure ([see typescript-desktop-frameworks reference](../../../research/typescript-desktop-frameworks.md)) — the framework must not regress that.
+- React Aria Components is the leading candidate for accessible primitives ([see related-libraries](../../../research/related-libraries.md)) — the framework should make adopting it easy.
 - The project is pre-implementation. Lock-in cost is at its lowest now, but the chosen framework will be sticky once components exist.
 - The ESLint config already wires `jsx-a11y` strict on `**/*.{jsx,tsx}` — that decision implicitly assumed React or a JSX-using framework.
 
@@ -127,5 +127,5 @@ Storybook with `addon-a11y` (`a11y.test: 'error'` in `.storybook/preview.tsx`) g
 
 - Project charter: [accessibility OVERVIEW](../OVERVIEW.md)
 - Sibling ADR: [eslint-version.md](./eslint-version.md) (the `jsx-a11y` peer-range constraint this decision now relies on)
-- Related references: [related-libraries](../../../references/related-libraries.md), [typescript-desktop-frameworks](../../../references/typescript-desktop-frameworks.md)
+- Related references: [related-libraries](../../../research/related-libraries.md), [typescript-desktop-frameworks](../../../research/typescript-desktop-frameworks.md)
 - MADR template: <https://adr.github.io/madr/>

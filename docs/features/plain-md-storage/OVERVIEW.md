@@ -23,9 +23,9 @@ Notes are stored as plain Markdown files on the user's local filesystem, with op
 
 - File watching (`chokidar` on Node, `watchdog` on Python) is required so external edits show up live.
 - Conflict resolution on external edit must be graceful — if the user edits in our app and also in vim, neither edit should silently win.
-- The library/projects organization is a layer over the filesystem, not a replacement for it. Folders on disk map to projects.
+- The Library/Projects organization is a layer over the filesystem, not a replacement for it. Folders on disk map to Projects.
 
-## Relevant references
+## Relevant Documentation
 
-- [files.md](../../references/files-md.md) — the design philosophy this storage model draws from; plain-files-as-canon, anti-lock-in, ADRs as a documentation practice.
-- [Related libraries](../../references/related-libraries.md) — `chokidar`, `gray-matter` (YAML frontmatter parsing), and similar tooling candidates.
+- [files.md](../../research/files-md.md) — the design philosophy this storage model draws from; plain-files-as-canon, anti-lock-in, ADRs as a documentation practice.
+- [Related libraries](../../research/related-libraries.md) — `chokidar`, `gray-matter` (YAML frontmatter parsing), and similar tooling candidates.

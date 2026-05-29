@@ -22,7 +22,7 @@ A read-only rendering surface for `.md` files. Distinct from the [text editor](.
 - Markdown → HTML rendering via `remark` / `rehype` / `unified` pipeline (or `markdown-it` — TBD; engineering decision).
 - Sanitization (we still render user-supplied markdown that may have come from imported files in v1.1).
 - Standard CommonMark + GFM extensions (tables, task lists, strikethrough, autolinks).
-- Image rendering (local images from the project folder).
+- Image rendering (local images from the Project folder).
 - Syntax highlighting in code blocks (`shiki` or `Prism` — engineering decision).
 
 ## What v1.1 adds
@@ -31,7 +31,7 @@ A read-only rendering surface for `.md` files. Distinct from the [text editor](.
 - TTS read-along anchored to the rendered text (see [read-along](../read-along/OVERVIEW.md)).
 - `.tex` file rendering via the compile pipeline (see [latex-first-class](../latex-first-class/OVERVIEW.md)).
 
-## Relevant references
+## Relevant Documentation
 
-- [Related libraries](../../references/related-libraries.md) — remark/rehype/unified, markdown-it, shiki, and other rendering-pipeline candidates with license verdicts.
-- [LaTeX libraries](../../references/latex-libraries.md) — MathJax v4 integration for the v1.1 math rendering.
+- [Related libraries](../../research/related-libraries.md) — remark/rehype/unified, markdown-it, shiki, and other rendering-pipeline candidates with license verdicts.
+- [LaTeX libraries](../../research/latex-libraries.md) — MathJax v4 integration for the v1.1 math rendering.

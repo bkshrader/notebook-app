@@ -8,7 +8,7 @@ LLM-powered features that operate over the user's notes and sources: chat-with-y
 
 ### Chat with your sources
 
-- Notebook-scoped chat (à la NotebookLM) over the user's notes and ingested sources within a project.
+- Project-scoped chat (à la NotebookLM) over the user's notes and ingested sources within a Project.
 - Inline citation chips that link to the exact source span — the single best NotebookLM UX pattern to emulate.
 - Refuses gracefully when sources don't cover the question; configurable to fall back to general knowledge with an explicit "this is outside your sources" indicator.
 - Built on the v1.1 [document search](../document-search/OVERVIEW.md) infrastructure extended with semantic embeddings (sqlite-vec).
@@ -17,7 +17,7 @@ LLM-powered features that operate over the user's notes and sources: chat-with-y
 
 - One-click summary of any note, ingested document, transcript, or selection.
 - Configurable length (brief / standard / detailed).
-- Output goes into a new note in the same project with a backlink to source.
+- Output goes into a new Note in the same Project with a backlink to source.
 
 ### Tone rewrite
 
@@ -45,7 +45,7 @@ LLM-powered features that operate over the user's notes and sources: chat-with-y
 
 ## What v2.0 ships
 
-- Chat-with-your-sources within a project, with citation chips.
+- Chat-with-your-sources within a Project, with citation chips.
 - Summarization with configurable length, output as new note.
 - Tone rewrite inline with diff preview.
 - Semantic search via sqlite-vec (extends v1.1 keyword search).
@@ -56,10 +56,10 @@ LLM-powered features that operate over the user's notes and sources: chat-with-y
 - The UX is high-surface; we want v1 + v1.1 user feedback before committing to specific agentic features.
 - Chat-with-your-sources especially: NotebookLM has set high expectations; shipping a half-baked version is worse than waiting.
 
-## Relevant references
+## Relevant Documentation
 
-- [NotebookLM](../../references/notebooklm.md) — what to emulate (citation chips, source-grounded defaults), what to reject (overwhelming Studio menu, cloud-only).
-- [OpenRouter and competitors](../../references/openrouter.md) — LLM client architecture, structured-output support, streaming.
-- [Related libraries](../../references/related-libraries.md) — sqlite-vec, embeddings options, LLM SDKs.
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — Goblin Tools as the documented tone-rewrite prior art; ADHD/Autism accommodations.
+- [NotebookLM](../../research/notebooklm.md) — what to emulate (citation chips, source-grounded defaults), what to reject (overwhelming Studio menu, cloud-only).
+- [OpenRouter and competitors](../../research/openrouter.md) — LLM client architecture, structured-output support, streaming.
+- [Related libraries](../../research/related-libraries.md) — sqlite-vec, embeddings options, LLM SDKs.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — Goblin Tools as the documented tone-rewrite prior art; ADHD/Autism accommodations.
 - [BYO AI](../byo-ai/OVERVIEW.md) — the AI architecture this consumes. AI-free build behavior is documented in [ROADMAP.md](../../ROADMAP.md).

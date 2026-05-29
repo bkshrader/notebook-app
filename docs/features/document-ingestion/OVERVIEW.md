@@ -2,7 +2,7 @@
 
 **Version:** 1.1
 
-Drag-and-drop ingestion of common academic file formats. The user drops a PDF / DOCX / PPTX / XLSX / audio / video / image into a project; the app converts it to clean Markdown, stores the original alongside the conversion, and makes both available.
+Drag-and-drop ingestion of common academic file formats. The user drops a PDF / DOCX / PPTX / XLSX / audio / video / image into a Project; the app converts it to clean Markdown, stores the original alongside the conversion, and makes both available.
 
 ## Hybrid converter strategy
 
@@ -15,7 +15,7 @@ Drag-and-drop ingestion of common academic file formats. The user drops a PDF / 
 ## Storage model
 
 - Original document stored alongside the converted markdown.
-- Conversion produces `.md` (or `.tex` if appropriate) in the same project.
+- Conversion produces `.md` (or `.tex` if appropriate) in the same Project.
 - Both files are first-class — the user can edit the markdown freely; the original remains available for reference / re-conversion.
 
 ## LLM-enhanced OCR
@@ -24,7 +24,7 @@ When the [BYO-AI](../byo-ai/OVERVIEW.md) profile is configured, OCR output can b
 
 ## What ships in v1.1
 
-- Drag-drop handler for files into projects.
+- Drag-drop handler for files into Projects.
 - Sidecar routing logic (file type → converter).
 - Conversion progress UI (these can take minutes for long PDFs).
 - Original-document viewer fallback (so even un-convertible files are openable in the OS default app).
@@ -35,9 +35,9 @@ When the [BYO-AI](../byo-ai/OVERVIEW.md) profile is configured, OCR output can b
 - Heavier math/academic-PDF pipelines: MinerU as the heavy-default, Marker behind a GPU toggle, olmOCR for GPU users, pix2tex for lasso-an-equation. See the OCR report.
 - Image-content embeddings for RAG.
 
-## Relevant references
+## Relevant Documentation
 
-- [Markitdown](../../references/markitdown.md) — breadth analysis, Python-sidecar architecture, the disabled-audio-converter trap, PyMuPDF AGPL caveat.
-- [OCR libraries](../../references/ocr-libraries.md) — Docling vs. Marker vs. MinerU vs. olmOCR, the Surya/Marker license trap, ocrmypdf integration, math-OCR options.
-- [Whisper / STT](../../references/whisper.md) — audio-pipeline engine choice.
+- [Markitdown](../../research/markitdown.md) — breadth analysis, Python-sidecar architecture, the disabled-audio-converter trap, PyMuPDF AGPL caveat.
+- [OCR libraries](../../research/ocr-libraries.md) — Docling vs. Marker vs. MinerU vs. olmOCR, the Surya/Marker license trap, ocrmypdf integration, math-OCR options.
+- [Whisper / STT](../../research/whisper.md) — audio-pipeline engine choice.
 - [PDF viewer](../pdf-viewer/OVERVIEW.md) — adjacent feature; v1.1's Tier 3 (`ocrmypdf` re-OCR-in-place) shares infrastructure.

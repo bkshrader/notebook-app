@@ -13,11 +13,11 @@ A browser extension for capturing web content into the user's Library — select
 
 ## Scope
 
-- **Save selection → into Capture Inbox or specific project.**
+- **Save selection → into Capture Inbox or specific Project.**
 - **Save full page → Reader-mode-extracted markdown, with citation metadata (URL, title, author, date) in YAML frontmatter.**
-- **Screenshot → save as image into project, optionally with auto-OCR.**
+- **Screenshot → save as image into a Project, optionally with auto-OCR.**
 - **Extract reference metadata** for academic sites (DOI lookup, BibTeX generation, integration with [bibliography-management](../bibliography-management/OVERVIEW.md)).
-- **YouTube transcript capture** — pull the auto-generated or provided transcript, save as a note with the video URL.
+- **YouTube transcript capture** — pull the auto-generated or provided transcript, save as a Note with the video URL.
 
 ## Browser targets
 
@@ -36,8 +36,8 @@ A browser extension for capturing web content into the user's Library — select
 - The extension's popup UI must meet our standard WCAG 2.1 AA bar.
 - Keyboard shortcuts for invocation (browser-extension convention).
 
-## Relevant references
+## Relevant Documentation
 
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — the academic web-clipper landscape (Zotero Connector, web-to-Notion, web-to-Obsidian, Readwise).
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — the academic web-clipper landscape (Zotero Connector, web-to-Notion, web-to-Obsidian, Readwise).
 - [Universal capture inbox](../universal-capture-inbox/OVERVIEW.md) — the desktop endpoint for browser-captured content.
 - [Bibliography management](../bibliography-management/OVERVIEW.md) — citation metadata extraction integrates here.

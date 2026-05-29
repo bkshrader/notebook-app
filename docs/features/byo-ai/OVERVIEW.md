@@ -30,9 +30,9 @@ The user configures an OpenAI-compatible endpoint per profile — local (Ollama 
 - OpenAI-schema parity means we don't pick winners. If the user prefers Anthropic's Claude over Ollama's Llama, the app doesn't care.
 - It also makes the AI-free build flag (see [ROADMAP.md](../../ROADMAP.md)) genuinely trivial: the entire AI surface is a hidable feature flag with no orphaned bundled assets.
 
-## Relevant references
+## Relevant Documentation
 
-- [OpenRouter and competitors](../../references/openrouter.md) — cloud LLM gateway landscape, BYOK patterns, license posture of the various SDKs.
-- [Related libraries](../../references/related-libraries.md) — Anthropic SDK, OpenAI SDK, Vercel AI SDK, llama.cpp bindings, transformers.js with license verdicts.
+- [OpenRouter and competitors](../../research/openrouter.md) — cloud LLM gateway landscape, BYOK patterns, license posture of the various SDKs.
+- [Related libraries](../../research/related-libraries.md) — Anthropic SDK, OpenAI SDK, Vercel AI SDK, llama.cpp bindings, transformers.js with license verdicts.
 - Setup wizard — where the initial AI-profile configuration lands (covered as a single line in [ROADMAP.md](../../ROADMAP.md)).
 - AI-free build flag — also covered as a single line in [ROADMAP.md](../../ROADMAP.md).

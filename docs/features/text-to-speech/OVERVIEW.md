@@ -1,8 +1,8 @@
-# Text-to-Speech (Read-Aloud)
+# Text-to-Speech
 
 **Version:** 1.0
 
-Read-aloud capability for documents and notes. Engine: **Supertonic** (MIT code, OpenRAIL-M weights). v1 is TTS-only; v1.1 adds [read-along](../read-along/OVERVIEW.md) synchronized highlighting.
+Text-to-speech (TTS) for documents and notes — the app reads content aloud. Engine: **Supertonic** (MIT code, OpenRAIL-M weights). v1 is TTS-only; v1.1 adds [read-along](../read-along/OVERVIEW.md) synchronized highlighting.
 
 ## Engine choice
 
@@ -13,7 +13,7 @@ Read-aloud capability for documents and notes. Engine: **Supertonic** (MIT code,
 
 ## What v1 ships
 
-- "Read aloud" action on any note or rendered markdown view.
+- "Speak" action on any note or rendered markdown view.
 - Play / pause / stop controls.
 - Voice selection (Supertonic ships multiple voices across 31 languages).
 - Speed adjustment (0.5x – 2x).
@@ -30,8 +30,8 @@ Read-aloud capability for documents and notes. Engine: **Supertonic** (MIT code,
 - It's also a major ADHD accommodation: listening to a long reading while doing other movement helps many ADHD users sustain attention better than reading visually.
 - Combined with the [audio-recording-and-transcription](../audio-recording-and-transcription/OVERVIEW.md) feature, the app handles the full audio-content loop for accessibility.
 
-## Relevant references
+## Relevant Documentation
 
-- [Supertonic](../../references/supertonic.md) — engine evaluation, license analysis (split MIT code / OpenRAIL-M weights), sidecar architecture.
-- [Related libraries](../../references/related-libraries.md) — Piper, Coqui (license-troubled), web Speech Synthesis, OpenAI/ElevenLabs SDKs.
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — TTS landscape (Read&Write, NaturalReader, Immersive Reader, Voice Dream Reader) this competes with.
+- [Supertonic](../../research/supertonic.md) — engine evaluation, license analysis (split MIT code / OpenRAIL-M weights), sidecar architecture.
+- [Related libraries](../../research/related-libraries.md) — Piper, Coqui (license-troubled), web Speech Synthesis, OpenAI/ElevenLabs SDKs.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — TTS landscape (Read&Write, NaturalReader, Immersive Reader, Voice Dream Reader) this competes with.

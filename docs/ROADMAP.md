@@ -11,18 +11,19 @@ Features:
   - Screen reader support
   - WCAG 2.1 AA baseline, AAA aspirationally
 - [Plain `.md` with YAML front matter, files-on-disk](./features/plain-md-storage/OVERVIEW.md)
-- [Library and Projects](./features/library-and-projects/OVERVIEW.md) for organizing and managing references/notes
+- [Git integration](./features/git-integration/OVERVIEW.md) — automatic background version history of notes; foundation for [Remote sync](./features/remote-sync/OVERVIEW.md)
+- [Library and Projects](./features/library-and-projects/OVERVIEW.md) for organizing and managing research/notes
 - [Text editor](./features/text-editor/OVERVIEW.md)
 - [Markdown viewer](./features/markdown-viewer/OVERVIEW.md)
 - [PDF viewer](./features/pdf-viewer/OVERVIEW.md)
-- [Universal capture inbox](./features/universal-capture-inbox/OVERVIEW.md) (inspired by [files.md](./references/files-md.md))
+- [Universal capture inbox](./features/universal-capture-inbox/OVERVIEW.md) (inspired by [files.md](./research/files-md.md))
 - [Audio recording and transcription](./features/audio-recording-and-transcription/OVERVIEW.md) — three distinct modes with separate UI surfaces:
   - **Dictation**
   - **Live captioning**
   - **Post-hoc transcription**
 - STT model management — `base` ships by default; larger models offered in the setup wizard and a settings model manager.
 - Setup wizard — first-launch onboarding for everything that needs setup. Skippable; sensible defaults if skipped. Designed last.
-- [Text-to-speech (read-aloud)](./features/text-to-speech/OVERVIEW.md) for documents and notes
+- [Text-to-speech (TTS)](./features/text-to-speech/OVERVIEW.md) for documents and notes
 - [AI is BYO (bring your own)](./features/byo-ai/OVERVIEW.md): user configures an OpenAI-compatible endpoint per profile (local or cloud)
 - Build-time feature flag to produce an AI-free distribution.
 

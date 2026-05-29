@@ -14,14 +14,14 @@ Hierarchical visual organization of ideas. Distinct from the [whiteboard](../whi
 ## What v2.0 ships
 
 - Manual mind-map creation: root node + add/edit/move child nodes via keyboard or mouse.
-- Saved per-project as a structured file (likely JSON, possibly Mermaid-renderable).
+- Saved per-Project as a structured file (likely JSON, possibly Mermaid-renderable).
 - Keyboard navigation (Tab/Arrow keys) for accessibility.
 - Export to image (PNG/SVG) and to outline-markdown.
 
 ## What v2.0+ may add
 
-- **AI-generated mind maps** from a note or transcript (hidden in the AI-free build; see the AI-feature-flag note in [ROADMAP.md](../../ROADMAP.md)). The user picks a source, picks "generate mind map," gets a structured node tree as a starting point.
-- Linking mind-map nodes to specific notes / sources / timestamps.
+- **AI-generated mind maps** from a Note or transcript (hidden in the AI-free build; see the AI-feature-flag note in [ROADMAP.md](../../ROADMAP.md)). The user picks a source, picks "generate mind map," gets a structured node tree as a starting point.
+- Linking mind-map nodes to specific Notes / sources / timestamps.
 
 ## Library candidates
 
@@ -34,8 +34,8 @@ Hierarchical visual organization of ideas. Distinct from the [whiteboard](../whi
 - **Keyboard accessibility is hard for graph UIs.** Tab order and arrow-key navigation through nodes must be designed deliberately. Screen-reader announcement of node relationships ("parent: Photosynthesis; child 2 of 3: Light reactions") must be considered.
 - **No locking the user into a non-text-first format.** Mind maps export cleanly to outline markdown.
 
-## Relevant references
+## Relevant Documentation
 
-- [NotebookLM](../../references/notebooklm.md) — mind-map feature reference + the accessibility gaps to avoid.
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — Heptabase / MindMeister / XMind / Scapple landscape.
-- [Related libraries](../../references/related-libraries.md) — Mermaid, react-flow, D3 with license verdicts.
+- [NotebookLM](../../research/notebooklm.md) — mind-map feature reference + the accessibility gaps to avoid.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — Heptabase / MindMeister / XMind / Scapple landscape.
+- [Related libraries](../../research/related-libraries.md) — Mermaid, react-flow, D3 with license verdicts.

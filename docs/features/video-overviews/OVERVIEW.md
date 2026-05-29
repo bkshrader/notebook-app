@@ -20,20 +20,20 @@ Per the Remotion research:
 
 ## Recommended scope for v3.0
 
-- **Ship "Audio Walkthrough"**: AI-generated overview of a project's content, rendered as a structured Markdown document with TTS narration sequenced to match. Built on existing [agentic-workflows](../agentic-workflows/OVERVIEW.md) (summarization) and [text-to-speech](../text-to-speech/OVERVIEW.md) infrastructure.
+- **Ship "Audio Walkthrough"**: AI-generated overview of a Project's content, rendered as a structured Markdown document with TTS narration sequenced to match. Built on existing [agentic-workflows](../agentic-workflows/OVERVIEW.md) (summarization) and [text-to-speech](../text-to-speech/OVERVIEW.md) infrastructure.
 - **Defer Cinematic Video to v4+** as a Revideo-backed _export_ option for users who want the social-shareable thing. Only if there's user demand.
 
 ## What "Audio Walkthrough" ships
 
-- Generate-overview action on a project.
+- Generate-overview action on a Project.
 - AI-summarizes sources into a structured walkthrough document.
 - TTS narration of the document with [read-along](../read-along/OVERVIEW.md) highlighting.
 - Optional export as `.mp3` + `.md` pair for offline consumption.
 
-## Relevant references
+## Relevant Documentation
 
-- [Remotion](../../references/remotion.md) — full analysis of license incompatibility, alternatives, and the "scroll + narration beats video" argument.
-- [NotebookLM](../../references/notebooklm.md) — Cinematic Video and Audio Overview as the prior art we're rethinking.
+- [Remotion](../../research/remotion.md) — full analysis of license incompatibility, alternatives, and the "scroll + narration beats video" argument.
+- [NotebookLM](../../research/notebooklm.md) — Cinematic Video and Audio Overview as the prior art we're rethinking.
 - [Agentic workflows](../agentic-workflows/OVERVIEW.md) — summarization engine this builds on.
 - [Text-to-speech](../text-to-speech/OVERVIEW.md) — narration engine this builds on.
 - [Read-along](../read-along/OVERVIEW.md) — synchronized highlighting during walkthrough playback.

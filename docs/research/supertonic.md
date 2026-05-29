@@ -197,7 +197,7 @@ The package is named `supertonic-tts` v0.1.0 but is **not published to crates.io
 
 ## Relevance to a note-taking app for college students/academics
 
-This is potentially a very strong fit for the **read-aloud / text-to-speech accessibility feature** that an ADHD- and autism-focused, accessibility-first study app would want. Concrete uses:
+This is potentially a very strong fit for the **TTS (text-to-speech) accessibility feature** that an ADHD- and autism-focused, accessibility-first study app would want. Concrete uses:
 
 1. **"Read this note/passage/article aloud"** — the foundational accessibility primitive. Supertonic's _Chrome Extension_ demo literally turns "any webpage into audio in under one second"[^readme-demos], and one of the projects in their "Built With" list (TLDRL) is exactly that pattern in production today.[^readme-built-with] Replicating that for selected text in a notebook is straightforward.
 2. **Read-aloud while studying without internet** — critical for students working offline (library, transit, focus mode with the network firewalled). Supertonic runs entirely on-device with **zero network dependency** after the one-time weight download; the README even shows it running on an Onyx Boox e-reader _in airplane mode_.[^readme-demos]
@@ -287,7 +287,7 @@ This is potentially a very strong fit for the **read-aloud / text-to-speech acce
 
 ## Bottom line for this project
 
-For an AGPL-licensed, accessibility-first, Electron/Tauri notebook app, Supertonic looks like a **strong candidate for the read-aloud feature** — fast, on-device, multilingual, with good text-normalization and an OpenAI-compatible local-server option that drops into an Electron sidecar architecture cleanly. The MIT-licensed inference code is unambiguously safe to depend on. **The only meaningful caveat is the OpenRAIL-M model license**: do not bundle the `.onnx` weights into your AGPL distribution; instead have the app download them on first run from Hugging Face so the user accepts the model license directly. With that one architectural decision, Supertonic appears compatible and high-value.
+For an AGPL-licensed, accessibility-first, Electron/Tauri notebook app, Supertonic looks like a **strong candidate for the TTS feature** — fast, on-device, multilingual, with good text-normalization and an OpenAI-compatible local-server option that drops into an Electron sidecar architecture cleanly. The MIT-licensed inference code is unambiguously safe to depend on. **The only meaningful caveat is the OpenRAIL-M model license**: do not bundle the `.onnx` weights into your AGPL distribution; instead have the app download them on first run from Hugging Face so the user accepts the model license directly. With that one architectural decision, Supertonic appears compatible and high-value.
 
 ---
 

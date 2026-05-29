@@ -6,16 +6,16 @@ Citation and bibliography support for academic notes. v1.1 scope: basic CSL-base
 
 ## What "bibliography management" means here
 
-- The user can attach a `references.bib` (BibTeX) or `references.json` (CSL-JSON) file to a project.
+- The user can attach a `references.bib` (BibTeX) or `references.json` (CSL-JSON) file to a Project.
 - Within notes, the user inserts citations via `[@key]` or a similar in-app picker.
 - On render (markdown viewer / PDF export), citations resolve to formatted output and a bibliography section is appended.
-- Citation style (APA, MLA, Chicago, IEEE, BibTeX, …) is per-project.
+- Citation style (APA, MLA, Chicago, IEEE, BibTeX, …) is per-Project.
 
 ## Engineering shape
 
 - **citeproc-js** does the rendering (AGPL/CPAL dual-licensed per the related-libraries report — fine for our AGPL app, but worth noting it's not the MIT most people assume).
 - **CSL styles** are CC-BY-SA 3.0 (data, not code). Surface this to users who want to edit citation styles.
-- Storage: bibliography file lives in the project folder alongside notes (filesystem-as-canon, same as everything else).
+- Storage: bibliography file lives in the Project folder alongside Notes (Filesystem-is-canon, same as everything else).
 
 ## Why this matters
 
@@ -25,16 +25,16 @@ Citation and bibliography support for academic notes. v1.1 scope: basic CSL-base
 
 ## What v1.1 ships
 
-- BibTeX / CSL-JSON file attachment to a project.
+- BibTeX / CSL-JSON file attachment to a Project.
 - In-note citation insertion via `[@key]` syntax + picker UI.
 - Render-time citation resolution + bibliography section in markdown viewer and PDF export.
-- Per-project citation style selection.
+- Per-Project citation style selection.
 
 ## What v1.5+ adds
 
 - **Full Zotero integration.** Read/write to a local Zotero SQLite DB or via the `zotero-better-bibtex` plugin's local HTTP server.
 - **Drag-a-Zotero-item-in** for direct citation insertion without manual BibTeX editing.
-- **PDF attachment ingestion from Zotero** — pulls the user's annotated PDFs into the project automatically.
+- **PDF attachment ingestion from Zotero** — pulls the user's annotated PDFs into the Project automatically.
 
 ## Why Zotero specifically
 
@@ -43,8 +43,8 @@ Citation and bibliography support for academic notes. v1.1 scope: basic CSL-base
 - Has accessibility infrastructure; not perfect but mature.
 - Has a documented local API (`zotero-better-bibtex` exposes localhost endpoints) — no scraping needed.
 
-## Relevant references
+## Relevant Documentation
 
-- [Related libraries](../../references/related-libraries.md) — citeproc-js license analysis, CSL styles, citation.js alternatives.
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — Zotero's accessibility posture and academic-tools landscape.
-- [NotebookLM](../../references/notebooklm.md) — the citation gap in the dominant competitor we're filling.
+- [Related libraries](../../research/related-libraries.md) — citeproc-js license analysis, CSL styles, citation.js alternatives.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — Zotero's accessibility posture and academic-tools landscape.
+- [NotebookLM](../../research/notebooklm.md) — the citation gap in the dominant competitor we're filling.

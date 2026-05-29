@@ -9,7 +9,7 @@ Real-time multi-user editing of notes. Study group on the same lecture transcrip
 - Real-time concurrent editing (multiple cursors visible, character-level live updates).
 - Comments and suggestions (revision-suggestion mode, à la Google Docs).
 - Presence indicators (who's currently in this note).
-- Permissions per-note or per-project (view / comment / edit).
+- Permissions per-Note or per-Project (view / comment / edit).
 - Conflict-free via CRDT.
 
 ## Engineering shape
@@ -30,8 +30,8 @@ Real-time multi-user editing of notes. Study group on the same lecture transcrip
 - Does the AGPL license model interact with collaboration in non-obvious ways? (E.g., AGPL §13 network-interaction triggers — but we're not the server unless we self-host the sync.)
 - Hosted vs. peer-to-peer collaboration. P2P (WebRTC) avoids a backend but is fussy with NAT traversal.
 
-## Relevant references
+## Relevant Documentation
 
-- [Related libraries](../../references/related-libraries.md) — Yjs, Automerge, ElectricSQL, RxDB with license verdicts.
+- [Related libraries](../../research/related-libraries.md) — Yjs, Automerge, ElectricSQL, RxDB with license verdicts.
 - [Remote sync](../remote-sync/OVERVIEW.md) — sister feature with shared infrastructure.
-- [CodeMirror 6](../../references/codemirror.md) — `y-codemirror.next` integration story.
+- [CodeMirror 6](../../research/codemirror.md) — `y-codemirror.next` integration story.

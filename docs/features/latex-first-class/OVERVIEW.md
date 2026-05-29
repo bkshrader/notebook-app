@@ -2,12 +2,12 @@
 
 **Version:** 1.1
 
-Notes can natively be `.tex` files, not only `.md`. Same library/Projects model, same editor surface, same viewer pipeline. The user creates a note and picks `markdown` or `LaTeX` as the format — both are first-class.
+Notes can natively be `.tex` files, not only `.md`. Same Library/Projects model, same editor surface, same viewer pipeline. The user creates a note and picks `markdown` or `LaTeX` as the format — both are first-class.
 
 ## What "first-class" means
 
 - The file extension determines the editor mode and the viewer pipeline.
-- `.tex` files appear in the project list alongside `.md` files with no second-class indicators.
+- `.tex` files appear in the Project list alongside `.md` files with no second-class indicators.
 - Editor mode for `.tex` includes syntax highlighting and basic environment autocomplete.
 - Viewer mode for `.tex` produces a rendered PDF (compile-to-PDF pipeline).
 
@@ -20,7 +20,7 @@ Notes can natively be `.tex` files, not only `.md`. Same library/Projects model,
 ## Engineering shape
 
 - **Editor:** CodeMirror 6 with `@codemirror/legacy-modes/mode/stex` (or a Lezer LaTeX grammar if a mature one exists in 2026).
-- **Compiler:** sidecar. Two viable options per the LaTeX-libraries report:
+- **Compiler:** sidecar. Two viable options per the LaTeX-libraries research doc:
   - **Tectonic** (MIT) — actual TeX engine, full LaTeX-package compatibility, ~150 MB sidecar.
   - **Typst** + **mitex** (both Apache-2.0) — transpiles LaTeX → Typst, then Typst compiles. Faster, smaller, but not exact LaTeX-package fidelity.
   - **Decision deferred** to v1.1 implementation. Tectonic is the more conservative choice; Typst is the modern bet.
@@ -32,9 +32,9 @@ Notes can natively be `.tex` files, not only `.md`. Same library/Projects model,
 - The roadmap explicitly slots v1.1 as the polish-for-academics release. LaTeX support is the centerpiece.
 - The polyglot storage model is cheap to design now, expensive to retrofit — and it makes future format additions (Typst, Org-mode, Restructured Text) trivial.
 
-## Relevant references
+## Relevant Documentation
 
-- [LaTeX libraries](../../references/latex-libraries.md) — full ecosystem evaluation, Tectonic vs. Typst+mitex comparison, license analysis (Tectonic MIT, Typst Apache-2.0, the texlive.js GPL-version ambiguity to avoid).
+- [LaTeX libraries](../../research/latex-libraries.md) — full ecosystem evaluation, Tectonic vs. Typst+mitex comparison, license analysis (Tectonic MIT, Typst Apache-2.0, the texlive.js GPL-version ambiguity to avoid).
 - [Plain `.md` storage](../plain-md-storage/OVERVIEW.md) — the polyglot storage model `.tex` joins.
 - [Text editor](../text-editor/OVERVIEW.md) — the editor surface that handles both file types.
 - [PDF viewer](../pdf-viewer/OVERVIEW.md) — where compiled `.tex` output renders.

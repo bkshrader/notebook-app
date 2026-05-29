@@ -23,7 +23,7 @@ The roadmap currently anticipates option B or C; the choice depends on what "rem
 ## Engineering implication for v1/v2
 
 - Storage layer should remain file-system-based (it already is — see [plain-md-storage](../plain-md-storage/OVERVIEW.md)).
-- Any sub-file metadata should be stored in sidecar files (e.g., `note.md` + `note.notes-meta.json`) or YAML frontmatter, both of which file-level sync handles cleanly.
+- Any sub-file metadata should be stored in Companion files (e.g., `note.md` + `note.notes-meta.json`) or YAML frontmatter, both of which file-level sync handles cleanly.
 - Designing v1 with sync in mind costs almost nothing if the storage model stays simple. Retrofitting later is expensive.
 
 ## What v3.0 ships (tentative)
@@ -32,9 +32,9 @@ The roadmap currently anticipates option B or C; the choice depends on what "rem
 - Conflict-resolution UX for the file-level-conflict case.
 - Optional CRDT integration if option B and we want real-time multi-device editing.
 
-## Relevant references
+## Relevant Documentation
 
-- [Related libraries](../../references/related-libraries.md) — Yjs, Automerge, RxDB, ElectricSQL, Dexie, sqlite-vec with license verdicts.
-- [files.md](../../references/files-md.md) — the three-tier sync model (local → cloud-folder → self-hosted) this draws inspiration from.
+- [Related libraries](../../research/related-libraries.md) — Yjs, Automerge, RxDB, ElectricSQL, Dexie, sqlite-vec with license verdicts.
+- [files.md](../../research/files-md.md) — the three-tier sync model (local → cloud-folder → self-hosted) this draws inspiration from.
 - [Mobile app](../mobile-app/OVERVIEW.md) — the v3 feature that drives the need for real sync.
 - [Collaborative editing](../collaborative-editing/OVERVIEW.md) — adjacent feature that may share CRDT infrastructure.
