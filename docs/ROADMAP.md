@@ -11,11 +11,12 @@ Features:
   - Screen reader support
   - WCAG 2.1 AA baseline, AAA aspirationally
 - [Plain `.md` with YAML front matter, files-on-disk](./features/plain-md-storage/OVERVIEW.md)
-- [Library and Projects](./features/library-and-projects/OVERVIEW.md) for organizing and managing references/notes
+- [Git integration](./features/git-integration/OVERVIEW.md) — automatic background version history of notes; foundation for [Remote sync](./features/remote-sync/OVERVIEW.md)
+- [Library and Projects](./features/library-and-projects/OVERVIEW.md) for organizing and managing research/notes
 - [Text editor](./features/text-editor/OVERVIEW.md)
 - [Markdown viewer](./features/markdown-viewer/OVERVIEW.md)
 - [PDF viewer](./features/pdf-viewer/OVERVIEW.md)
-- [Universal capture inbox](./features/universal-capture-inbox/OVERVIEW.md) (inspired by [files.md](./references/files-md.md))
+- [Universal capture inbox](./features/universal-capture-inbox/OVERVIEW.md) (inspired by [files.md](./research/files-md.md))
 - [Audio recording and transcription](./features/audio-recording-and-transcription/OVERVIEW.md) — three distinct modes with separate UI surfaces:
   - **Dictation**
   - **Live captioning**

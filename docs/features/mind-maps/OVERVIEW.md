@@ -34,8 +34,8 @@ Hierarchical visual organization of ideas. Distinct from the [whiteboard](../whi
 - **Keyboard accessibility is hard for graph UIs.** Tab order and arrow-key navigation through nodes must be designed deliberately. Screen-reader announcement of node relationships ("parent: Photosynthesis; child 2 of 3: Light reactions") must be considered.
 - **No locking the user into a non-text-first format.** Mind maps export cleanly to outline markdown.
 
-## Relevant references
+## Relevant Documentation
 
-- [NotebookLM](../../references/notebooklm.md) — mind-map feature reference + the accessibility gaps to avoid.
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — Heptabase / MindMeister / XMind / Scapple landscape.
-- [Related libraries](../../references/related-libraries.md) — Mermaid, react-flow, D3 with license verdicts.
+- [NotebookLM](../../research/notebooklm.md) — mind-map feature reference + the accessibility gaps to avoid.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — Heptabase / MindMeister / XMind / Scapple landscape.
+- [Related libraries](../../research/related-libraries.md) — Mermaid, react-flow, D3 with license verdicts.

@@ -39,8 +39,8 @@ Full-text search across the Library — notes, ingested documents, transcripts. 
 - ADHD users especially benefit from search-instead-of-organize. The capture-fast-organize-never pattern requires good search to make the unsorted captures retrievable.
 - NotebookLM's lack of cross-notebook search is one of its documented gaps; we ship the opposite by default.
 
-## Relevant references
+## Relevant Documentation
 
-- [Related libraries](../../references/related-libraries.md) — MiniSearch, Lunr, FlexSearch, Tantivy bindings, SQLite FTS5, Orama with license verdicts.
-- [files.md](../../references/files-md.md) — the search-not-organize philosophy this draws from.
-- [NotebookLM](../../references/notebooklm.md) — the cross-notebook search gap we close.
+- [Related libraries](../../research/related-libraries.md) — MiniSearch, Lunr, FlexSearch, Tantivy bindings, SQLite FTS5, Orama with license verdicts.
+- [files.md](../../research/files-md.md) — the search-not-organize philosophy this draws from.
+- [NotebookLM](../../research/notebooklm.md) — the cross-notebook search gap we close.

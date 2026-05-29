@@ -542,7 +542,7 @@ The OCR step extracts text; **adding it back into the PDF as a searchable, scree
 
 [^doctr-stats]: 6.1k stars, 1016 commits, 21 releases per <https://github.com/mindee/doctr>.
 
-[^docling-license]: Verified in `docs/references/markitdown.md` footnote `^lic-docling`.
+[^docling-license]: Verified in `docs/research/markitdown.md` footnote `^lic-docling`.
 
 [^docling-deepwiki]: Docling DeepWiki: bitmap-coverage threshold default 0.75 for selective vs. full-page OCR. <https://deepwiki.com/docling-project/docling/4.1-ocr-models>
 

@@ -56,10 +56,10 @@ LLM-powered features that operate over the user's notes and sources: chat-with-y
 - The UX is high-surface; we want v1 + v1.1 user feedback before committing to specific agentic features.
 - Chat-with-your-sources especially: NotebookLM has set high expectations; shipping a half-baked version is worse than waiting.
 
-## Relevant references
+## Relevant Documentation
 
-- [NotebookLM](../../references/notebooklm.md) — what to emulate (citation chips, source-grounded defaults), what to reject (overwhelming Studio menu, cloud-only).
-- [OpenRouter and competitors](../../references/openrouter.md) — LLM client architecture, structured-output support, streaming.
-- [Related libraries](../../references/related-libraries.md) — sqlite-vec, embeddings options, LLM SDKs.
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — Goblin Tools as the documented tone-rewrite prior art; ADHD/Autism accommodations.
+- [NotebookLM](../../research/notebooklm.md) — what to emulate (citation chips, source-grounded defaults), what to reject (overwhelming Studio menu, cloud-only).
+- [OpenRouter and competitors](../../research/openrouter.md) — LLM client architecture, structured-output support, streaming.
+- [Related libraries](../../research/related-libraries.md) — sqlite-vec, embeddings options, LLM SDKs.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — Goblin Tools as the documented tone-rewrite prior art; ADHD/Autism accommodations.
 - [BYO AI](../byo-ai/OVERVIEW.md) — the AI architecture this consumes. AI-free build behavior is documented in [ROADMAP.md](../../ROADMAP.md).

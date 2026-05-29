@@ -29,8 +29,8 @@ The editor surface for authoring and editing notes. v1 targets a **CodeMirror 6*
 
 - The roadmap's "Rich markdown editor" line item. **Open question** (informed by the CodeMirror 6 research report): is this satisfied by more sophisticated CodeMirror decorations, or does it require swapping to a ProseMirror-based editor (TipTap / Lexical / BlockNote)?
 
-## Relevant references
+## Relevant Documentation
 
-- [CodeMirror 6](../../references/codemirror.md) — primary library evaluation, accessibility verdict, comparison to TipTap/Lexical/BlockNote/Milkdown/Monaco.
-- [Related libraries](../../references/related-libraries.md) — broader editor-library landscape and license considerations.
-- [LaTeX libraries](../../references/latex-libraries.md) — stex syntax highlighting and the math-rendering decoration pattern.
+- [CodeMirror 6](../../research/codemirror.md) — primary library evaluation, accessibility verdict, comparison to TipTap/Lexical/BlockNote/Milkdown/Monaco.
+- [Related libraries](../../research/related-libraries.md) — broader editor-library landscape and license considerations.
+- [LaTeX libraries](../../research/latex-libraries.md) — stex syntax highlighting and the math-rendering decoration pattern.

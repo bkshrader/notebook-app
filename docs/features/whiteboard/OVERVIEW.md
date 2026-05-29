@@ -36,7 +36,7 @@ A spatial canvas for free-form thinking — sketches, diagrams, sticky-note arra
 - Image OCR of imported whiteboard photos.
 - AI-assisted "tidy up" of hand-drawn diagrams (hidden in the AI-free build; see the AI-feature-flag note in [ROADMAP.md](../../ROADMAP.md)).
 
-## Relevant references
+## Relevant Documentation
 
-- [Related libraries](../../references/related-libraries.md) — Excalidraw vs. tldraw license analysis; the tldraw paid-key trap.
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — non-linear thinking tools (Heptabase, Scapple, etc.) prior art.
+- [Related libraries](../../research/related-libraries.md) — Excalidraw vs. tldraw license analysis; the tldraw paid-key trap.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — non-linear thinking tools (Heptabase, Scapple, etc.) prior art.

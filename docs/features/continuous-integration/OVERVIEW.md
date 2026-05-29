@@ -63,7 +63,7 @@ The ADRs in this directory capture decisions that are non-obvious, hard to rever
 - **Claude workflows use OIDC.** The `id-token: write` permission is for _issuing_ an OIDC token (not write-to-repo). The Claude GitHub App mints a short-lived, app-scoped installation token from the OIDC assertion; that's what Claude uses for any repo operations.
 - **`anthropics/claude-code-action@v1` is a moving tag and that's deliberate.** See ADR.
 
-## Relevant references
+## Relevant Documentation
 
 - [`docs/licenses/in-use.md`](../../licenses/in-use.md) — the license allow list backing the `license-check` gate, with rationale per license.
 - [`docs/licenses/incompatible.md`](../../licenses/incompatible.md) — rejected licenses and the libraries we've ruled out because of them.

@@ -43,8 +43,8 @@ Citation and bibliography support for academic notes. v1.1 scope: basic CSL-base
 - Has accessibility infrastructure; not perfect but mature.
 - Has a documented local API (`zotero-better-bibtex` exposes localhost endpoints) — no scraping needed.
 
-## Relevant references
+## Relevant Documentation
 
-- [Related libraries](../../references/related-libraries.md) — citeproc-js license analysis, CSL styles, citation.js alternatives.
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — Zotero's accessibility posture and academic-tools landscape.
-- [NotebookLM](../../references/notebooklm.md) — the citation gap in the dominant competitor we're filling.
+- [Related libraries](../../research/related-libraries.md) — citeproc-js license analysis, CSL styles, citation.js alternatives.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — Zotero's accessibility posture and academic-tools landscape.
+- [NotebookLM](../../research/notebooklm.md) — the citation gap in the dominant competitor we're filling.

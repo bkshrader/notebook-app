@@ -36,9 +36,9 @@ Synchronized word/sentence highlighting during [text-to-speech](../text-to-speec
 - Auto-scroll behavior during playback (jump? smooth? off?) — needs UX prototyping.
 - Handling of math/code/non-spoken content — TTS skips it; highlighting should jump cleanly.
 
-## Relevant references
+## Relevant Documentation
 
 - [Text-to-speech](../text-to-speech/OVERVIEW.md) — engine and audio pipeline this depends on.
-- [Whisper / STT](../../references/whisper.md) — wav2vec2 forced-alignment approach (WhisperX uses it for STT; we use it in reverse for TTS).
-- [CodeMirror 6](../../references/codemirror.md) — the `ViewPlugin` decoration pattern for editor-side highlighting.
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — Speechify, Immersive Reader, Voice Dream Reader prior art.
+- [Whisper / STT](../../research/whisper.md) — wav2vec2 forced-alignment approach (WhisperX uses it for STT; we use it in reverse for TTS).
+- [CodeMirror 6](../../research/codemirror.md) — the `ViewPlugin` decoration pattern for editor-side highlighting.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — Speechify, Immersive Reader, Voice Dream Reader prior art.

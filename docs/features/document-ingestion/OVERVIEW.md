@@ -35,9 +35,9 @@ When the [BYO-AI](../byo-ai/OVERVIEW.md) profile is configured, OCR output can b
 - Heavier math/academic-PDF pipelines: MinerU as the heavy-default, Marker behind a GPU toggle, olmOCR for GPU users, pix2tex for lasso-an-equation. See the OCR report.
 - Image-content embeddings for RAG.
 
-## Relevant references
+## Relevant Documentation
 
-- [Markitdown](../../references/markitdown.md) — breadth analysis, Python-sidecar architecture, the disabled-audio-converter trap, PyMuPDF AGPL caveat.
-- [OCR libraries](../../references/ocr-libraries.md) — Docling vs. Marker vs. MinerU vs. olmOCR, the Surya/Marker license trap, ocrmypdf integration, math-OCR options.
-- [Whisper / STT](../../references/whisper.md) — audio-pipeline engine choice.
+- [Markitdown](../../research/markitdown.md) — breadth analysis, Python-sidecar architecture, the disabled-audio-converter trap, PyMuPDF AGPL caveat.
+- [OCR libraries](../../research/ocr-libraries.md) — Docling vs. Marker vs. MinerU vs. olmOCR, the Surya/Marker license trap, ocrmypdf integration, math-OCR options.
+- [Whisper / STT](../../research/whisper.md) — audio-pipeline engine choice.
 - [PDF viewer](../pdf-viewer/OVERVIEW.md) — adjacent feature; v1.1's Tier 3 (`ocrmypdf` re-OCR-in-place) shares infrastructure.

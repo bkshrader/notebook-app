@@ -36,8 +36,8 @@ Notes typed during an audio (or video) recording are anchored to their position 
 - Cross-session anchors: a note typed _after_ the lecture can still be anchored to a moment in the recording via a "match this to audio" action.
 - AI-suggested anchors: an LLM compares note text to transcript text and proposes anchors.
 
-## Relevant references
+## Relevant Documentation
 
 - [Audio recording and transcription](../audio-recording-and-transcription/OVERVIEW.md) — provides the word-level timestamps this depends on.
-- [Whisper / STT](../../references/whisper.md) — `word_timestamps=True` accuracy and CPU cost analysis.
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — Genio / Sonocent / Glean / Notability audio-anchored-notes prior art and the opportunity gap (these are all proprietary / web-only / inaccessible).
+- [Whisper / STT](../../research/whisper.md) — `word_timestamps=True` accuracy and CPU cost analysis.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — Genio / Sonocent / Glean / Notability audio-anchored-notes prior art and the opportunity gap (these are all proprietary / web-only / inaccessible).

@@ -31,6 +31,6 @@ A simple Pomodoro-style focus timer integrated into the app. 25/5 default with c
 - Forced full-screen "focus mode" — the user picks whether to dim distractions or not.
 - Integration with calendar/scheduling (that's the v3 time-blocking calendar territory).
 
-## Relevant references
+## Relevant Documentation
 
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — Pomofocus, Forest, and similar tools' design lessons; what works for ADHD users and what doesn't.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — Pomofocus, Forest, and similar tools' design lessons; what works for ADHD users and what doesn't.

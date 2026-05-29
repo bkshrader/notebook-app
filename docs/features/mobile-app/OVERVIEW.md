@@ -26,9 +26,9 @@ A companion mobile app for iOS and Android. Primary use case: **audio capture wh
 - Mobile screen readers (VoiceOver iOS, TalkBack Android) have their own quirks distinct from desktop ATs.
 - TalkBack in particular is fussy about gesture-based navigation; the CodeMirror research flagged an open CM6 issue (#1556) where TalkBack jumps to syntax regions instead of lines. If we ship a web-tech mobile path, this needs investigation.
 
-## Relevant references
+## Relevant Documentation
 
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — mobile-app expectations of the target audience, the iPad+Apple-Pencil ecosystem, hardware students actually carry.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — mobile-app expectations of the target audience, the iPad+Apple-Pencil ecosystem, hardware students actually carry.
 - [Audio recording and transcription](../audio-recording-and-transcription/OVERVIEW.md) — the primary mobile use case.
 - [Remote sync](../remote-sync/OVERVIEW.md) — coupled feature that makes mobile useful.
-- [CodeMirror 6](../../references/codemirror.md) — TalkBack issue to investigate if we ship CM6 on mobile.
+- [CodeMirror 6](../../research/codemirror.md) — TalkBack issue to investigate if we ship CM6 on mobile.

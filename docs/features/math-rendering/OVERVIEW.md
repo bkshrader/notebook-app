@@ -28,9 +28,9 @@ Inline (`$...$`) and display (`$$...$$`) math rendered in markdown and `.tex` no
 - **MathLive virtual keyboard** for math input — deferred to whenever STEM-grad becomes a focus (v1.5+). MathLive is input-only; rendering is unaffected.
 - **Full LaTeX document compilation** — see [latex-first-class](../latex-first-class/OVERVIEW.md). Math-in-notes is a separate concern.
 
-## Relevant references
+## Relevant Documentation
 
-- [LaTeX libraries](../../references/latex-libraries.md) — full library landscape, accessibility analysis of MathJax v4 SRE vs. KaTeX hidden-MathML vs. Temml, MathLive deferral rationale.
+- [LaTeX libraries](../../research/latex-libraries.md) — full library landscape, accessibility analysis of MathJax v4 SRE vs. KaTeX hidden-MathML vs. Temml, MathLive deferral rationale.
 - [Markdown viewer](../markdown-viewer/OVERVIEW.md) — the primary consumer of rendered math.
 - [Text editor](../text-editor/OVERVIEW.md) — inline editing of math via CodeMirror decorations.
 - [Read-along](../read-along/OVERVIEW.md) — TTS highlighting must gracefully skip math regions or speak the aria-label.

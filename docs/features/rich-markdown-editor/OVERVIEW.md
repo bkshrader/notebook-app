@@ -30,8 +30,8 @@ Polish and feature-extension of the v1 CodeMirror 6-based [text editor](../text-
 - The community references (`atomic-editor`, `cm6-live-preview-core`) already cover most decoration patterns we'd build on.
 - Engineering scope for v2.0 is "polish and extension" not "rewrite."
 
-## Relevant references
+## Relevant Documentation
 
-- [CodeMirror 6](../../references/codemirror.md) — the comparison-to-alternatives section, the opinionated "stay on CM6" verdict for v2's rich editor, the live-preview decoration patterns to build on.
+- [CodeMirror 6](../../research/codemirror.md) — the comparison-to-alternatives section, the opinionated "stay on CM6" verdict for v2's rich editor, the live-preview decoration patterns to build on.
 - [Text editor](../text-editor/OVERVIEW.md) — the v1 foundation this extends.
-- [Related libraries](../../references/related-libraries.md) — TipTap / Lexical / BlockNote / Milkdown evaluations and license traps (BlockNote `xl-*` GPL-3.0 specifically).
+- [Related libraries](../../research/related-libraries.md) — TipTap / Lexical / BlockNote / Milkdown evaluations and license traps (BlockNote `xl-*` GPL-3.0 specifically).

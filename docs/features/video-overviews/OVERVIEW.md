@@ -30,10 +30,10 @@ Per the Remotion research:
 - TTS narration of the document with [read-along](../read-along/OVERVIEW.md) highlighting.
 - Optional export as `.mp3` + `.md` pair for offline consumption.
 
-## Relevant references
+## Relevant Documentation
 
-- [Remotion](../../references/remotion.md) — full analysis of license incompatibility, alternatives, and the "scroll + narration beats video" argument.
-- [NotebookLM](../../references/notebooklm.md) — Cinematic Video and Audio Overview as the prior art we're rethinking.
+- [Remotion](../../research/remotion.md) — full analysis of license incompatibility, alternatives, and the "scroll + narration beats video" argument.
+- [NotebookLM](../../research/notebooklm.md) — Cinematic Video and Audio Overview as the prior art we're rethinking.
 - [Agentic workflows](../agentic-workflows/OVERVIEW.md) — summarization engine this builds on.
 - [Text-to-speech](../text-to-speech/OVERVIEW.md) — narration engine this builds on.
 - [Read-along](../read-along/OVERVIEW.md) — synchronized highlighting during walkthrough playback.

@@ -25,11 +25,11 @@ The primary user is the ADHD undergrad. Cognitive accommodations (reduced visual
 - No animation longer than 200ms without an opt-out.
 - Focus indicators meet AA contrast (3:1 against adjacent colors).
 
-## Relevant references
+## Relevant Documentation
 
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — what students with disabilities actually use today; the interop targets and design directives drawn from that landscape.
-- [Related libraries](../../references/related-libraries.md) — React Aria Components, axe-core, and other a11y tooling candidates.
-- [TS/JS desktop frameworks](../../references/typescript-desktop-frameworks.md) — why Electron's bundled Chromium beats system-webview options on a11y.
-- [Python desktop frameworks](../../references/python-desktop-frameworks.md) — Pyloid as the only Python option that preserves Chromium-grade a11y.
-- [LaTeX libraries](../../references/latex-libraries.md) — MathJax v4 + SRE as the accessibility-strongest math renderer.
-- [NotebookLM](../../references/notebooklm.md) — accessibility gaps in the dominant competitor that we should not replicate.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — what students with disabilities actually use today; the interop targets and design directives drawn from that landscape.
+- [Related libraries](../../research/related-libraries.md) — React Aria Components, axe-core, and other a11y tooling candidates.
+- [TS/JS desktop frameworks](../../research/typescript-desktop-frameworks.md) — why Electron's bundled Chromium beats system-webview options on a11y.
+- [Python desktop frameworks](../../research/python-desktop-frameworks.md) — Pyloid as the only Python option that preserves Chromium-grade a11y.
+- [LaTeX libraries](../../research/latex-libraries.md) — MathJax v4 + SRE as the accessibility-strongest math renderer.
+- [NotebookLM](../../research/notebooklm.md) — accessibility gaps in the dominant competitor that we should not replicate.

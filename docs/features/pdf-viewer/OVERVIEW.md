@@ -29,8 +29,8 @@ In-app PDF rendering with text-layer highlighting that produces note quotes with
 - "Make this readable" action runs `ocrmypdf` (sidecar) and writes back a PDF/A-2u with an invisible text layer.
 - OCR engine choice: Tesseract is the default for ocrmypdf; we may surface RapidOCR or MinerU for math-heavy academic content.
 
-## Relevant references
+## Relevant Documentation
 
-- [OCR libraries](../../references/ocr-libraries.md) — `ocrmypdf` analysis, Tesseract vs. RapidOCR vs. MinerU vs. Marker, math-OCR options (pix2tex).
-- [Related libraries](../../references/related-libraries.md) — PDF.js and react-pdf-highlighter candidates.
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — how blind students currently consume PDFs; the SensusAccess / Ally landscape this Tier 3 feature competes with.
+- [OCR libraries](../../research/ocr-libraries.md) — `ocrmypdf` analysis, Tesseract vs. RapidOCR vs. MinerU vs. Marker, math-OCR options (pix2tex).
+- [Related libraries](../../research/related-libraries.md) — PDF.js and react-pdf-highlighter candidates.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — how blind students currently consume PDFs; the SensusAccess / Ally landscape this Tier 3 feature competes with.

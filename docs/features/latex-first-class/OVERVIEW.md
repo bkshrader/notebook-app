@@ -32,9 +32,9 @@ Notes can natively be `.tex` files, not only `.md`. Same library/Projects model,
 - The roadmap explicitly slots v1.1 as the polish-for-academics release. LaTeX support is the centerpiece.
 - The polyglot storage model is cheap to design now, expensive to retrofit — and it makes future format additions (Typst, Org-mode, Restructured Text) trivial.
 
-## Relevant references
+## Relevant Documentation
 
-- [LaTeX libraries](../../references/latex-libraries.md) — full ecosystem evaluation, Tectonic vs. Typst+mitex comparison, license analysis (Tectonic MIT, Typst Apache-2.0, the texlive.js GPL-version ambiguity to avoid).
+- [LaTeX libraries](../../research/latex-libraries.md) — full ecosystem evaluation, Tectonic vs. Typst+mitex comparison, license analysis (Tectonic MIT, Typst Apache-2.0, the texlive.js GPL-version ambiguity to avoid).
 - [Plain `.md` storage](../plain-md-storage/OVERVIEW.md) — the polyglot storage model `.tex` joins.
 - [Text editor](../text-editor/OVERVIEW.md) — the editor surface that handles both file types.
 - [PDF viewer](../pdf-viewer/OVERVIEW.md) — where compiled `.tex` output renders.

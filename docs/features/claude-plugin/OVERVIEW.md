@@ -52,7 +52,7 @@ Two viable surfaces (we may ship both):
 
 The MCP server and Skill are AI-integration features; both are hidden / not bundled in the AI-free build (see the AI-feature-flag note in [ROADMAP.md](../../ROADMAP.md)).
 
-## Relevant references
+## Relevant Documentation
 
 - [BYO AI](../byo-ai/OVERVIEW.md) — the default AI integration path; this complements rather than replaces it.
 - [Agentic workflows](../agentic-workflows/OVERVIEW.md) — in-app agentic features that the MCP server's tools also enable from outside.

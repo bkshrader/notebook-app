@@ -36,8 +36,8 @@ A browser extension for capturing web content into the user's Library — select
 - The extension's popup UI must meet our standard WCAG 2.1 AA bar.
 - Keyboard shortcuts for invocation (browser-extension convention).
 
-## Relevant references
+## Relevant Documentation
 
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — the academic web-clipper landscape (Zotero Connector, web-to-Notion, web-to-Obsidian, Readwise).
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — the academic web-clipper landscape (Zotero Connector, web-to-Notion, web-to-Obsidian, Readwise).
 - [Universal capture inbox](../universal-capture-inbox/OVERVIEW.md) — the desktop endpoint for browser-captured content.
 - [Bibliography management](../bibliography-management/OVERVIEW.md) — citation metadata extraction integrates here.

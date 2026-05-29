@@ -26,7 +26,7 @@ A calendar / time-blocking view for scheduling study sessions, assignment work, 
 
 - Whether even the ICS feed belongs in v3 vs. v2.0 alongside [agentic-workflows](../agentic-workflows/OVERVIEW.md). It's cheap to build and high-value for ADHD users. Possibly worth pulling earlier if user feedback says so.
 
-## Relevant references
+## Relevant Documentation
 
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — Tiimo / time-blocking app landscape and ADHD time-blindness accommodation research.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — Tiimo / time-blocking app landscape and ADHD time-blindness accommodation research.
 - [Pomodoro timer](../pomodoro-timer/OVERVIEW.md) — session-log data this surfaces.

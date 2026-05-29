@@ -1,12 +1,12 @@
 ---
 name: research
-description: Conduct research and write a `docs/references/<slug>.md` report for this notebook-app project. Use whenever the user invokes `/research` or asks for a research report, library survey, "deep dive", "shallow survey", or AGPL-compatibility/accessibility verdict on a library, framework, or competing product. Triggers on both forms — `/research deep MathJax` and `/research what about something for OCR?` — and also on bare phrases like "write me a reference doc on Tantivy" or "do a shallow survey of CRDT libraries". The skill is project-scoped to notebook-app and produces reports that match the existing style and rigor of files under `docs/references/`.
+description: Conduct research and write a `docs/research/<slug>.md` report for this notebook-app project. Use whenever the user invokes `/research` or asks for a research report, library survey, "deep dive", "shallow survey", or AGPL-compatibility/accessibility verdict on a library, framework, or competing product. Triggers on both forms — `/research deep MathJax` and `/research what about something for OCR?` — and also on bare phrases like "write me a reference doc on Tantivy" or "do a shallow survey of CRDT libraries". The skill is project-scoped to notebook-app and produces reports that match the existing style and rigor of files under `docs/research/`.
 argument-hint: '[deep|shallow]  the topic to be researched'
 ---
 
 # /research — write a reference doc for notebook-app
 
-You are writing into `docs/references/` of an accessibility-first, local-first note-taking app for academics. The audience of these reports is the future maintainer of this app (most often the user, sometimes a future Claude session) making decisions under the project's non-negotiable constraints. Every report exists to answer one or both of these questions:
+You are writing into `docs/research/` of an accessibility-first, local-first note-taking app for academics. The audience of these reports is the future maintainer of this app (most often the user, sometimes a future Claude session) making decisions under the project's non-negotiable constraints. Every report exists to answer one or both of these questions:
 
 1. **Can we legally use this in an AGPL-3.0-or-later application?** (`docs/licenses/in-use.md` and `docs/licenses/incompatible.md` are the rules of the road.)
 2. **Does it fit the project — WCAG 2.1 AA floor, ADHD-/Autism-friendly UX, local-first, Electron-based?**
@@ -36,9 +36,9 @@ If the user gave no mode, offer something like:
 
 ## Picking the output path
 
-The file goes in `docs/references/<slug>.md` where `<slug>` is the topic in kebab case. Strip filler words ("libraries", "options", "for X") only if it makes the name clearer — match existing naming (`whisper.md` not `whisper-stt.md`, `latex-libraries.md` because it's a survey not a single library, `typescript-desktop-frameworks.md` because it's distinguishing from the JVM/Python siblings).
+The file goes in `docs/research/<slug>.md` where `<slug>` is the topic in kebab case. Strip filler words ("libraries", "options", "for X") only if it makes the name clearer — match existing naming (`whisper.md` not `whisper-stt.md`, `latex-libraries.md` because it's a survey not a single library, `typescript-desktop-frameworks.md` because it's distinguishing from the JVM/Python siblings).
 
-Before writing: run `ls docs/references/` (or `Glob docs/references/*.md`). If the slug already exists, surface that to the user and ask whether to overwrite, append, or choose a different slug. The existing file may already be the right home for an addition.
+Before writing: run `ls docs/research/` (or `Glob docs/research/*.md`). If the slug already exists, surface that to the user and ask whether to overwrite, append, or choose a different slug. The existing file may already be the right home for an addition.
 
 ## Research workflow
 
@@ -49,7 +49,7 @@ Use the tools available — `WebSearch`, `WebFetch`, `Bash` with `gh api` for Gi
 1. **License first.** For each library:
    - Get the `LICENSE` (or `LICENSE.md`, `COPYING`) file _contents_ via `gh api repos/<owner>/<repo>/contents/LICENSE` and decode it. Read the actual text. Note the copyright holder and the SPDX identifier. Don't trust the GitHub sidebar — it has been wrong (it shows the _primary_ license and misses dual licensing, custom riders, and model-vs-code splits).
    - Cross-check against `docs/licenses/incompatible.md` (`Read` it). If the license is on that list, surface that prominently.
-   - Render the AGPL-compatibility verdict using the legend already established in `docs/references/related-libraries.md`:
+   - Render the AGPL-compatibility verdict using the legend already established in `docs/research/related-libraries.md`:
      - **Compatible** — permissive (MIT / BSD / ISC / Apache-2.0 / MPL-2.0 / LGPL) or AGPL / GPL-3.0+
      - **Incompatible** — GPL-2.0-only without "or later", SSPL, BSL/BUSL, "source-available", custom commercial, or no license at all
      - **Conditional** — dual licensing, model/code license splits, RAIL-family use restrictions, trademark or watermark conditions, premium-plugin tiers

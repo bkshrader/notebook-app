@@ -14,7 +14,7 @@ A single global hotkey opens a lightweight capture window that writes to `Inbox.
 ## Why this matters
 
 - ADHD users famously lose thoughts that require even one decision before being recorded. The friction of "open app → pick project → start typing" is high enough that thoughts get dropped.
-- Inspired by [files.md](../../references/files-md.md)'s `Chat.md` pattern: everything goes to one capture surface first, sorted later if at all.
+- Inspired by [files.md](../../research/files-md.md)'s `Chat.md` pattern: everything goes to one capture surface first, sorted later if at all.
 - A successful inbox reduces _both_ lost thoughts and the anxiety of "I should organize this now."
 
 ## What v1 ships
@@ -29,7 +29,7 @@ A single global hotkey opens a lightweight capture window that writes to `Inbox.
 - Does the capture window support voice (dictation)? Probably yes — dictation is v1 anyway, and the inbox is the natural place to put "I had a thought while walking."
 - Does the inbox surface ingested-but-unsorted items from the document-ingestion pipeline (v1.1)? Probably yes; same triage paradigm.
 
-## Relevant references
+## Relevant Documentation
 
-- [files.md](../../references/files-md.md) — origin of the universal-capture-surface pattern; the `Chat.md` design.
-- [Adaptive tech in academia](../../references/adaptive-tech-in-academia.md) — the ADHD-tool landscape (Goblin Tools, capture-first apps) this feature draws from.
+- [files.md](../../research/files-md.md) — origin of the universal-capture-surface pattern; the `Chat.md` design.
+- [Adaptive tech in academia](../../research/adaptive-tech-in-academia.md) — the ADHD-tool landscape (Goblin Tools, capture-first apps) this feature draws from.
