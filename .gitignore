@@ -10,3 +10,6 @@ dist/
 storybook-static
 
 *.local.*
+
+# Claude Code session runtime artifacts (e.g. scheduled-tasks locks)
+.claude/*.lock
