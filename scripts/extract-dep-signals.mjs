@@ -122,9 +122,32 @@ export function parseArgs(argv) {
 // `@` separates name from version while leaving a leading scope `@`
 // attached to the name.
 //
+// ALIAS KEYS: an aliased dependency is keyed `alias@npm:realname@version`
+// (e.g. `string-width-cjs@npm:string-width@4.2.3`). A naive lastIndexOf
+// still picks the final `@` for the version, but the name would then
+// include the whole `alias@npm:realname` blob. We special-case the
+// `@npm:` marker so `name` is the alias (the identity the rest of the
+// tree refers to) and `version` is the trailing semver.
+//
 // Returns { name, version } or null if the key has no `@` (defensive —
 // every real packages key has one).
+//
+// Two parse paths (alias vs plain) each with their own null guards; the
+// branch count is the cost of handling `@npm:` aliases correctly, not
+// incidental complexity. Splitting the alias arm into a helper would
+// just relocate the same guards.
+// fallow-ignore-next-line complexity
 export function parseDepKey(key) {
+  const aliasAt = key.indexOf('@npm:');
+  if (aliasAt > 0) {
+    const name = key.slice(0, aliasAt);
+    const spec = key.slice(aliasAt + '@npm:'.length); // realname@version
+    const specAt = spec.lastIndexOf('@');
+    if (specAt <= 0) return null;
+    const version = spec.slice(specAt + 1);
+    if (!name || !version) return null;
+    return { name, version };
+  }
   const at = key.lastIndexOf('@');
   if (at <= 0) return null; // no `@`, or `@` only at position 0 (bare scope)
   const name = key.slice(0, at);
@@ -189,9 +212,20 @@ const FILE_HEADER = /^\+\+\+ b\/(.+)$/;
 const SECTION_CONTENT = /^[ +-](packages|snapshots|importers|settings):\s*$/;
 const HUNK_HEADER_SECTION = /^@@ .* @@\s*(packages|snapshots|importers|settings):/;
 
-// The lockfile path we look for in the diff's `+++ b/<path>` header. A
-// PR that touches the lockfile shows it here; anything else is ignored.
+// The lockfile basename we look for in the diff's `+++ b/<path>` header.
+// We compare by BASENAME, not the full path, so a workspace/monorepo
+// lockfile that lives below the repo root (`+++ b/packages/app/pnpm-lock.yaml`)
+// is still recognized. The diff is already scoped to lockfile changes by
+// the workflow, so basename matching can't pull in an unrelated file.
 const LOCKFILE_NAME = 'pnpm-lock.yaml';
+
+// Basename of a `+++ b/<path>` header path. The lockfile uses `/` as its
+// path separator in unified diffs on every platform (git emits POSIX
+// separators), so splitting on `/` is correct cross-platform.
+function basenameOf(path) {
+  const slash = path.lastIndexOf('/');
+  return slash === -1 ? path : path.slice(slash + 1);
+}
 
 // A bare hunk header (`@@ -a,b +c,d @@[ optional context]`). When the
 // trailing context does NOT name a section, the hunk has jumped to an
@@ -220,7 +254,7 @@ const HUNK_HEADER = /^@@ /;
 // fallow-ignore-next-line complexity
 function matchDiffLine(line) {
   const fileMatch = line.match(FILE_HEADER);
-  if (fileMatch) return { kind: 'file', isLockfile: fileMatch[1] === LOCKFILE_NAME };
+  if (fileMatch) return { kind: 'file', isLockfile: basenameOf(fileMatch[1]) === LOCKFILE_NAME };
   const hunkSection = line.match(HUNK_HEADER_SECTION);
   if (hunkSection) return { kind: 'section', section: hunkSection[1] };
   if (HUNK_HEADER.test(line)) return { kind: 'hunk' };
@@ -230,8 +264,17 @@ function matchDiffLine(line) {
   if (keyLine) {
     const body = keyLine[2].match(PKG_KEY_BODY);
     if (body) {
+      // A `(` in the key body means a `snapshots:` peer-context suffix
+      // (`name@version(peer@x)`) — never a `packages:` key. Classify it
+      // as a peer-suffixed key so extractDepChanges can reject it by
+      // SHAPE, independent of section tracking. This is the
+      // defense-in-depth that lets us safely count clean keys even when
+      // the section is unknown (a section-less hunk header).
+      const isPeerSuffixed = body[1].includes('(');
       const parsed = parseDepKey(body[1]);
-      if (parsed) return { kind: 'depKey', sign: keyLine[1], ...parsed };
+      if (parsed) {
+        return { kind: isPeerSuffixed ? 'peerKey' : 'depKey', sign: keyLine[1], ...parsed };
+      }
     }
   }
   return { kind: 'other' };
@@ -246,20 +289,29 @@ function matchDiffLine(line) {
 // distinct version as its own `packages:` key). classifyChanges below
 // turns these sets into bump/removal/netNew entries.
 //
-// Two gates decide whether a key line counts:
+// Two defenses decide whether a key line counts:
 //   1. `inLockfile` — we're inside the `pnpm-lock.yaml` file section of
 //      the diff (a `packages:`-shaped key in some other file, e.g. a doc
 //      code block, is ignored).
-//   2. `section === 'packages'` — we're inside the `packages:` section,
-//      NOT `snapshots:` / `importers:` / `settings:`. This is
-//      load-bearing: `snapshots:` keys carry `(peer-context)` suffixes
-//      (`name@version(peer@x)`) at the SAME 2-space indent as packages
-//      keys, so without the section gate they'd be matched and then
-//      mis-split by parseDepKey's `lastIndexOf('@')` into garbage
-//      name/version pairs, inflating every real Dependabot bump with
-//      phantom removals/netNew. Section is reset to null on a hunk
-//      header that doesn't re-state the section, so a stale `packages`
-//      is never carried across a hunk boundary into snapshots content.
+//   2. Key SHAPE + section. `snapshots:` keys carry `(peer-context)`
+//      suffixes (`name@version(peer@x)`); matchDiffLine classifies those
+//      as `peerKey` (by the `(`) and we NEVER count them. Clean
+//      (`depKey`) keys are counted only when `section === 'packages'`.
+//
+//      Both checks matter, and neither is redundant:
+//        - The section gate is primary. A `snapshots:` entry for a
+//          package with no peers is a CLEAN `name@version` key (e.g.
+//          `'@babel/core@7.29.7':`), shape-indistinguishable from its
+//          `packages:` entry — only the section tells them apart. So we
+//          cannot count clean keys when the section is unknown.
+//        - The shape check is defense-in-depth: even if section tracking
+//          ever failed, a peer-suffixed key would still be rejected
+//          rather than mis-split by parseDepKey into garbage.
+//
+//      Empirically git always carries the section funcname on the hunk
+//      header (`@@ ... @@ packages:`), even under `--unified=0`, so a
+//      `null` (unknown) section is a pathological/synthetic-diff case;
+//      we drop keys there rather than risk counting snapshot entries.
 //
 // CRAP-only finding from the per-line event-kind dispatch in the loop
 // body; splitting it would move the dispatch up a level without
@@ -279,7 +331,11 @@ export function extractDepChanges(diff) {
     return s;
   };
 
-  for (const line of diff.split('\n')) {
+  // Split on \r?\n so a CRLF-terminated diff (Windows checkout, or a
+  // diff fetched through an API that normalizes line endings) doesn't
+  // leave a trailing \r on every line — that \r defeats the `$` anchors
+  // in FILE_HEADER/PKG_KEY_BODY and would silently yield zero signals.
+  for (const line of diff.split(/\r?\n/)) {
     const ev = matchDiffLine(line);
     if (ev.kind === 'file') {
       inLockfile = ev.isLockfile;
@@ -292,6 +348,10 @@ export function extractDepChanges(diff) {
       // Section-less hunk header: location jumped, section unknown.
       section = null;
     } else if (ev.kind === 'depKey' && section === 'packages') {
+      // Count clean keys only inside the packages section. peerKey
+      // events (snapshots peer-context suffix) are never counted,
+      // regardless of section — that shape check is defense-in-depth on
+      // top of the section gate (see the rationale above).
       const s = slot(ev.name);
       (ev.sign === '-' ? s.removed : s.added).add(ev.version);
     }
@@ -302,51 +362,99 @@ export function extractDepChanges(diff) {
 // Turn the per-name added/removed version sets into classified changes.
 // Returns { bumps, removals, netNew, warnings }.
 //
-// Classification per package name (after cancelling any version present
-// on BOTH a `-` and a `+` line — that's diff context churn, e.g. a key
-// re-emitted because its resolution block was reordered, not a real
-// change):
-//   - removed AND added, one each → bump (old=removed, new=added).
-//   - removed AND added, but not 1:1 → ambiguous multi-version shuffle;
-//     emit each removed as a removal and each added as a netNew, plus a
-//     warning so the reviewer knows it wasn't a clean bump.
-//   - removed only → removal(s).
-//   - added only → netNew(s).
+// `baseIndex` is the base-ref lockfile index (Map keyed by `name@version`,
+// from indexLockfile). It's how a `-`/`+` pair is CORROBORATED as a real
+// in-place bump rather than two unrelated resolutions that happened to
+// change in the same PR. Optional: when omitted (or empty), no pair can
+// be corroborated, so every removed/added version is reported as a plain
+// removal/netNew — the honest behavior when we have nothing to confirm a
+// bump against.
+//
+// Why corroboration is necessary: the diff ALONE cannot distinguish
+//   (a) a real bump: foo@1 removed, foo@2 added, same resolution moving;
+//   (b) churn: the last consumer of foo@1 is dropped while a new consumer
+//       of foo@2 is added — two independent changes that look identical
+//       in the diff (`-foo@1` / `+foo@2`).
+// Reporting (b) as a bump fabricates a version transition that never
+// happened, and that phantom then drives a false `isMajor` flag and a
+// false (highest-signal) peerMismatch downstream. So we only call it a
+// bump when the base lockfile confirms the shape of a real bump: the
+// removed version WAS present in the base tree and the added version was
+// NOT (i.e. the resolution genuinely moved from old to new).
+//
+// Classification per package name:
+//   1. Cancel versions present on BOTH a `-` and a `+` line (diff context
+//      churn — a key re-rendered because its block was reordered).
+//   2. Multi-version shuffle (the ORIGINAL removed/added sets had >1
+//      version on either side): never a clean bump, even if cancellation
+//      leaves a 1:1 survivor — that survivor is an arbitrary pairing of
+//      unrelated resolutions. Emit removals + netNew + a warning.
+//   3. Singleton 1:1 survivor (each original set had ≤1 version):
+//        - corroborated by baseIndex → bump (old=removed, new=added).
+//        - not corroborated → removal + netNew + a warning (we can't
+//          confirm the two versions are the same resolution moving).
+//   4. removed only → removal(s); added only → netNew(s).
 //
 // fallow-ignore-next-line complexity
-export function classifyChanges(byName) {
+export function classifyChanges(byName, baseIndex = new Map()) {
   const bumps = [];
   const removals = [];
   const netNew = [];
   const warnings = [];
 
+  const emitSplit = (name, rem, add) => {
+    for (const v of rem) removals.push({ name, version: v });
+    for (const v of add) netNew.push({ name, version: v });
+  };
+
   for (const { name, removed, added } of byName.values()) {
+    // A multi-version shuffle is anything where either ORIGINAL side
+    // carried more than one version. Detect it BEFORE cancellation so a
+    // shuffle that cancels down to a deceptive 1:1 is never mistaken for
+    // a clean bump.
+    const isShuffle = removed.size > 1 || added.size > 1;
+
     // Cancel versions on both sides: a `-foo@1.0.0` paired with a
     // `+foo@1.0.0` is an unchanged key the diff happened to re-render,
-    // not a bump-to-itself. Without this, such a pair would classify as
-    // a phantom bump with oldVersion === newVersion.
+    // not a bump-to-itself.
     const rem = [...removed].filter((v) => !added.has(v));
     const add = [...added].filter((v) => !removed.has(v));
     if (rem.length === 0 && add.length === 0) continue;
-    if (rem.length === 1 && add.length === 1) {
+
+    const cleanPair = rem.length === 1 && add.length === 1 && !isShuffle;
+    const corroborated =
+      cleanPair && baseIndex.has(`${name}@${rem[0]}`) && !baseIndex.has(`${name}@${add[0]}`);
+
+    if (corroborated) {
       bumps.push({ name, oldVersion: rem[0], newVersion: add[0] });
-    } else {
-      if (rem.length > 0 && add.length > 0) {
+      continue;
+    }
+
+    // Not a confirmed bump. Explain why when both sides have content (a
+    // plausible-but-unconfirmed change), so the reviewer sees the
+    // ambiguity these heuristics deliberately refuse to resolve.
+    if (rem.length > 0 && add.length > 0) {
+      if (isShuffle) {
         warnings.push(
           `multi-version change for ${name}: removed [${rem.join(', ')}], added [${add.join(', ')}]; reported as separate removals/netNew rather than a single bump`,
         );
+      } else {
+        warnings.push(
+          `unconfirmed change for ${name}: removed ${rem[0]}, added ${add[0]}; could not confirm a single resolution moved between them from the base lockfile, so reported as a separate removal + netNew rather than a bump`,
+        );
       }
-      for (const v of rem) removals.push({ name, version: v });
-      for (const v of add) netNew.push({ name, version: v });
     }
+    emitSplit(name, rem, add);
   }
   return { bumps, removals, netNew, warnings };
 }
 
 // Convenience accessor for callers that only want `(name, oldVersion,
-// newVersion)` triples. Discards everything else.
-export function extractBumps(diff) {
-  return classifyChanges(extractDepChanges(diff)).bumps;
+// newVersion)` triples. Discards everything else. `baseIndex` is
+// forwarded so bumps are corroborated (without it, no 1:1 is confirmable
+// and bumps come back empty — see classifyChanges).
+export function extractBumps(diff, baseIndex = new Map()) {
+  return classifyChanges(extractDepChanges(diff), baseIndex).bumps;
 }
 
 // ---------------------------------------------------------------------------
@@ -386,11 +494,14 @@ export function indexLockfile(lock) {
   for (const [key, meta] of Object.entries(lock.packages ?? {})) {
     const parsed = parseDepKey(key);
     if (!parsed) continue;
-    const peer = meta && typeof meta === 'object' ? (meta.peerDependencies ?? {}) : {};
+    const isObj = meta && typeof meta === 'object';
+    const peer = isObj ? (meta.peerDependencies ?? {}) : {};
+    const peerMeta = isObj ? (meta.peerDependenciesMeta ?? {}) : {};
     out.set(key, {
       name: parsed.name,
       version: parsed.version,
       peerDependencies: typeof peer === 'object' && peer !== null ? peer : {},
+      peerDependenciesMeta: typeof peerMeta === 'object' && peerMeta !== null ? peerMeta : {},
     });
   }
   return out;
@@ -411,6 +522,11 @@ export function indexLockfile(lock) {
 // their new version may declare a wider range, and we have no way to
 // know it from local data alone. Better to under-report than to
 // false-flag.
+//
+// OPTIONAL peers are skipped: pnpm records them under
+// `peerDependenciesMeta.<name>.optional: true`. An optional peer out of
+// range does not break the consumer, so flagging it would be a false
+// positive (the lockfile has many — typescript, rollup, etc.).
 //
 // Returns an array of { consumer, consumerVersion, bumpedPackage,
 // declaredRange, newVersion, satisfies: false } entries. We only emit
@@ -439,6 +555,13 @@ export function findPeerMismatches(bumps, baseLockfileIndex) {
     for (const [peerName, declaredRange] of Object.entries(meta.peerDependencies)) {
       const newVersion = bumpedByName.get(peerName);
       if (!newVersion) continue;
+      // Optional peers (peerDependenciesMeta.<name>.optional === true)
+      // don't break the consumer when out of range — the consumer
+      // declared it can run without them, or with a different version.
+      // Flagging these produces false HIGH mismatches on routine bumps
+      // (e.g. a typescript/rollup major against a plugin that lists them
+      // optional), so skip them.
+      if (meta.peerDependenciesMeta?.[peerName]?.optional === true) continue;
       if (typeof declaredRange !== 'string') continue;
       if (semver.satisfies(newVersion, declaredRange, { includePrerelease: true })) continue;
       const dedupKey = `${meta.name}@${meta.version}::${peerName}::${declaredRange}`;
@@ -512,7 +635,10 @@ export async function run(opts) {
   const lock = parseLockfile(lockText, opts.lockfile);
 
   const baseIndex = indexLockfile(lock);
-  const { bumps, removals, netNew, warnings } = classifyChanges(extractDepChanges(diffText));
+  const { bumps, removals, netNew, warnings } = classifyChanges(
+    extractDepChanges(diffText),
+    baseIndex,
+  );
 
   const bumpsWithMajor = bumps.map((b) => ({
     name: b.name,

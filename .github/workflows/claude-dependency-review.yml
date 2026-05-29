@@ -325,9 +325,25 @@ jobs:
                masquerading as Dependabot. Default LOW; escalate to
                MEDIUM if source files are touched.
 
+            6. EXTRACTOR WARNINGS (read `signals.warnings`).
+
+               The extractor emits a warning when it could NOT cleanly
+               classify a change — e.g. a multi-version shuffle of one
+               package, or a removed/added pair it could not confirm was
+               a single resolution moving (so it reported a removal +
+               netNew instead of a bump). A non-empty `warnings` array
+               means the OTHER dimensions above may be working from
+               incomplete bump data: a real bump might be split across
+               `removals`/`netNew`, so a peer mismatch or major-bump
+               concern could be under-reported. Default LOW; surface
+               every warning verbatim in "Other notes" so the human
+               reviewer knows which changes the tooling could not pin
+               down. Escalate to MEDIUM only if a warning concerns a
+               package that one of dimensions 1-4 flagged.
+
             === OVERALL VERDICT ===
 
-            The PR's overall risk = MAX across all five dimensions. A
+            The PR's overall risk = MAX across all six dimensions. A
             single HIGH on any dimension makes the whole PR HIGH. Do
             not average. Do not weight by count.
 
@@ -359,7 +375,9 @@ jobs:
             **Transitive surface:** <one line summary, e.g. "+1 net-new
             (`@types/esrecurse`), -12 removed">
 
-            **Other notes:** <bullets, or "none">
+            **Other notes:** <bullets, or "none". Include every
+            `signals.warnings` entry verbatim here so the reviewer knows
+            which changes the extractor could not cleanly classify.>
 
             *Advisory only — merge gating remains the seven CI gates in
             ci.yml. Human reviewer should treat this as one input. The

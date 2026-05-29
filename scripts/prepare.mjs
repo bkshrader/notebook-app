@@ -67,7 +67,11 @@ try {
   // Non-fatal: a failed/blocked Playwright install (offline, no sudo on
   // Linux, etc.) must not break `prepare` — husky is the load-bearing
   // part and already ran above. Surface a notice and continue.
+  //
+  // execSync sets `.status` to the child's exit code on a non-zero exit
+  // (the common case here); `.code` is only set for spawn-level errors
+  // like ENOENT. Prefer status, then code, then the message.
   console.warn(
-    `prepare: 'pnpm exec playwright install --with-deps chromium' failed (${err.code ?? err.message}); local Storybook/a11y tests may need it installed manually.`,
+    `prepare: 'pnpm exec playwright install --with-deps chromium' failed (${err.status ?? err.code ?? err.message}); local Storybook/a11y tests may need it installed manually.`,
   );
 }
