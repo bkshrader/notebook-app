@@ -55,10 +55,10 @@ set -euo pipefail
 #    (puts `node_modules/.bin` on PATH for lint-staged/prettier, honors
 #    HUSKY=0, sources ~/.config/husky/init.sh, runs hooks under
 #    `sh -e`). Without it, git silently no-ops on `core.hooksPath` and
-#    pre-commit/pre-push don't fire. Fix: run `pnpm run prepare`, which
-#    materializes `.husky/_/` — but ONLY if husky is installed locally
-#    (see the local-install check below; we do not lean on a parent
-#    repo's install).
+#    pre-commit/pre-push don't fire. Fix: run `pnpm install`, whose
+#    `prepare` lifecycle materializes `.husky/_/`. This also covers the
+#    fresh-worktree case where node_modules itself is absent — the same
+#    command provisions deps and the wrapper in one shot.
 #
 # 2. Worktree-scope hooksPath override: an upstream tool (likely the
 #    worktree-creation flow) wrote an absolute `core.hooksPath` to
@@ -87,8 +87,8 @@ set -euo pipefail
 #      (pinned at session start) and bootstraps the ORIGINAL root instead
 #      of the checkout just cd'd into — the exact event this hook was
 #      wired for becomes a no-op.
-#   2. An unconsumed stdin payload is inherited by the `node
-#      scripts/prepare.mjs` child (and its `execSync` grandchild), a
+#   2. An unconsumed stdin payload is inherited by the `pnpm install`
+#      child (and the `prepare.mjs`/`execSync` descendants it spawns), a
 #      latent coupling we'd rather not leave dangling.
 #
 # The `|| true` keeps `set -e` from aborting when stdin is empty.
@@ -141,44 +141,29 @@ fi
 # returns a non-empty error string while still exiting 0 if the CWD has
 # no `.git` reference. That happens when this directory is a filesystem
 # remnant left behind after `git worktree remove` — git no longer
-# considers it a worktree. Running `pnpm run prepare` here would no-op
+# considers it a worktree. Running `pnpm install` here would no-op
 # silently; skip with a loud notice instead.
 if [ ! -e .git ]; then
   echo "husky-bootstrap: target ('$PWD') has no .git file/dir — likely a ghost worktree left behind after 'git worktree remove'. Skipping husky bootstrap; remove the empty directory or restore the worktree." >&2
   exit 0
 fi
 
-if ! command -v node >/dev/null 2>&1; then
-  echo "husky-bootstrap: node not on PATH; cannot bootstrap husky. Hooks won't fire here until bootstrapped manually (run 'pnpm install')." >&2
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "husky-bootstrap: pnpm not on PATH; cannot provision this checkout. Hooks won't fire here until bootstrapped manually (run 'pnpm install'). If pnpm isn't installed, 'corepack enable' makes it available." >&2
   exit 0
 fi
 
-# Require a LOCAL husky install in this environment. We check for
-# `./node_modules/husky` directly (a filesystem stat scoped to THIS
-# checkout) rather than `require.resolve`, which would climb
-# node_modules upward and find a parent worktree's install — exactly
-# the cross-environment coupling this redesign removes, and which hides
-# the real problem (this environment was never provisioned). If husky
-# isn't installed here, tell the agent to install — these events can't
-# block, so this is a loud notice.
-if [ ! -d node_modules/husky ]; then
-  echo "husky-bootstrap: husky is not installed in this checkout ('$PWD'). This is usually a fresh git worktree that was never provisioned. Run 'pnpm install' here to materialize node_modules and .husky/_/, otherwise pre-commit/pre-push will NOT fire for commits made in this environment." >&2
-  exit 0
-fi
-
-# Materialize this environment's `.husky/_/` by running the repo's
-# prepare script directly (`node scripts/prepare.mjs`) rather than
-# `pnpm run prepare` — directness avoids an extra package-manager
-# process and is explicit about what we're invoking. prepare.mjs runs
-# husky and (when not in CI/prod) the Playwright install; both are
-# idempotent. Output to stderr so it doesn't pollute the session's
-# user-facing transcript.
-if [ ! -f scripts/prepare.mjs ]; then
-  echo "husky-bootstrap: scripts/prepare.mjs not found in '$PWD'; cannot bootstrap. Run 'pnpm install' here." >&2
-  exit 0
-fi
-if ! node scripts/prepare.mjs >&2; then
-  echo "husky-bootstrap: 'node scripts/prepare.mjs' failed in '$PWD'; hooks may not fire here. See the error above." >&2
+# Provision this environment via `pnpm install`. On a fresh worktree
+# this materializes node_modules from scratch; on an
+# already-installed-but-unbootstrapped checkout it's a near-no-op that
+# still runs the `prepare` lifecycle. Either way `prepare` invokes
+# scripts/prepare.mjs, which runs husky to materialize `.husky/_/` (and,
+# locally, the Playwright install) — so we no longer special-case
+# "husky missing" vs "wrapper missing": one command covers both.
+# Output to stderr so it doesn't pollute the session's user-facing
+# transcript.
+if ! pnpm install >&2; then
+  echo "husky-bootstrap: 'pnpm install' failed in '$PWD'; hooks may not fire here. See the error above." >&2
   exit 0
 fi
 
@@ -186,6 +171,6 @@ fi
 # no-ops. Verify the wrapper actually materialized so a silent no-op
 # doesn't slip past as "bootstrap succeeded."
 if [ ! -f .husky/_/pre-commit ]; then
-  echo "husky-bootstrap: 'pnpm run prepare' exited 0 but .husky/_/pre-commit is still missing in '$PWD'. Husky's installer probably silently no-op'd; hooks won't fire here until manually bootstrapped." >&2
+  echo "husky-bootstrap: 'pnpm install' exited 0 but .husky/_/pre-commit is still missing in '$PWD'. Husky's installer probably silently no-op'd; hooks won't fire here until manually bootstrapped." >&2
   exit 0
 fi
