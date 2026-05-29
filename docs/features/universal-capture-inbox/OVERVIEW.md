@@ -7,9 +7,9 @@ A single global hotkey opens a lightweight capture window that writes to `Inbox.
 ## Design intent
 
 - **One hotkey, everywhere.** OS-global shortcut (works even when the app isn't focused).
-- **Minimal capture UI.** A textarea, a "save" command, an "expand" command (open in full editor). No "select project" picker, no tags, no required metadata.
+- **Minimal capture UI.** A textarea, a "save" command, an "expand" command (open in full editor). No "select Project" picker, no tags, no required metadata.
 - **Append-only by default.** Captures land in `Inbox.md` at the end. A separator (`---` or timestamp heading) divides sessions.
-- **Organize later.** A separate UI surface (the Inbox view) lets the user triage — drag/promote items into projects, delete what's noise, leave the rest for later.
+- **Organize later.** A separate UI surface (the Inbox view) lets the user triage — drag/promote items into Projects, delete what's noise, leave the rest for later.
 
 ## Why this matters
 

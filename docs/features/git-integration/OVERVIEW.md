@@ -36,7 +36,7 @@ These need an ADR (and likely a `docs/research/` entry) before implementation �
   - **libgit2 bindings (e.g. nodegit)** — native speed without the system-git dependency, at the cost of native build/distribution complexity.
   - Decision criteria: AGPL compatibility, no required system dependency if avoidable, accessibility-neutral (this is headless), and "good enough" performance on a multi-thousand-note Library. Write an ADR.
 - **Binary and large files.** Ingested PDFs/DOCX (v1.1) and audio recordings are large and non-diffable. Decide whether they live in the same repo (and whether git-LFS or a `.gitignore` carve-out is warranted) or are tracked separately. This intersects with [document-ingestion](../document-ingestion/OVERVIEW.md) and [audio-recording-and-transcription](../audio-recording-and-transcription/OVERVIEW.md).
-- **Sidecar metadata.** Sub-file metadata (e.g. timestamp anchors, future indices) stored as sidecar files should be committed alongside their note so a checkout is internally consistent. Confirm the commit unit includes sidecars. See the sidecar discussion in [remote-sync](../remote-sync/OVERVIEW.md).
+- **Companion files.** Sub-file metadata (e.g. timestamp anchors, future indices) stored as Companion files should be committed alongside their note so a checkout is internally consistent. Confirm the commit unit includes Companion files. See the Companion file discussion in [remote-sync](../remote-sync/OVERVIEW.md).
 - **History UI.** What the time-travel surface looks like — per-note timeline, diff view, restore flow — and how it stays fully keyboard- and screen-reader-navigable (diffs are notoriously bad for screen readers; the WCAG 2.1 AA floor applies).
 
 ## Accessibility implications

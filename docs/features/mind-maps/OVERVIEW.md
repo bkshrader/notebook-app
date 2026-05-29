@@ -14,14 +14,14 @@ Hierarchical visual organization of ideas. Distinct from the [whiteboard](../whi
 ## What v2.0 ships
 
 - Manual mind-map creation: root node + add/edit/move child nodes via keyboard or mouse.
-- Saved per-project as a structured file (likely JSON, possibly Mermaid-renderable).
+- Saved per-Project as a structured file (likely JSON, possibly Mermaid-renderable).
 - Keyboard navigation (Tab/Arrow keys) for accessibility.
 - Export to image (PNG/SVG) and to outline-markdown.
 
 ## What v2.0+ may add
 
-- **AI-generated mind maps** from a note or transcript (hidden in the AI-free build; see the AI-feature-flag note in [ROADMAP.md](../../ROADMAP.md)). The user picks a source, picks "generate mind map," gets a structured node tree as a starting point.
-- Linking mind-map nodes to specific notes / sources / timestamps.
+- **AI-generated mind maps** from a Note or transcript (hidden in the AI-free build; see the AI-feature-flag note in [ROADMAP.md](../../ROADMAP.md)). The user picks a source, picks "generate mind map," gets a structured node tree as a starting point.
+- Linking mind-map nodes to specific Notes / sources / timestamps.
 
 ## Library candidates
 

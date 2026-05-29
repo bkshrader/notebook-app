@@ -89,7 +89,7 @@ The text-to-speech (TTS) market in higher ed is layered:
 
 - Students entering with these tools will expect: (a) "play from cursor" or "play selection" with adjustable rate/pitch/voice; (b) word-level highlighting synced with audio; (c) export to MP3 or DAISY of any page; (d) the ability to send the document text out to their existing reader of choice via a clean clipboard/text export.
 - Do not bundle a proprietary TTS engine. Instead expose system TTS (SpeechSynthesis API in Electron; native AVSpeechSynthesizer / SpeechSynthesizer / speech-dispatcher in Tauri) and an optional pluggable interface for users who run local Whisper/Coqui/Piper voices.
-- "Read aloud while I follow" with caret sync is the high-impact, lowest-effort cognitive accommodation we can ship.
+- Read-along (synchronized caret highlight during TTS playback) is the high-impact, lowest-effort cognitive accommodation we can ship.
 
 ### 1.3 Screen magnification
 
@@ -467,7 +467,7 @@ Consolidated, opinionated. Each directive lists: (P) the primary user population
 
 ### Reading / TTS
 
-5. **Built-in read-aloud with word-level highlight, adjustable rate/voice, and platform TTS by default.**
+5. **Built-in TTS with Read-along word-level highlight, adjustable rate/voice, and platform voices by default.**
    - P: blind, low-vision, dyslexia, ADHD. T: Read&Write, Kurzweil, NaturalReader, Voice Dream, Speechify. E: dominant TTS use case in DSS provisioning[^17][^20].
 
 6. **Pluggable TTS engine.** Surface system voices, but allow the user to drop in a local Piper/Coqui voice model or call a paid Eleven/Speechify API.

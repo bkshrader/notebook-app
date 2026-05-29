@@ -316,7 +316,7 @@ A note-taking app for college students/academics has several concrete LLM use ca
 1. **Summarization** of lectures, papers, long notes — needs streaming so users see progress, and structured outputs so the summary has a stable shape (TL;DR + bullet points + tags).
 2. **Q&A over notes** (RAG) — the LLM consumes retrieved passages from a local vector store and answers in the user's voice. Wants long context windows; benefits from cheap models for the embedding step.
 3. **Voice command parsing** — accessibility win for ADHD users who can't always type. Needs **STT** (OpenRouter STT via Whisper-Large-V3 / GPT-4o Transcribe[^or-audio-models]) and a small fast model to map the transcript to an in-app action. Structured outputs are essential here.
-4. **Read-aloud / TTS** — students with autism or reading difficulties benefit hugely from being able to hear notes back. **OpenRouter TTS endpoint** covers this.[^or-audio]
+4. **Read-along / TTS** — students with autism or reading difficulties benefit hugely from being able to hear notes back. **OpenRouter TTS endpoint** covers this.[^or-audio]
 5. **Structured extraction** — auto-tagging, "extract all citations as APA," "find every TODO with a deadline." Strict JSON schema mode is the right tool.[^or-structured]
 6. **Concept/relationship graphs** — extract entities and relations to build a personal knowledge graph. Structured outputs + a deterministic model.
 7. **Rewriting / tone-shifting** — "rewrite this paragraph at a 9th-grade reading level," "make this less anxious-sounding." Streaming, no JSON needed.

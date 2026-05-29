@@ -13,11 +13,11 @@ A browser extension for capturing web content into the user's Library — select
 
 ## Scope
 
-- **Save selection → into Capture Inbox or specific project.**
+- **Save selection → into Capture Inbox or specific Project.**
 - **Save full page → Reader-mode-extracted markdown, with citation metadata (URL, title, author, date) in YAML frontmatter.**
-- **Screenshot → save as image into project, optionally with auto-OCR.**
+- **Screenshot → save as image into a Project, optionally with auto-OCR.**
 - **Extract reference metadata** for academic sites (DOI lookup, BibTeX generation, integration with [bibliography-management](../bibliography-management/OVERVIEW.md)).
-- **YouTube transcript capture** — pull the auto-generated or provided transcript, save as a note with the video URL.
+- **YouTube transcript capture** — pull the auto-generated or provided transcript, save as a Note with the video URL.
 
 ## Browser targets
 

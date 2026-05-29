@@ -22,7 +22,7 @@ A read-only rendering surface for `.md` files. Distinct from the [text editor](.
 - Markdown → HTML rendering via `remark` / `rehype` / `unified` pipeline (or `markdown-it` — TBD; engineering decision).
 - Sanitization (we still render user-supplied markdown that may have come from imported files in v1.1).
 - Standard CommonMark + GFM extensions (tables, task lists, strikethrough, autolinks).
-- Image rendering (local images from the project folder).
+- Image rendering (local images from the Project folder).
 - Syntax highlighting in code blocks (`shiki` or `Prism` — engineering decision).
 
 ## What v1.1 adds

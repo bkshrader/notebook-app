@@ -13,7 +13,7 @@ Text-to-speech (TTS) for documents and notes — the app reads content aloud. En
 
 ## What v1 ships
 
-- "Read aloud" action on any note or rendered markdown view.
+- "Speak" action on any note or rendered markdown view.
 - Play / pause / stop controls.
 - Voice selection (Supertonic ships multiple voices across 31 languages).
 - Speed adjustment (0.5x – 2x).

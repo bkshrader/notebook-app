@@ -9,7 +9,7 @@ Full-text search across the Library — notes, ingested documents, transcripts. 
 - **Fast.** Sub-second results for queries on libraries up to ~10k notes / ~100k pages of ingested content.
 - **Comprehensive.** Searches markdown notes, `.tex` notes, ingested-and-converted documents (PDF/DOCX/PPTX → markdown), and audio transcripts.
 - **Keyboard-first.** Hotkey to invoke from anywhere; arrow-key navigation through results; Enter opens.
-- **Scoped or global.** Search-the-current-project vs. search-the-library, toggled in the search UI.
+- **Scoped or global.** Search-the-current-Project vs. search-the-Library, toggled in the search UI.
 - **Snippet previews.** Results show the matched line(s) with context, not just the file name.
 
 ## Engineering shape
@@ -24,7 +24,7 @@ Full-text search across the Library — notes, ingested documents, transcripts. 
 - FTS index covering all `.md` / `.tex` notes and all converted-document `.md` files.
 - Transcripts from [audio recording](../audio-recording-and-transcription/OVERVIEW.md) included.
 - Snippet previews with match highlighting.
-- Project-scoped or library-wide toggle.
+- Project-scoped or Library-wide toggle.
 - Result ranking (BM25 from FTS5 or equivalent).
 
 ## What v2.0 adds

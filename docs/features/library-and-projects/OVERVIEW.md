@@ -21,7 +21,7 @@ Projects hold any file the app supports, not just markdown:
 - v1.1: `.tex` notes, ingested PDFs/DOCX/PPTX with their converted markdown
 - v2+: anything else the ingestion pipeline accepts
 
-The organization model and the editor/viewer pipeline are decoupled: a project shows a list of files, each file opens in the renderer appropriate to its extension.
+The organization model and the editor/viewer pipeline are decoupled: a Project shows a list of Files, each File opens in the renderer appropriate to its extension.
 
 ## Why this matters
 
@@ -46,7 +46,7 @@ Two design questions are intentionally left open and will be settled during impl
 
 ## Filesystem mapping
 
-Projects map to folders on disk under a user-configured Library root. A project named "PHIL 201" is the folder `~/Notes/PHIL 201/`. The shared Reference Materials store also lives under the Library root; its exact layout is deferred to implementation (see above). This keeps the storage model legible outside the app (see [plain-md-storage](../plain-md-storage/OVERVIEW.md)).
+Projects map to folders on disk under a user-configured Library root. A Project named "PHIL 201" is the folder `~/Notes/PHIL 201/`. The shared Reference Materials store also lives under the Library root; its exact layout is deferred to implementation (see above). This keeps the storage model legible outside the app (see [plain-md-storage](../plain-md-storage/OVERVIEW.md)).
 
 ## Relevant Documentation
 

@@ -2,12 +2,12 @@
 
 **Version:** 1.0 (Tier 1) → 1.1 (Tier 3)
 
-In-app PDF rendering with text-layer highlighting that produces note quotes with backlinks. Built on PDF.js.
+In-app PDF rendering with text-layer highlighting that produces Note quotes with backlinks. Built on PDF.js.
 
 ## Tier scoping (decided)
 
 - **Tier 0 (always)** — view-only. PDF.js renders the file; scroll, zoom, text-select.
-- **Tier 1 (v1)** — read-and-extract. Tier 0 + text highlights captured into a note as a blockquote with a backlink to "page N of document.pdf."
+- **Tier 1 (v1)** — read-and-extract. Tier 0 + text highlights captured into a Note as a blockquote with a backlink to "page N of document.pdf."
 - **Tier 2 (deferred)** — annotate-in-place. Drawing/highlighting/sticky-notes persisted _to the PDF file itself_. Most users get by with highlight-to-note; polish-heavy; not v1 or v1.1.
 - **Tier 3 (v1.1)** — OCR + accessibility upgrade. Detect when a PDF lacks a text layer; offer to OCR it in place via `ocrmypdf`, making scanned readings screen-reader-accessible _outside_ our app, not just inside it.
 
@@ -19,7 +19,7 @@ In-app PDF rendering with text-layer highlighting that produces note quotes with
 ## What v1 ships
 
 - PDF.js viewer pane with text-layer enabled.
-- Selection → "save as quote" → inserts a blockquote into the active note with a backlink.
+- Selection → "save as quote" → inserts a blockquote into the active Note with a backlink.
 - Backlinks resolve to "open this PDF at this page" inside the app.
 - Keyboard nav for page/zoom (standard PDF.js keymap).
 

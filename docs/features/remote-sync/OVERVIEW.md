@@ -23,7 +23,7 @@ The roadmap currently anticipates option B or C; the choice depends on what "rem
 ## Engineering implication for v1/v2
 
 - Storage layer should remain file-system-based (it already is — see [plain-md-storage](../plain-md-storage/OVERVIEW.md)).
-- Any sub-file metadata should be stored in sidecar files (e.g., `note.md` + `note.notes-meta.json`) or YAML frontmatter, both of which file-level sync handles cleanly.
+- Any sub-file metadata should be stored in Companion files (e.g., `note.md` + `note.notes-meta.json`) or YAML frontmatter, both of which file-level sync handles cleanly.
 - Designing v1 with sync in mind costs almost nothing if the storage model stays simple. Retrofitting later is expensive.
 
 ## What v3.0 ships (tentative)

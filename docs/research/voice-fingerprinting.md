@@ -65,7 +65,7 @@ A second class, `SpeakerEmbeddingExtractor`, runs the model itself and produces 
 - Node.js via the `sherpa-onnx-node` npm package (v1.13.2, published 2026-05-13, matching the GitHub release).[^npm]
 - C, C++, C# (.NET), Java, Kotlin, Rust, Go, Dart/Flutter, HarmonyOS (ArkTS), with Swift listed as supported in the project's 12-language matrix.
 
-For the notebook-app, the relevant binding is **Node.js** (the renderer runs in Electron's Chromium with Node integration). The Node API exposes `class SpeakerEmbeddingExtractor` with `createStream()` / `isReady(stream)` / `compute(stream, enableExternalBuffer=true) → Float32Array`, and `class SpeakerEmbeddingManager` with `add({name, v})`, `addMulti({name, v: Float32Array[]})`, plus search/verify methods.[^node-binding] Embeddings are returned as `Float32Array`, which is straightforward to persist as raw bytes in SQLite (or to encode as base64 in a JSON sidecar if we want plain-file storage to remain compatible with the [files-md.md](./files-md.md)-inspired plain-md doctrine).
+For the notebook-app, the relevant binding is **Node.js** (the renderer runs in Electron's Chromium with Node integration). The Node API exposes `class SpeakerEmbeddingExtractor` with `createStream()` / `isReady(stream)` / `compute(stream, enableExternalBuffer=true) → Float32Array`, and `class SpeakerEmbeddingManager` with `add({name, v})`, `addMulti({name, v: Float32Array[]})`, plus search/verify methods.[^node-binding] Embeddings are returned as `Float32Array`, which is straightforward to persist as raw bytes in SQLite (or to encode as base64 in a Companion file if we want plain-file storage to remain compatible with the [files-md.md](./files-md.md)-inspired plain-md doctrine).
 
 ### Streaming gap
 

@@ -23,7 +23,7 @@ Features:
   - **Post-hoc transcription**
 - STT model management — `base` ships by default; larger models offered in the setup wizard and a settings model manager.
 - Setup wizard — first-launch onboarding for everything that needs setup. Skippable; sensible defaults if skipped. Designed last.
-- [Text-to-speech (read-aloud)](./features/text-to-speech/OVERVIEW.md) for documents and notes
+- [Text-to-speech (TTS)](./features/text-to-speech/OVERVIEW.md) for documents and notes
 - [AI is BYO (bring your own)](./features/byo-ai/OVERVIEW.md): user configures an OpenAI-compatible endpoint per profile (local or cloud)
 - Build-time feature flag to produce an AI-free distribution.
 

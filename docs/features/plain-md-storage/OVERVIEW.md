@@ -23,7 +23,7 @@ Notes are stored as plain Markdown files on the user's local filesystem, with op
 
 - File watching (`chokidar` on Node, `watchdog` on Python) is required so external edits show up live.
 - Conflict resolution on external edit must be graceful — if the user edits in our app and also in vim, neither edit should silently win.
-- The library/projects organization is a layer over the filesystem, not a replacement for it. Folders on disk map to projects.
+- The Library/Projects organization is a layer over the filesystem, not a replacement for it. Folders on disk map to Projects.
 
 ## Relevant Documentation
 

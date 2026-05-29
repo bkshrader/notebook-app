@@ -4,7 +4,7 @@ description: Conduct research and write a `docs/research/<slug>.md` report for t
 argument-hint: '[deep|shallow]  the topic to be researched'
 ---
 
-# /research — write a reference doc for notebook-app
+# /research — write a Research doc for notebook-app
 
 You are writing into `docs/research/` of an accessibility-first, local-first note-taking app for academics. The audience of these reports is the future maintainer of this app (most often the user, sometimes a future Claude session) making decisions under the project's non-negotiable constraints. Every report exists to answer one or both of these questions:
 
@@ -231,4 +231,4 @@ When the report is done:
 - **Generic recommendations.** "It's worth considering" is filler. Either recommend or don't.
 - **Drive-by speculation in deep reports.** If a claim isn't footnoteable, either go find a source or cut it.
 - **Footnotes in shallow reports.** They signal the wrong mode; the shallow format intentionally trades depth for surface area.
-- **Skipping the project-fit section.** A reference doc that doesn't tell the future reader whether _this app_ should use the thing has failed at its only real job.
+- **Skipping the project-fit section.** A Research doc that doesn't tell the future reader whether _this app_ should use the thing has failed at its only real job.

@@ -12,7 +12,7 @@ A companion mobile app for iOS and Android. Primary use case: **audio capture wh
 
 ## Scope
 
-- **In scope:** audio capture (record a lecture, sync to library), basic note viewing, light note editing, capture-inbox parity.
+- **In scope:** audio capture (record a lecture, sync to Library), basic note viewing, light note editing, capture-inbox parity.
 - **Out of scope for v3:** PDF viewing/annotation (defer), heavy editor parity, math editing.
 
 ## Framework decision (open)

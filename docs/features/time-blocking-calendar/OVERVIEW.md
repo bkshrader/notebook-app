@@ -12,7 +12,7 @@ A calendar / time-blocking view for scheduling study sessions, assignment work, 
 
 ## What v3.0 _might_ ship
 
-- One-way ICS feed of project deadlines, task due dates, scheduled focus sessions ([pomodoro-timer](../pomodoro-timer/OVERVIEW.md)).
+- One-way ICS feed of Project deadlines, task due dates, scheduled focus sessions ([pomodoro-timer](../pomodoro-timer/OVERVIEW.md)).
 - Optional in-app week view that mirrors what the ICS feed publishes (read-only; the user schedules in their own calendar).
 - Pomodoro/focus-session log visualization ("you spent N hours on PHIL 201 this week").
 

@@ -15,7 +15,7 @@ Notes typed during an audio (or video) recording are anchored to their position 
 
 - Requires **word-level timestamps** from the STT pipeline — already enabled in [audio-recording-and-transcription](../audio-recording-and-transcription/OVERVIEW.md) v1.1 via faster-whisper's `word_timestamps=True`.
 - The editor (CodeMirror 6) attaches "recording offset" metadata to typed paragraphs/lines during an active recording session — captured at the moment the user starts typing each line.
-- Persistence: the metadata lives in the note's YAML frontmatter or in a sidecar `.notes-meta.json` file (decision deferred).
+- Persistence: the metadata lives in the note's YAML frontmatter or in a Companion file (`.notes-meta.json`) next to the Note (decision deferred).
 - Playback UI: a small "play from here" affordance per timestamped paragraph; keyboard shortcut to play-from-cursor.
 
 ## Why this is v2.0 not v1.1

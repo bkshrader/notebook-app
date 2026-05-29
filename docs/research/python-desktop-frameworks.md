@@ -10,7 +10,7 @@ The Electron plan for this notebook app already requires a Python sidecar proces
 2. **Rich-editor surface** good enough to host TipTap / Lexical / CodeMirror, _or_ a comparably capable native editor.
 3. **PDF rendering** with text-layer highlight (PDF.js in a webview, or QtPdf natively).
 4. **Audio capture + playback** for STT and TTS (system mic, low-latency device enum).
-5. **Cross-platform global hotkey** for a universal capture inbox.
+5. **Cross-platform global hotkey** for the universal capture Inbox.
 6. **System tray, native notifications, autostart, multi-window.**
 7. **File watching + filesystem-as-canon storage** (`watchdog` must work).
 8. **End-user packaging** — `.dmg` / `.exe` / `.msi` / `.AppImage`, not `pip install`.
@@ -461,7 +461,7 @@ Qt (and therefore Pyloid) handles multiple windows cleanly. The "capture inbox w
 - **PyQt6 / `pyqt-tools`:** GPL-3 → AGPL-3 one-way compatible.[^agpl-gpl-compat] Fine for us; downstream forks must remain (A)GPL.
 - **whisper.cpp / faster-whisper:** MIT and MIT respectively. Fine.
 - **Docling:** MIT. Fine.
-- **Supertonic:** MIT code + OpenRAIL-M model weights — model weights are a separate-runtime-asset question, _do not bundle the weights into the AGPL distribution_; have the user accept OpenRAIL-M on first-run download. (See the existing `supertonic.md` reference doc for the full analysis.)
+- **Supertonic:** MIT code + OpenRAIL-M model weights — model weights are a separate-runtime-asset question, _do not bundle the weights into the AGPL distribution_; have the user accept OpenRAIL-M on first-run download. (See the existing `supertonic.md` research doc for the full analysis.)
 - **`fbs` build tool:** GPL-3 — if you adopt fbs for packaging your build pipeline, the build pipeline becomes GPL-3. Not contagious to the _built_ app, but a friction point.
 - **`accessible_output` (TTS for assistive tech bridge if you go that way):** LGPL-2.1. Fine.
 

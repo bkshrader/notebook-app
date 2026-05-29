@@ -329,7 +329,7 @@ The keymap extension takes a priority-ordered list of bindings. Vim and Emacs ke
 
 - **Font scaling:** CM6 inherits the browser's font size. Setting `font-size` on the editor's parent element is sufficient; the editor reflows correctly. There is no built-in OS font-scale listener (you would need to call `view.requestMeasure()` on resize).
 - **Dark mode:** CM6 supports `&dark` and `&light` CSS selectors in theme definitions, which respond to `prefers-color-scheme`. The one-dark theme is the bundled reference. You can write a theme that automatically switches: `EditorView.theme({...}, { dark: window.matchMedia('(prefers-color-scheme: dark)').matches })`.[^dark-mode] For dynamic switching, recreate the theme extension in a transaction.
-- **Reduced motion:** CM6 has no built-in `prefers-reduced-motion` handling. The editor itself has no animations; cursor blink is controlled by CSS (`caret-color` / `animation`). You should add `@media (prefers-reduced-motion: reduce) { .cm-cursor { animation: none } }` in your theme. The read-along TTS highlight animation must similarly be suppressed by your TTS controller layer.
+- **Reduced motion:** CM6 has no built-in `prefers-reduced-motion` handling. The editor itself has no animations; cursor blink is controlled by CSS (`caret-color` / `animation`). You should add `@media (prefers-reduced-motion: reduce) { .cm-cursor { animation: none } }` in your theme. The Read-along TTS highlight animation must similarly be suppressed by your TTS controller layer.
 
 ### 4.6 Known Accessibility Gaps Summary
 

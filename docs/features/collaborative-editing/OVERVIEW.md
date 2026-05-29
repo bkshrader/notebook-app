@@ -9,7 +9,7 @@ Real-time multi-user editing of notes. Study group on the same lecture transcrip
 - Real-time concurrent editing (multiple cursors visible, character-level live updates).
 - Comments and suggestions (revision-suggestion mode, à la Google Docs).
 - Presence indicators (who's currently in this note).
-- Permissions per-note or per-project (view / comment / edit).
+- Permissions per-Note or per-Project (view / comment / edit).
 - Conflict-free via CRDT.
 
 ## Engineering shape

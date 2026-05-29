@@ -27,7 +27,7 @@ The editor surface for authoring and editing notes. v1 targets a **CodeMirror 6*
 
 ## What v2.0 may add
 
-- The roadmap's "Rich markdown editor" line item. **Open question** (informed by the CodeMirror 6 research report): is this satisfied by more sophisticated CodeMirror decorations, or does it require swapping to a ProseMirror-based editor (TipTap / Lexical / BlockNote)?
+- The roadmap's "Rich markdown editor" line item. **Open question** (informed by the CodeMirror 6 Research doc): is this satisfied by more sophisticated CodeMirror decorations, or does it require swapping to a ProseMirror-based editor (TipTap / Lexical / BlockNote)?
 
 ## Relevant Documentation
 
