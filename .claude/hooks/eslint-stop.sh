@@ -33,6 +33,52 @@ fi
 
 cd "$CWD"
 
+# --- Wait out an in-flight background bootstrap install -----------------
+# husky-bootstrap.sh (SessionStart/CwdChanged) provisions a fresh worktree's
+# deps in a DETACHED background `pnpm install`, so the session is usable in
+# ~0.5s instead of ~40s. The cost: for a brief window after a fresh-worktree
+# session opens, node_modules (and thus eslint) may not exist yet. Without
+# this wait, a quick turn that ends inside that window would hit the
+# "no local eslint install" block below and false-alarm on a worktree that
+# is actually provisioning fine.
+#
+# So: if this checkout's husky wrapper (.husky/_/pre-commit — the bootstrap's
+# documented post-condition, materialized by the SAME `pnpm install` that
+# installs node_modules) is missing, poll for it up to HUSKY_GATE_WAIT_SECS
+# (default 120s; set 0 to disable). Break early if the bootstrap lock
+# disappears (the install exited) rather than burning the whole timeout.
+# Unlike fallow-gate.sh — a commit safety gate that exits 2 on timeout — this
+# is a quality nudge: we only WAIT, then fall through to the existing
+# tool-existence check, which block-once's if eslint is genuinely absent.
+#
+# Anchor paths to the worktree root via git (matches fallow-gate.sh) so the
+# wrapper/lock resolve to THIS worktree, not the ambient CWD or a sibling.
+BOOT_WAIT_SECS="${HUSKY_GATE_WAIT_SECS-120}"
+ESLINT_BIN_PROBE="./node_modules/eslint/bin/eslint.js"
+if [ ! -f "$ESLINT_BIN_PROBE" ] && [ "$BOOT_WAIT_SECS" != 0 ]; then
+  ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  WRAPPER="${ROOT:+$ROOT/}.husky/_/pre-commit"
+  if [ ! -f "$WRAPPER" ]; then
+    if [ -n "$ROOT" ]; then
+      BOOT_LOCK="$(git -C "$ROOT" rev-parse --git-path husky-bootstrap.lock 2>/dev/null || echo "$ROOT/.husky-bootstrap.lock")"
+    else
+      BOOT_LOCK="$(git rev-parse --git-path husky-bootstrap.lock 2>/dev/null || echo .husky-bootstrap.lock)"
+    fi
+    echo "eslint-stop: eslint not yet installed; waiting up to ${BOOT_WAIT_SECS}s for the background bootstrap install to finish..." >&2
+    waited=0
+    while [ ! -f "$WRAPPER" ] && [ "$waited" -lt "$BOOT_WAIT_SECS" ]; do
+      # Lock gone => the background install has EXITED. Stop waiting and fall
+      # through rather than burning the rest of the timeout on a dead install.
+      if [ ! -f "$BOOT_LOCK" ]; then
+        break
+      fi
+      sleep 2
+      waited=$((waited + 2))
+    done
+  fi
+fi
+# --- end bootstrap wait ------------------------------------------------
+
 # Invoke ESLint via `node ./node_modules/eslint/bin/eslint.js` rather than
 # `pnpm exec`. On Windows, a package-manager exec wrapper still pays ~5s of
 # overhead per call; spawning node directly avoids that and the existence
