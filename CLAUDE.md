@@ -33,14 +33,16 @@ The MCP server is the source of truth for what components exist, what props they
 
 ## Commands
 
-Run `npm run` or read `package.json` to discover scripts. Story tests run via `npm run test-storybook` (Vitest + Playwright chromium). Document any future test runner here only if its invocation isn't obvious from `package.json`.
+This project uses **pnpm** (not npm) — pinned via `packageManager` in `package.json` and enforced with `engine-strict`. Use `corepack enable` if pnpm isn't on PATH. The choice (worktree install caching) is recorded in `docs/features/continuous-integration/adrs/package-manager.md`.
 
-CI gates on `lint`, `format:check`, `typecheck`, `build`, `audit:fallow`, `npm audit --audit-level=high`, and `license-check` (production deps must have an AGPL-3.0-or-later compatible license per the allow list in `.github/workflows/ci.yml`). Run all seven before declaring work done.
+Run `pnpm run` or read `package.json` to discover scripts. Story tests run via `pnpm test-storybook` (Vitest + Playwright chromium). Document any future test runner here only if its invocation isn't obvious from `package.json`.
 
-Local git hooks (husky, installed automatically via the `prepare` script on `npm install`):
+CI gates on `lint`, `format:check`, `typecheck`, `build`, `audit:fallow`, `pnpm audit --audit-level high`, and `license-check` (production deps must have an AGPL-3.0-or-later compatible license per the allow list in `.github/workflows/ci.yml`). Run all seven before declaring work done.
+
+Local git hooks (husky, installed automatically via the `prepare` script on `pnpm install`):
 
 - **pre-commit** runs prettier + eslint on staged files via `lint-staged`.
-- **pre-push** mirrors CI: typecheck, license-check, `npm audit --audit-level=high`, `audit:fallow`, build, test-storybook.
+- **pre-push** mirrors CI: typecheck, license-check, `pnpm audit --audit-level high`, `audit:fallow`, build, test-storybook.
 - Bypass: `git commit --no-verify` / `git push --no-verify`, or `HUSKY=0 git <cmd>` to skip all hooks.
 - The Claude-Code-only `.claude/hooks/fallow-gate.sh` (PreToolUse on Bash) continues to gate Claude-initiated commits and pushes — this is additive to the husky pre-push.
 
@@ -59,7 +61,7 @@ These are load-bearing and were the output of explicit research; don't relitigat
 ## Non-negotiable constraints
 
 - **WCAG 2.1 AA is the floor.** AAA is aspirational. Every interactive element must be keyboard-reachable and screen-reader-announceable. The framework choice (Electron) was made for a11y; the editor choice (CodeMirror 6) was made for a11y; the math renderer (MathJax v4 + SRE) was made for a11y. Don't degrade these.
-- **AGPL-3.0-or-later.** Every dependency must be AGPL-compatible when linked. The one exception is when the dependency is not redistributed by us, and only referenced via IPC. See `docs/licenses/in-use.md` for the current dependency-tree license summary (regenerate after any `npm install`) and `docs/licenses/incompatible.md` for known license traps and rejected libraries. Keep both files current — add new traps to `incompatible.md` as research uncovers them, and refresh `in-use.md` whenever dependencies change.
+- **AGPL-3.0-or-later.** Every dependency must be AGPL-compatible when linked. The one exception is when the dependency is not redistributed by us, and only referenced via IPC. See `docs/licenses/in-use.md` for the current dependency-tree license summary (regenerate after any `pnpm install`) and `docs/licenses/incompatible.md` for known license traps and rejected libraries. Keep both files current — add new traps to `incompatible.md` as research uncovers them, and refresh `in-use.md` whenever dependencies change.
 - **Local-first.** Plain `.md` files on disk are canonical. No proprietary database. No cloud account required. Sync is the user's choice (point iCloud/Dropbox/etc. at the notes folder).
 - **ADHD-first UX.** Stable focus, predictable layout, animations respect `prefers-reduced-motion`. Don't add visual flair that costs cognitive load.
 

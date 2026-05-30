@@ -63,8 +63,18 @@ case "$ABS_FILE" in
     ;;
 esac
 
-if command -v npx >/dev/null 2>&1; then
-  RUNNER=(npx --no-install prettier)
+# Prefer the project-local prettier binary directly — under pnpm's strict
+# layout it's symlinked into node_modules/.bin, and a direct spawn avoids
+# the wrapper overhead of `pnpm exec`. Anchor the probe to $ABS_PROJECT
+# (the file's own project root), NOT the hook's ambient CWD: this hook
+# never cd's, and CWD can be a sibling worktree or an unrelated directory
+# whose node_modules holds a different prettier. Fall back to `pnpm exec`
+# (resolves via the workspace), then a global `prettier` on PATH.
+PROJECT_PRETTIER="$ABS_PROJECT/node_modules/.bin/prettier"
+if [ -x "$PROJECT_PRETTIER" ]; then
+  RUNNER=("$PROJECT_PRETTIER")
+elif command -v pnpm >/dev/null 2>&1; then
+  RUNNER=(pnpm exec prettier)
 elif command -v prettier >/dev/null 2>&1; then
   RUNNER=(prettier)
 else

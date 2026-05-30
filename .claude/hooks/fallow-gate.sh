@@ -26,14 +26,87 @@ if ! printf '%s\n' "$CMD" | grep -Eq '(^|[[:space:];|&()])git[[:space:]]+(commit
   exit 0
 fi
 
+# --- Husky-bootstrap readiness gate ------------------------------------
+# husky-bootstrap.sh (SessionStart) provisions a fresh worktree's deps in
+# a DETACHED background `pnpm install`, so the session is usable in ~0.5s
+# instead of ~40s. The cost: for a brief window after a fresh-worktree
+# session opens, the husky wrapper (.husky/_/pre-commit) may not exist yet,
+# which means git would silently NOT fire pre-commit/pre-push. Since we're
+# about to run a commit/push, block here until the wrapper is materialized
+# so the commit is actually gated.
+#
+# Behavior: if the wrapper is missing, poll for it (the bootstrap writes a
+# lock with the install's PID). We wait up to BOOT_WAIT_SECS, then BLOCK
+# (exit 2) with instructions — never allow an ungated commit through. If
+# the wrapper already exists (the steady-state case: already-bootstrapped
+# worktree), this is a single stat and falls straight through.
+#
+# Override the timeout with HUSKY_GATE_WAIT_SECS (e.g. 0 to disable the
+# wait entirely and rely on whatever state exists right now).
+#
+# Anchor every path to the WORKTREE ROOT, not the gate's ambient CWD. The
+# gate never cd's, so a bare check of `.husky/_/pre-commit` is relative to
+# wherever the Bash tool happened to be — which can be a subdir of the
+# worktree, or (after a stray cd) a different checkout entirely. That risks
+# the gate stating the wrong tree: blocking a tree that IS bootstrapped, or
+# — the dangerous direction — passing a commit into a tree whose wrapper is
+# genuinely missing because a sibling it checked has one. `git rev-parse
+# --show-toplevel` resolves the root of the SAME worktree a bare `git
+# commit`/`git push` in this CWD would use (git changes to the worktree
+# root before firing hooks), so anchoring to it makes the readiness check
+# and the actual hook-firing agree. `--git-path` is likewise run from that
+# root so the lock/log resolve to this worktree's git dir, not a sibling's.
+# If we're somehow not in a work tree, ROOT stays empty and we fall back to
+# the old CWD-relative behavior rather than erroring.
+BOOT_WAIT_SECS="${HUSKY_GATE_WAIT_SECS-120}"
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+WRAPPER="${ROOT:+$ROOT/}.husky/_/pre-commit"
+if [ ! -f "$WRAPPER" ] && [ "$BOOT_WAIT_SECS" != 0 ]; then
+  if [ -n "$ROOT" ]; then
+    BOOT_LOCK="$(git -C "$ROOT" rev-parse --git-path husky-bootstrap.lock 2>/dev/null || echo "$ROOT/.husky-bootstrap.lock")"
+    BOOT_LOG="$(git -C "$ROOT" rev-parse --git-path husky-bootstrap.log 2>/dev/null || echo "$ROOT/.husky-bootstrap.log")"
+  else
+    BOOT_LOCK="$(git rev-parse --git-path husky-bootstrap.lock 2>/dev/null || echo .husky-bootstrap.lock)"
+    BOOT_LOG="$(git rev-parse --git-path husky-bootstrap.log 2>/dev/null || echo .husky-bootstrap.log)"
+  fi
+  echo "fallow-gate: git hooks not yet materialized; waiting up to ${BOOT_WAIT_SECS}s for the background bootstrap install to finish..." >&2
+  waited=0
+  while [ ! -f "$WRAPPER" ] && [ "$waited" -lt "$BOOT_WAIT_SECS" ]; do
+    # If the lock is gone, the background install has EXITED. If the
+    # wrapper still isn't present, the install failed/no-op'd — stop
+    # waiting and fall through to the block below rather than burn the
+    # whole timeout on an install that will never finish.
+    if [ ! -f "$BOOT_LOCK" ]; then
+      break
+    fi
+    sleep 2
+    waited=$((waited + 2))
+  done
+  if [ ! -f "$WRAPPER" ]; then
+    {
+      echo "fallow-gate: blocked: git hooks are not installed in this checkout (.husky/_/pre-commit is missing)."
+      echo "fallow-gate: the background bootstrap install did not finish in ${BOOT_WAIT_SECS}s, or it failed."
+      echo "fallow-gate: committing now would SKIP pre-commit/pre-push gating. Run 'pnpm install' manually"
+      echo "fallow-gate: to materialize the hooks, then retry. Install log: $BOOT_LOG"
+      echo "fallow-gate: (set HUSKY_GATE_WAIT_SECS=0 to bypass this wait, at the cost of ungated commits.)"
+    } >&2
+    exit 2
+  fi
+  echo "fallow-gate: git hooks materialized; proceeding." >&2
+fi
+# --- end readiness gate ------------------------------------------------
+
 if command -v fallow >/dev/null 2>&1; then
   RUNNER=(fallow)
   BIN_DESC="$(command -v fallow)"
-elif command -v npx >/dev/null 2>&1 && VER_PROBE="$(npx --no-install fallow --version 2>/dev/null || true)" && [[ "$VER_PROBE" == fallow* ]]; then
-  RUNNER=(npx --no-install fallow)
-  BIN_DESC="npx --no-install fallow"
+elif command -v pnpm >/dev/null 2>&1 && VER_PROBE="$(pnpm exec fallow --version 2>/dev/null || true)" && [[ "$VER_PROBE" == fallow* ]]; then
+  # `pnpm exec` runs an already-installed workspace binary (it never
+  # fetches from the registry), so it's the pnpm analogue of
+  # `npx --no-install`.
+  RUNNER=(pnpm exec fallow)
+  BIN_DESC="pnpm exec fallow"
 else
-  echo "fallow-gate: fallow binary not found (tried PATH and npx --no-install), skipping audit." >&2
+  echo "fallow-gate: fallow binary not found (tried PATH and pnpm exec), skipping audit." >&2
   exit 0
 fi
 
@@ -49,7 +122,7 @@ if [ -n "$MIN_VERSION" ] && [ -n "$VERSION" ]; then
       echo "fallow-gate: blocked: $BIN_DESC is fallow $VERSION, below required $MIN_VERSION."
       echo "fallow-gate: older binaries miss the uncommitted-changes fix (v2.46.0) and can"
       echo "fallow-gate: silently pass audits that would otherwise fail."
-      echo "fallow-gate: upgrade the fallow on PATH (e.g. npm install -g fallow@latest or"
+      echo "fallow-gate: upgrade the fallow on PATH (e.g. pnpm add -g fallow@latest or"
       echo "fallow-gate: cargo install fallow-cli), or set FALLOW_GATE_MIN_VERSION= to disable."
     } >&2
     exit 2

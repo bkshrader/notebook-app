@@ -3,10 +3,10 @@ name: Claude Dependency Review
 # Advisory review of Dependabot PRs. Claude reads the diff, the PR
 # metadata (which contains Dependabot's embedded release notes), and a
 # structured `signals.json` derived from the diff + the base-ref
-# `package-lock.json` (peer-dep mismatches, license changes, net-new
-# transitives, bumps, removals). Posts one comment with a LOW/MEDIUM/HIGH
-# verdict. Advisory only — merge gating remains the seven CI gates in
-# ci.yml.
+# `pnpm-lock.yaml` (peer-dep mismatches, net-new transitives, bumps,
+# removals — no license data; pnpm's lockfile records no per-package
+# license string). Posts one comment with a LOW/MEDIUM/HIGH verdict.
+# Advisory only — merge gating remains the seven CI gates in ci.yml.
 #
 # Full design rationale (threat model, why pull_request and not
 # pull_request_target, why Dependabot secrets namespace, why local
@@ -69,17 +69,19 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - run: corepack enable
+
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
+          cache: pnpm
 
       # --ignore-scripts blocks upstream lifecycle scripts. Install runs
       # against the BASE REF lockfile (because checkout is pinned), so a
       # malicious PR cannot inject new deps here. See ADR.
       - name: Install dev dependencies (no scripts)
-        run: npm ci --ignore-scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       # GH_TOKEN is scoped to this step so it does not bleed into the
       # Claude step (which uses OIDC). git diff uses three-dot
@@ -115,7 +117,7 @@ jobs:
 
           node scripts/extract-dep-signals.mjs \
             --diff .claude-dep-review/pr.diff \
-            --lockfile package-lock.json \
+            --lockfile pnpm-lock.yaml \
             --out .claude-dep-review/signals.json
 
           sig_bytes=$(wc -c < .claude-dep-review/signals.json)
@@ -176,16 +178,18 @@ jobs:
 
             - `.claude-dep-review/signals.json` with shape:
               {
-                "bumps": [{name, oldVersion, newVersion, oldLicense,
-                           newLicense, isMajor}],
+                "bumps": [{name, oldVersion, newVersion, isMajor}],
                 "removals": [{name, version}],
-                "netNew": [{name, version, license}],
-                "licenseChanges": [{name, version, oldLicense, newLicense}],
+                "netNew": [{name, version}],
                 "peerMismatches": [{consumer, consumerVersion,
                                     bumpedPackage, declaredRange,
                                     newVersion, satisfies}],
                 "warnings": [...]
               }
+              NOTE: pnpm's lockfile records no per-package license string,
+              so the signals carry NO license data. License compatibility
+              is NOT a dimension you can assess from signals here — the
+              `license-check` CI gate is the enforcement point.
               These signals are pre-computed for you — do NOT re-derive
               them from the diff. Read them and use them.
 
@@ -214,7 +218,7 @@ jobs:
                Risk weighting:
                - HIGH per mismatch by default — peer ranges are the
                  upstream maintainer's explicit compatibility claim and
-                 violating them is the textbook way `npm install`
+                 violating them is the textbook way `pnpm install`
                  produces warnings and runtime breaks.
                - You may downgrade to MEDIUM if the consumer is
                  dev-only AND the failure mode is a soft warning rather
@@ -225,20 +229,40 @@ jobs:
                If `signals.peerMismatches` is empty, this dimension is
                LOW (or omit the section).
 
-            2. LICENSE COMPATIBILITY (read `signals.bumps`,
-               `signals.netNew`, `signals.licenseChanges`).
+            2. LICENSE COMPATIBILITY (read `signals.netNew`; resolve
+               licenses from the installed tree).
 
-               Cross-reference every license string in those arrays
-               against `docs/licenses/in-use.md` (allow list) and
-               `docs/licenses/incompatible.md` (deny list). Flag:
-               - Any license in `signals.licenseChanges` that moves
-                 from allowed to non-allowed.
-               - Any new license string in `signals.netNew` that
-                 doesn't appear in the allow list.
+               The signals carry NO license strings — pnpm's lockfile
+               doesn't record them. To assess license risk you must read
+               each package's own manifest from the installed tree. Under
+               pnpm's strict layout the path depends on whether it's a
+               direct or transitive dependency:
+                 - direct dep:     `node_modules/<name>/package.json`
+                 - transitive dep: `node_modules/.pnpm/<name>@<version>/node_modules/<name>/package.json`
+                   (for a scoped name the `.pnpm` dir flattens the slash:
+                   `@scope/pkg@1.2.3` → `node_modules/.pnpm/@scope+pkg@1.2.3/node_modules/@scope/pkg/package.json`)
+               Read the `license` field. If you don't know a package's
+               exact installed version, `Glob` for
+               `node_modules/.pnpm/<name>@*/node_modules/<name>/package.json`
+               to find it.
+
+               (The base ref is installed, so net-new packages introduced
+               by THIS PR will NOT be present in the tree at all — only
+               packages already in the base tree are. For a net-new
+               package you cannot read locally, say "license not
+               verifiable from base tree" and defer to the `license-check`
+               CI gate rather than guessing.)
+
+               For every license string you CAN resolve, cross-reference
+               it against `docs/licenses/in-use.md` (allow list) and
+               `docs/licenses/incompatible.md` (deny list). Flag any
+               that is not on the allow list.
 
                The `license-check` CI gate already enforces production
-               deps. Your value-add is catching devDep license drift
-               and surfacing changes that warrant a human re-eval.
+               deps mechanically and is the authoritative gate. This
+               dimension is best-effort surfacing only; default LOW and
+               escalate only when you can point at a concrete
+               non-allowed license string.
 
             3. BREAKING CHANGES WEIGHTED BY REAL USAGE.
 
@@ -301,9 +325,25 @@ jobs:
                masquerading as Dependabot. Default LOW; escalate to
                MEDIUM if source files are touched.
 
+            6. EXTRACTOR WARNINGS (read `signals.warnings`).
+
+               The extractor emits a warning when it could NOT cleanly
+               classify a change — e.g. a multi-version shuffle of one
+               package, or a removed/added pair it could not confirm was
+               a single resolution moving (so it reported a removal +
+               netNew instead of a bump). A non-empty `warnings` array
+               means the OTHER dimensions above may be working from
+               incomplete bump data: a real bump might be split across
+               `removals`/`netNew`, so a peer mismatch or major-bump
+               concern could be under-reported. Default LOW; surface
+               every warning verbatim in "Other notes" so the human
+               reviewer knows which changes the tooling could not pin
+               down. Escalate to MEDIUM only if a warning concerns a
+               package that one of dimensions 1-4 flagged.
+
             === OVERALL VERDICT ===
 
-            The PR's overall risk = MAX across all five dimensions. A
+            The PR's overall risk = MAX across all six dimensions. A
             single HIGH on any dimension makes the whole PR HIGH. Do
             not average. Do not weight by count.
 
@@ -333,9 +373,11 @@ jobs:
             (or "no major bumps")
 
             **Transitive surface:** <one line summary, e.g. "+1 net-new
-            (`@types/esrecurse` MIT), -12 removed">
+            (`@types/esrecurse`), -12 removed">
 
-            **Other notes:** <bullets, or "none">
+            **Other notes:** <bullets, or "none". Include every
+            `signals.warnings` entry verbatim here so the reviewer knows
+            which changes the extractor could not cleanly classify.>
 
             *Advisory only — merge gating remains the seven CI gates in
             ci.yml. Human reviewer should treat this as one input. The

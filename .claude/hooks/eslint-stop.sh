@@ -34,9 +34,9 @@ fi
 cd "$CWD"
 
 # Invoke ESLint via `node ./node_modules/eslint/bin/eslint.js` rather than
-# `npx`. On Windows, `npx --no-install` still pays ~5s of wrapper overhead per
-# call; spawning node directly avoids that and the existence check is a cheap
-# stat instead of a process spawn.
+# `pnpm exec`. On Windows, a package-manager exec wrapper still pays ~5s of
+# overhead per call; spawning node directly avoids that and the existence
+# check is a cheap stat instead of a process spawn.
 #
 # The path is LOCAL to this checkout ($CWD) on purpose. We deliberately do NOT
 # walk node_modules upward to a parent repo's install: a worktree without its
@@ -61,7 +61,7 @@ if [ ! -f "$ESLINT_BIN" ]; then
   # and we bail out, so there's no infinite loop.
   jq -n --arg cwd "$CWD" '{
     decision: "block",
-    reason: ("eslint-stop: no local eslint install found in this checkout (" + $cwd + "). This is usually a fresh git worktree that was never provisioned. Run `npm install` here (it also runs the prepare script and materializes node_modules + .husky/_/), then continue. If you genuinely intend to stop without linting, this is the only block — stopping again will proceed.")
+    reason: ("eslint-stop: no local eslint install found in this checkout (" + $cwd + "). This is usually a fresh git worktree that was never provisioned. Run `pnpm install` here (it also runs the prepare script and materializes node_modules + .husky/_/), then continue. If you genuinely intend to stop without linting, this is the only block — stopping again will proceed.")
   }'
   exit 0
 fi
@@ -77,7 +77,7 @@ trap 'rm -f "$OUTPUT_FILE"' EXIT
 #
 # --cache: the type-aware rules (recommendedTypeChecked) spin up the full TS program,
 # which costs ~15s cold. Caching by file mtime + config hash drops repeat fires to ~2s.
-# Hook-specific cache dir avoids colliding with a future `npm run lint -- --cache`.
+# Hook-specific cache dir avoids colliding with a future `pnpm lint --cache`.
 set +e
 node "$ESLINT_BIN" \
   --cache --cache-location node_modules/.cache/eslint-stop/ \

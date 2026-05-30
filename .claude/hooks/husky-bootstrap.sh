@@ -1,6 +1,55 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- Detached background-install entry point ---------------------------
+# This script re-execs ITSELF in the background to run the slow
+# `pnpm install` without blocking the session (see the detach block near
+# the end of the main path for why). When invoked as
+# `husky-bootstrap.sh --bg-install <target-dir>`, we ARE that background
+# child: cd into the target and run the provisioning, then exit. This is
+# handled at the very top, before any of the SessionStart/CwdChanged stdin
+# logic, because the child gets its target as an argument, not via stdin.
+#
+# Re-exec'ing the same file (rather than exporting a shell function) is
+# what makes detachment portable: `setsid` is absent on git-bash/Windows
+# and `export -f` does not survive every detach path, but `bash "$0"
+# --bg-install <dir>` is a clean new process that needs neither.
+if [ "${1:-}" = "--bg-install" ]; then
+  BG_TARGET="${2:-}"
+  if [ -z "$BG_TARGET" ] || ! cd "$BG_TARGET" 2>/dev/null; then
+    echo "husky-bootstrap[bg]: cannot cd to target '$BG_TARGET'; aborting background install." >&2
+    exit 0
+  fi
+  # Lock lives in the per-worktree git dir (resolved AFTER cd so it points
+  # at THIS target's git dir). Remove it on exit no matter how we leave, so
+  # the commit gate never waits on a dead install.
+  BG_LOCK="$(git rev-parse --git-path husky-bootstrap.lock 2>/dev/null || echo .husky-bootstrap.lock)"
+  trap 'rm -f "$BG_LOCK"' EXIT
+  echo "husky-bootstrap[bg]: install started $(date) in '$PWD'"
+  # `--frozen-lockfile` first: a bootstrap must never SILENTLY rewrite the
+  # tracked pnpm-lock.yaml. A plain install would, when package.json and
+  # the lockfile are momentarily out of sync (mid-rebase, hand-edited
+  # package.json), overwrite the lockfile as a side effect. Frozen installs
+  # strictly from the committed lockfile and FAIL on drift; on that
+  # (legitimate) failure we fall back to a plain install with a loud notice.
+  if ! pnpm install --frozen-lockfile; then
+    echo "husky-bootstrap[bg]: 'pnpm install --frozen-lockfile' failed (package.json and pnpm-lock.yaml may be out of sync). Falling back to a plain 'pnpm install', which MAY UPDATE pnpm-lock.yaml — review 'git status' afterward."
+    if ! pnpm install; then
+      echo "husky-bootstrap[bg]: fallback 'pnpm install' also failed; hooks may not fire here. See the error above."
+      exit 0
+    fi
+  fi
+  # Post-condition: husky's CLI exits 0 even on a silent no-op, so verify
+  # the wrapper actually materialized.
+  if [ ! -f .husky/_/pre-commit ]; then
+    echo "husky-bootstrap[bg]: 'pnpm install' exited 0 but .husky/_/pre-commit is still missing. Husky's installer probably silently no-op'd; hooks won't fire here until manually bootstrapped."
+    exit 0
+  fi
+  echo "husky-bootstrap[bg]: install finished $(date); .husky/_/pre-commit materialized."
+  exit 0
+fi
+# --- end background-install entry point --------------------------------
+
 # Husky bootstrap hook — ensures pre-commit/pre-push fire for commits
 # made in THIS environment (the worktree or main repo the triggering
 # event points at).
@@ -50,15 +99,15 @@ set -euo pipefail
 #
 # Two failure modes this hook addresses, both within this environment:
 #
-# 1. Missing wrapper: `.husky/_/` doesn't exist because `npm install`
+# 1. Missing wrapper: `.husky/_/` doesn't exist because `pnpm install`
 #    was never run here. Husky's `.husky/_/` wrapper is load-bearing
 #    (puts `node_modules/.bin` on PATH for lint-staged/prettier, honors
 #    HUSKY=0, sources ~/.config/husky/init.sh, runs hooks under
 #    `sh -e`). Without it, git silently no-ops on `core.hooksPath` and
-#    pre-commit/pre-push don't fire. Fix: run `npm run prepare`, which
-#    materializes `.husky/_/` — but ONLY if husky is installed locally
-#    (see the local-install check below; we do not lean on a parent
-#    repo's install).
+#    pre-commit/pre-push don't fire. Fix: run `pnpm install`, whose
+#    `prepare` lifecycle materializes `.husky/_/`. This also covers the
+#    fresh-worktree case where node_modules itself is absent — the same
+#    command provisions deps and the wrapper in one shot.
 #
 # 2. Worktree-scope hooksPath override: an upstream tool (likely the
 #    worktree-creation flow) wrote an absolute `core.hooksPath` to
@@ -87,8 +136,8 @@ set -euo pipefail
 #      (pinned at session start) and bootstraps the ORIGINAL root instead
 #      of the checkout just cd'd into — the exact event this hook was
 #      wired for becomes a no-op.
-#   2. An unconsumed stdin payload is inherited by the `node
-#      scripts/prepare.mjs` child (and its `execSync` grandchild), a
+#   2. An unconsumed stdin payload is inherited by the `pnpm install`
+#      child (and the `prepare.mjs`/`execSync` descendants it spawns), a
 #      latent coupling we'd rather not leave dangling.
 #
 # The `|| true` keeps `set -e` from aborting when stdin is empty.
@@ -141,50 +190,98 @@ fi
 # returns a non-empty error string while still exiting 0 if the CWD has
 # no `.git` reference. That happens when this directory is a filesystem
 # remnant left behind after `git worktree remove` — git no longer
-# considers it a worktree. Running `npm run prepare` here would no-op
+# considers it a worktree. Running `pnpm install` here would no-op
 # silently; skip with a loud notice instead.
 if [ ! -e .git ]; then
   echo "husky-bootstrap: target ('$PWD') has no .git file/dir — likely a ghost worktree left behind after 'git worktree remove'. Skipping husky bootstrap; remove the empty directory or restore the worktree." >&2
   exit 0
 fi
 
-if ! command -v node >/dev/null 2>&1; then
-  echo "husky-bootstrap: node not on PATH; cannot bootstrap husky. Hooks won't fire here until bootstrapped manually (run 'npm install')." >&2
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "husky-bootstrap: pnpm not on PATH; cannot provision this checkout. Hooks won't fire here until bootstrapped manually (run 'pnpm install'). If pnpm isn't installed, 'corepack enable' makes it available." >&2
   exit 0
 fi
 
-# Require a LOCAL husky install in this environment. We check for
-# `./node_modules/husky` directly (a filesystem stat scoped to THIS
-# checkout) rather than `require.resolve`, which would climb
-# node_modules upward and find a parent worktree's install — exactly
-# the cross-environment coupling this redesign removes, and which hides
-# the real problem (this environment was never provisioned). If husky
-# isn't installed here, tell the agent to install — these events can't
-# block, so this is a loud notice.
-if [ ! -d node_modules/husky ]; then
-  echo "husky-bootstrap: husky is not installed in this checkout ('$PWD'). This is usually a fresh git worktree that was never provisioned. Run 'npm install' here to materialize node_modules and .husky/_/, otherwise pre-commit/pre-push will NOT fire for commits made in this environment." >&2
-  exit 0
+# Provision this environment via `pnpm install` IN THE BACKGROUND. On a
+# fresh worktree a cold `pnpm install` is ~40s (Windows hard-link cost),
+# and a SessionStart hook blocks the session's input prompt for its whole
+# duration (Claude Code ignores `async` for SessionStart — it waits on the
+# hook script's direct exit). Making the user wait 40s before they can
+# type is the friction we're removing here: we DETACH the install so the
+# script returns in ~0.5s, the session is usable immediately, and the
+# commit gate (fallow-gate.sh) waits for the wrapper before any commit.
+#
+# `prepare` (invoked by `pnpm install`) runs scripts/prepare.mjs → husky,
+# which materializes `.husky/_/`; that's the post-condition we care about.
+#
+# Lock + log live in the PER-WORKTREE git dir via `git rev-parse
+# --git-path` (resolves to .git/worktrees/<name>/ for a linked worktree,
+# .git/ for the main repo). Git never tracks its own dir, so these need no
+# .gitignore entry and can't be committed, and they're naturally isolated
+# per worktree — one worktree's install never races another's lock.
+LOCK="$(git rev-parse --git-path husky-bootstrap.lock 2>/dev/null || echo .husky-bootstrap.lock)"
+LOG="$(git rev-parse --git-path husky-bootstrap.log 2>/dev/null || echo .husky-bootstrap.log)"
+
+# Stale-lock cleanup: a detached install whose session was killed before
+# it finished (Claude Code does NOT reap hook-spawned background children
+# on exit) leaves a lock with a dead PID. If the recorded PID is no longer
+# alive, drop the lock so this session can start a fresh install. `kill
+# -0` probes liveness without signaling.
+#
+# `kill -0` alone is not enough: PIDs are reused, so a dead install's PID
+# can later belong to an unrelated long-lived process. A naive liveness
+# check would then read that as "install still running" forever and never
+# provision — every commit would burn the full fallow-gate timeout before
+# blocking. Guard with an age bound: the lock records "PID EPOCH_SECONDS",
+# and a lock older than LOCK_MAX_AGE_SECS (default 600s — well beyond the
+# ~40s cold install) is treated as stale regardless of `kill -0`. So a
+# reused PID can keep us waiting for at most the age bound, not forever.
+LOCK_MAX_AGE_SECS="${HUSKY_BOOTSTRAP_LOCK_MAX_AGE_SECS-600}"
+if [ -f "$LOCK" ]; then
+  OLD_PID=""
+  OLD_TS=""
+  read -r OLD_PID OLD_TS <"$LOCK" 2>/dev/null || true
+  NOW="$(date +%s 2>/dev/null || echo 0)"
+  # Age is "unknown" (treated as fresh) only when we have a real now AND a
+  # real recorded timestamp; a missing/garbled timestamp (older lock
+  # format, partial write) leaves AGE empty so the kill -0 result decides.
+  AGE=""
+  case "$OLD_TS" in
+    '' | *[!0-9]*) ;; # no usable timestamp
+    *) [ "$NOW" -gt 0 ] && AGE=$((NOW - OLD_TS)) ;;
+  esac
+  if [ -n "$AGE" ] && [ "$AGE" -ge "$LOCK_MAX_AGE_SECS" ]; then
+    echo "husky-bootstrap: stale lock for '$PWD' (pid $OLD_PID, age ${AGE}s ≥ ${LOCK_MAX_AGE_SECS}s); replacing it." >&2
+    rm -f "$LOCK"
+  elif [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+    echo "husky-bootstrap: a background install (pid $OLD_PID) is already running for '$PWD'; not starting another." >&2
+    exit 0
+  else
+    rm -f "$LOCK"
+  fi
 fi
 
-# Materialize this environment's `.husky/_/` by running the repo's
-# prepare script directly (`node scripts/prepare.mjs`) rather than
-# `npm run prepare` — directness avoids an extra npm process and is
-# explicit about what we're invoking. prepare.mjs runs husky and (when
-# not in CI/prod) the Playwright install; both are idempotent. Output
-# to stderr so it doesn't pollute the session's user-facing transcript.
-if [ ! -f scripts/prepare.mjs ]; then
-  echo "husky-bootstrap: scripts/prepare.mjs not found in '$PWD'; cannot bootstrap. Run 'npm install' here." >&2
-  exit 0
-fi
-if ! node scripts/prepare.mjs >&2; then
-  echo "husky-bootstrap: 'node scripts/prepare.mjs' failed in '$PWD'; hooks may not fire here. See the error above." >&2
-  exit 0
-fi
-
-# Post-condition check: husky's CLI exits 0 even when it silently
-# no-ops. Verify the wrapper actually materialized so a silent no-op
-# doesn't slip past as "bootstrap succeeded."
-if [ ! -f .husky/_/pre-commit ]; then
-  echo "husky-bootstrap: 'npm run prepare' exited 0 but .husky/_/pre-commit is still missing in '$PWD'. Husky's installer probably silently no-op'd; hooks won't fire here until manually bootstrapped." >&2
-  exit 0
-fi
+# Detach by re-exec'ing THIS script in `--bg-install` mode. `bash "$0"
+# --bg-install "$PWD" & disown` launches a fresh process running the
+# provisioning entry point at the top of this file, backgrounds it, and
+# disowns it from the job table so it survives this hook script returning.
+# Verified on git-bash/Windows: the child reparents to init and runs to
+# completion after the parent exits (no setsid needed, no `export -f`).
+# The child writes its own output to "$LOG" and removes "$LOCK" via its
+# EXIT trap, success or failure, so the commit gate never waits on a dead
+# install. Record the child PID in the lock so the gate and the
+# stale-lock check above can find it.
+#
+# `</dev/null` detaches the child's stdin from the hook's: we already
+# drained the SessionStart/CwdChanged payload via `cat` above, but the
+# open stdin fd would otherwise still be inherited by the detached
+# install (and its pnpm/prepare.mjs descendants). Closing it here is what
+# actually severs the coupling the drain comment promises.
+bash "$0" --bg-install "$PWD" </dev/null >"$LOG" 2>&1 &
+CHILD_PID=$!
+disown 2>/dev/null || true
+# Record "PID EPOCH_SECONDS" so the stale-lock check above can age the
+# lock out even if the PID is later reused (see LOCK_MAX_AGE_SECS).
+echo "$CHILD_PID $(date +%s 2>/dev/null || echo 0)" >"$LOCK"
+echo "husky-bootstrap: provisioning '$PWD' in the background (pid $CHILD_PID, log: $LOG). The session is usable now; a commit/push will wait for git hooks to finish installing." >&2
+exit 0

@@ -26,12 +26,13 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - run: corepack enable
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm run lint
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm lint
 
   format:
     name: format
@@ -41,12 +42,13 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - run: corepack enable
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm run format:check
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm format:check
 
   typecheck:
     name: typecheck
@@ -56,12 +58,13 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - run: corepack enable
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm run typecheck
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm typecheck
 
   build:
     name: build
@@ -71,12 +74,13 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - run: corepack enable
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm run build
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm build
 
   audit:
     name: audit
@@ -87,71 +91,98 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - run: corepack enable
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci --ignore-scripts
-      - run: npm run audit:fallow -- --base origin/main
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm audit:fallow --base origin/main
 
-  npm-audit:
-    name: npm-audit
+  pnpm-audit:
+    name: pnpm-audit
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - run: corepack enable
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
-      # Resolve the full dep tree without running install scripts; `npm audit`
-      # only needs the lockfile + a populated node_modules manifest, not the
+          cache: pnpm
+      # Resolve the full dep tree without running install scripts; `pnpm audit`
+      # queries the registry advisory DB against the resolved lockfile, not the
       # actual package code. `--ignore-scripts` blocks lifecycle script
       # execution from any upgraded dep on PR runs.
-      - run: npm ci --ignore-scripts
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       # Production deps are what we redistribute to users; high+ severity
       # advisories that reach them are real attack surface and must block
-      # merge. `--omit=dev` excludes the devDependencies subtree from the
-      # walk, so this step only flags advisories with a prod-reachable
-      # path.
+      # merge. `--prod` restricts the audit to the dependencies subtree,
+      # excluding devDependencies, so this step only flags advisories with a
+      # prod-reachable path.
       - name: Audit production deps (blocking)
-        run: npm audit --omit=dev --audit-level=high
+        run: pnpm audit --prod --audit-level high
       # Advisory check on the full tree, including devDeps. DevDep
       # advisories don't ship to users, but stale tooling is worth
       # surfacing. The blocking step above already covered the prod-
       # reachable findings, so anything caught here is devDep-only.
       - name: Audit full tree (advisory; devDep findings non-blocking)
         id: audit_full
-        run: npm audit --audit-level=high
+        run: pnpm audit --audit-level high
         continue-on-error: true
       # Surface each devDep advisory as a PR-level `::warning::`
       # annotation so they appear as yellow ⚠ entries on the PR's
       # merge box and Files Changed tab without requiring a click into
       # the job log. One annotation per advisory; title carries package
-      # + severity + npm's advisory title, body carries the GHSA link
-      # and the consumer chain (which devDeps pull it in).
+      # + severity + the advisory title, body carries the advisory URL.
+      # pnpm's `audit --json` emits the npm-registry advisory shape:
+      # `{ advisories: { <id>: { module_name, severity, title, url, ... } } }`
+      # (the npm v6 schema), which differs from npm v7+'s `vulnerabilities`
+      # map — hence the parser shape here is pnpm-specific.
+      # This step is purely advisory: it annotates devDep findings and must
+      # NEVER gate merge (the blocking prod audit above already owns the
+      # job's pass/fail). `pnpm audit` exits non-zero whenever advisories
+      # exist — which is exactly the condition under which this step runs
+      # (`audit_full.outcome == 'failure'`). Under Actions' default
+      # `bash -eo pipefail`, that non-zero left side of the pipe would
+      # abort the step and fail the job, turning a non-blocking surface
+      # into a merge blocker. Two layered guards prevent that:
+      #   1. `{ pnpm audit --json ...; } || true` neutralizes the pnpm exit
+      #      code so `pipefail` doesn't trip on the LEFT side of the pipe
+      #      (the routine "advisories exist" case). It does NOT cover the
+      #      node process on the right.
+      #   2. `continue-on-error: true` is the catch-all: it keeps the JOB
+      #      green even if the node parser itself throws (e.g. malformed
+      #      JSON), so this step can never fail the job. This is the guard
+      #      that owns the step's non-blocking contract.
       - name: Surface devDep advisories as warnings
         if: steps.audit_full.outcome == 'failure'
+        continue-on-error: true
         run: |
-          npm audit --json 2>/dev/null | node -e '
+          { pnpm audit --json 2>/dev/null || true; } | node -e '
             const j = JSON.parse(require("fs").readFileSync(0, "utf8"));
-            const hi = Object.entries(j.vulnerabilities || {})
-              .filter(([_, v]) => ["high", "critical"].includes(v.severity));
-            for (const [name, v] of hi) {
-              // Pick the matching-severity advisory from `via` for the
-              // title (npm bundles multiple advisories per package; the
-              // top-severity one is what we want to surface).
-              const advisories = v.via.filter(x => typeof x === "object");
-              const top = advisories.find(a => a.severity === v.severity)
-                       || advisories[0];
-              const title = top ? top.title : `advisory in ${name}`;
-              const url = top ? top.url : "";
-              const effects = (v.effects || []).slice(0, 3).join(", ");
-              const tail = effects ? ` (via ${effects})` : "";
-              const annTitle = `${name} (${v.severity}) — ${title}`;
-              const annBody = url ? `${url}${tail}` : `unknown advisory${tail}`;
+            // Strip CR/LF and the `::` workflow-command delimiter from any
+            // value we interpolate into a `::warning` command. The advisory
+            // text comes from the upstream advisory DB, not the PR author,
+            // so this is defense-in-depth against a crafted advisory string
+            // forging or breaking out of the annotation, not a known hole.
+            const clean = (s) =>
+              String(s).replace(/[\r\n]+/g, " ").replace(/::/g, "：：");
+            const advisories = Object.values(j.advisories || {})
+              .filter(a => ["high", "critical"].includes(a.severity));
+            for (const a of advisories) {
+              const name = a.module_name || "unknown";
+              const title = a.title || `advisory in ${name}`;
+              const url = a.url || "";
+              const paths = (a.findings || [])
+                .flatMap(f => f.paths || [])
+                .slice(0, 3)
+                .join(", ");
+              const tail = paths ? ` (via ${paths})` : "";
+              const annTitle = clean(`${name} (${a.severity}) — ${title}`);
+              const annBody = clean(url ? `${url}${tail}` : `unknown advisory${tail}`);
               console.log(`::warning title=${annTitle}::${annBody}`);
             }
           '
@@ -169,11 +200,12 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - run: corepack enable
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci --ignore-scripts
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       # Strict allow list. Any prod dep whose license string is not on this
       # list fails CI — including the obvious AGPL-incompatible licenses
       # (BUSL, SSPL, Elastic, Commons-Clause), missing/custom markers
@@ -182,12 +214,13 @@ jobs:
       # rejects `--failOn` and `--onlyAllow` together; allow-only is the
       # stricter of the two and the correct choice for this project.
       #
-      # `license-checker` lives in devDependencies (not `npx --yes`) so the
-      # lockfile's integrity hash guards against a registry-side substitution
-      # of the tool that gates everything else.
+      # `license-checker` lives in devDependencies (not fetched on demand) so
+      # the lockfile's integrity hash guards against a registry-side
+      # substitution of the tool that gates everything else. `pnpm exec`
+      # resolves it from the workspace's installed node_modules.
       - name: Check production-dep licenses against allow list
         run: |
-          npx license-checker \
+          pnpm exec license-checker \
             --production \
             --excludePrivatePackages \
             --onlyAllow "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;BSD;MPL-2.0;BlueOak-1.0.0;CC0-1.0;CC-BY-4.0;Unlicense;Python-2.0;Zlib;AGPL-3.0-or-later;AGPL-3.0-only;GPL-3.0-or-later;GPL-3.0-only;LGPL-3.0-or-later"
@@ -200,17 +233,18 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - run: corepack enable
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci --ignore-scripts
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Install Playwright browser (chromium)
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
       - name: Build Storybook
-        run: npm run build-storybook
+        run: pnpm build-storybook
       - name: Run story tests (a11y + interaction via Vitest)
-        run: npm run test-storybook
+        run: pnpm test-storybook
       # `always()` overrides the default `success()` gate so we still upload
       # storybook-static/ when build-storybook or test-storybook fail — the
       # partial artifact is the diagnostic surface for the failure. The
