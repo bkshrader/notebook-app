@@ -227,13 +227,38 @@ LOG="$(git rev-parse --git-path husky-bootstrap.log 2>/dev/null || echo .husky-b
 # on exit) leaves a lock with a dead PID. If the recorded PID is no longer
 # alive, drop the lock so this session can start a fresh install. `kill
 # -0` probes liveness without signaling.
+#
+# `kill -0` alone is not enough: PIDs are reused, so a dead install's PID
+# can later belong to an unrelated long-lived process. A naive liveness
+# check would then read that as "install still running" forever and never
+# provision — every commit would burn the full fallow-gate timeout before
+# blocking. Guard with an age bound: the lock records "PID EPOCH_SECONDS",
+# and a lock older than LOCK_MAX_AGE_SECS (default 600s — well beyond the
+# ~40s cold install) is treated as stale regardless of `kill -0`. So a
+# reused PID can keep us waiting for at most the age bound, not forever.
+LOCK_MAX_AGE_SECS="${HUSKY_BOOTSTRAP_LOCK_MAX_AGE_SECS-600}"
 if [ -f "$LOCK" ]; then
-  OLD_PID="$(cat "$LOCK" 2>/dev/null || true)"
-  if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+  OLD_PID=""
+  OLD_TS=""
+  read -r OLD_PID OLD_TS <"$LOCK" 2>/dev/null || true
+  NOW="$(date +%s 2>/dev/null || echo 0)"
+  # Age is "unknown" (treated as fresh) only when we have a real now AND a
+  # real recorded timestamp; a missing/garbled timestamp (older lock
+  # format, partial write) leaves AGE empty so the kill -0 result decides.
+  AGE=""
+  case "$OLD_TS" in
+    '' | *[!0-9]*) ;; # no usable timestamp
+    *) [ "$NOW" -gt 0 ] && AGE=$((NOW - OLD_TS)) ;;
+  esac
+  if [ -n "$AGE" ] && [ "$AGE" -ge "$LOCK_MAX_AGE_SECS" ]; then
+    echo "husky-bootstrap: stale lock for '$PWD' (pid $OLD_PID, age ${AGE}s ≥ ${LOCK_MAX_AGE_SECS}s); replacing it." >&2
+    rm -f "$LOCK"
+  elif [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
     echo "husky-bootstrap: a background install (pid $OLD_PID) is already running for '$PWD'; not starting another." >&2
     exit 0
+  else
+    rm -f "$LOCK"
   fi
-  rm -f "$LOCK"
 fi
 
 # Detach by re-exec'ing THIS script in `--bg-install` mode. `bash "$0"
@@ -246,9 +271,17 @@ fi
 # EXIT trap, success or failure, so the commit gate never waits on a dead
 # install. Record the child PID in the lock so the gate and the
 # stale-lock check above can find it.
-bash "$0" --bg-install "$PWD" >"$LOG" 2>&1 &
+#
+# `</dev/null` detaches the child's stdin from the hook's: we already
+# drained the SessionStart/CwdChanged payload via `cat` above, but the
+# open stdin fd would otherwise still be inherited by the detached
+# install (and its pnpm/prepare.mjs descendants). Closing it here is what
+# actually severs the coupling the drain comment promises.
+bash "$0" --bg-install "$PWD" </dev/null >"$LOG" 2>&1 &
 CHILD_PID=$!
 disown 2>/dev/null || true
-echo "$CHILD_PID" >"$LOCK"
+# Record "PID EPOCH_SECONDS" so the stale-lock check above can age the
+# lock out even if the PID is later reused (see LOCK_MAX_AGE_SECS).
+echo "$CHILD_PID $(date +%s 2>/dev/null || echo 0)" >"$LOCK"
 echo "husky-bootstrap: provisioning '$PWD' in the background (pid $CHILD_PID, log: $LOG). The session is usable now; a commit/push will wait for git hooks to finish installing." >&2
 exit 0

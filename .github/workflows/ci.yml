@@ -148,10 +148,15 @@ jobs:
       # (`audit_full.outcome == 'failure'`). Under Actions' default
       # `bash -eo pipefail`, that non-zero left side of the pipe would
       # abort the step and fail the job, turning a non-blocking surface
-      # into a merge blocker. Two guards prevent that: `continue-on-error`
-      # at the step level (the job stays green even if this step errors),
-      # and `{ ...; } || true` inline (the step itself stays green so it
-      # doesn't render a spurious red ✗ on a routine devDep advisory).
+      # into a merge blocker. Two layered guards prevent that:
+      #   1. `{ pnpm audit --json ...; } || true` neutralizes the pnpm exit
+      #      code so `pipefail` doesn't trip on the LEFT side of the pipe
+      #      (the routine "advisories exist" case). It does NOT cover the
+      #      node process on the right.
+      #   2. `continue-on-error: true` is the catch-all: it keeps the JOB
+      #      green even if the node parser itself throws (e.g. malformed
+      #      JSON), so this step can never fail the job. This is the guard
+      #      that owns the step's non-blocking contract.
       - name: Surface devDep advisories as warnings
         if: steps.audit_full.outcome == 'failure'
         continue-on-error: true
