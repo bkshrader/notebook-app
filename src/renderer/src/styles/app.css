@@ -1,3 +1,13 @@
+/**
+ * Renderer global stylesheet.
+ *
+ * Imports the design-token surface first so every subsequent rule and
+ * every component module can reference --token-* / --notebook-* values.
+ * No component-level styles live here — those belong with their
+ * component sources.
+ */
+@import url('./tokens.css');
+
 body {
   font-size: 16px;
 }
