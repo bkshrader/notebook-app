@@ -58,6 +58,7 @@ These are load-bearing and were the output of explicit research; don't relitigat
 - **MathJax v4** for math rendering. Accessibility-strongest renderer; SRE-driven `aria-label` injection works regardless of screen-reader MathML support. See `docs/research/latex-libraries.md`.
 - **faster-whisper** for speech-to-text, with **Silero VAD** (voice-activity detection) gating it to skip silence and suppress `large-v3` hallucination. **Supertonic** for text-to-speech. All as Python sidecars. See `docs/research/whisper.md`, `docs/research/supertonic.md`.
 - **BYO AI**, OpenAI-compatible endpoint per profile. We do **not** bundle a local LLM runtime. See `docs/features/byo-ai/OVERVIEW.md`.
+- **Helios Design System (tokens only)** for visual identity. Consume `@hashicorp/design-system-tokens` as CSS variables; ignore the Ember component package. Components are our own React, built on an unstyled-primitives library (shadcn/ui or Ark UI — undecided). The full design contract is in `DESIGN.md` at the repo root (follows the [DESIGN.md spec](https://github.com/google-labs-code/design.md)); rationale in `docs/research/helios-design-system.md` and `docs/features/accessibility/adrs/design-system-helios.md`.
 
 ## Non-negotiable constraints
 
