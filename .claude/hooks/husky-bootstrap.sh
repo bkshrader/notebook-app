@@ -162,9 +162,28 @@ fi
 # "husky missing" vs "wrapper missing": one command covers both.
 # Output to stderr so it doesn't pollute the session's user-facing
 # transcript.
-if ! pnpm install >&2; then
-  echo "husky-bootstrap: 'pnpm install' failed in '$PWD'; hooks may not fire here. See the error above." >&2
-  exit 0
+#
+# Prefer `--frozen-lockfile`: a bootstrap should never SILENTLY rewrite
+# the tracked pnpm-lock.yaml. A plain `pnpm install` will, if
+# package.json and the lockfile are momentarily out of sync (e.g.
+# mid-rebase, or a hand-edited package.json), resolve and overwrite the
+# lockfile as a side effect — mutating tracked state the user never asked
+# this hook to touch. `--frozen-lockfile` installs strictly from the
+# committed lockfile (the correct, common case for a fresh worktree) and
+# instead FAILS when the two disagree.
+#
+# That failure is itself a legitimate state (out-of-sync mid-rebase), and
+# this is a non-blocking hook whose only job is to materialize hooks — so
+# on a frozen-install failure we fall back to a plain `pnpm install` with
+# a LOUD notice that the lockfile may have been updated. Net effect: the
+# lockfile is immutable in the common case, drift is surfaced rather than
+# silently applied, and hooks still get provisioned either way.
+if ! pnpm install --frozen-lockfile >&2; then
+  echo "husky-bootstrap: 'pnpm install --frozen-lockfile' failed in '$PWD' (package.json and pnpm-lock.yaml may be out of sync). Falling back to a plain 'pnpm install', which MAY UPDATE pnpm-lock.yaml — review 'git status' afterward." >&2
+  if ! pnpm install >&2; then
+    echo "husky-bootstrap: fallback 'pnpm install' also failed in '$PWD'; hooks may not fire here. See the error above." >&2
+    exit 0
+  fi
 fi
 
 # Post-condition check: husky's CLI exits 0 even when it silently
