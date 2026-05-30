@@ -17,7 +17,7 @@ We use `pnpm licenses list` rather than `license-checker --json` for this full-t
 
 ## Last regenerated
 
-2026-05-30 (post-`@ark-ui/react` install; full tree via `pnpm licenses list`)
+2026-05-30 (post-`storybook-design-token` install; full tree via `pnpm licenses list`)
 
 ## AGPL-compatible license allowlist
 
@@ -133,6 +133,7 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @jridgewell/gen-mapping@0.3.13: MIT
 @jridgewell/remapping@2.3.5: MIT
 @jridgewell/resolve-uri@3.1.2: MIT
+@jridgewell/source-map@0.3.11: MIT
 @jridgewell/sourcemap-codec@1.5.5: MIT
 @jridgewell/trace-mapping@0.3.31: MIT
 @lhci/cli@0.15.1: Apache-2.0
@@ -165,6 +166,7 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @storybook/builder-vite@10.4.1: MIT
 @storybook/csf-plugin@10.4.1: MIT
 @storybook/global@5.0.0: MIT
+@storybook/icons@1.6.0: MIT
 @storybook/icons@2.0.2: MIT
 @storybook/mcp@0.7.0: MIT
 @storybook/react-dom-shim@10.4.1: MIT
@@ -172,12 +174,15 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @storybook/react@10.4.1: MIT
 @swc/helpers@0.5.23: Apache-2.0
 @szmarczak/http-timer@4.0.6: MIT
+@tanstack/react-virtual@3.13.26: MIT
+@tanstack/virtual-core@3.16.0: MIT
 @testing-library/dom@10.4.1: MIT
 @testing-library/jest-dom@6.9.1: MIT
 @testing-library/user-event@14.6.1: MIT
 @tmcp/adapter-valibot@0.1.6: MIT
 @tmcp/session-manager@0.2.2: MIT
 @tmcp/transport-http@0.8.6: MIT
+@tootallnate/once@2.0.1: MIT
 @tootallnate/quickjs-emscripten@0.23.0: MIT
 @types/aria-query@5.0.4: MIT
 @types/babel__core@7.20.5: MIT
@@ -213,6 +218,7 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @typescript-eslint/typescript-estree@8.60.0: MIT
 @typescript-eslint/utils@8.60.0: MIT
 @typescript-eslint/visitor-keys@8.60.0: MIT
+@uidotdev/usehooks@2.4.1: MIT
 @valibot/to-json-schema@1.7.0: MIT
 @vitest/browser-playwright@4.1.7: MIT
 @vitest/browser@4.1.7: MIT
@@ -228,8 +234,25 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @vitest/spy@4.1.7: MIT
 @vitest/utils@3.2.4: MIT
 @vitest/utils@4.1.7: MIT
+@webassemblyjs/ast@1.14.1: MIT
+@webassemblyjs/floating-point-hex-parser@1.13.2: MIT
+@webassemblyjs/helper-api-error@1.13.2: MIT
+@webassemblyjs/helper-buffer@1.14.1: MIT
+@webassemblyjs/helper-numbers@1.13.2: MIT
+@webassemblyjs/helper-wasm-bytecode@1.13.2: MIT
+@webassemblyjs/helper-wasm-section@1.14.1: MIT
+@webassemblyjs/ieee754@1.13.2: MIT
+@webassemblyjs/leb128@1.13.2: Apache-2.0
+@webassemblyjs/utf8@1.13.2: MIT
+@webassemblyjs/wasm-edit@1.14.1: MIT
+@webassemblyjs/wasm-gen@1.14.1: MIT
+@webassemblyjs/wasm-opt@1.14.1: MIT
+@webassemblyjs/wasm-parser@1.14.1: MIT
+@webassemblyjs/wast-printer@1.14.1: MIT
 @webcontainer/env@1.1.1: MIT
 @xmldom/xmldom@0.8.13: MIT
+@xtuc/ieee754@1.2.0: BSD-3-Clause
+@xtuc/long@4.2.2: Apache-2.0
 @zag-js/accordion@1.41.1: MIT
 @zag-js/anatomy@1.41.1: MIT
 @zag-js/angle-slider@1.41.1: MIT
@@ -305,14 +328,22 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @zag-js/tree-view@1.41.1: MIT
 @zag-js/types@1.41.1: MIT
 @zag-js/utils@1.41.1: MIT
+abab@2.0.6: BSD-3-Clause
 abbrev@1.1.1: ISC
 abbrev@4.0.0: ISC
 accepts@1.3.8: MIT
+acorn-globals@7.0.1: MIT
+acorn-import-phases@1.0.4: MIT
 acorn-jsx@5.3.2: MIT
+acorn-walk@8.3.5: MIT
 acorn@8.16.0: MIT
+agent-base@6.0.2: MIT
 agent-base@7.1.4: MIT
+ajv-formats@2.1.1: MIT
 ajv-keywords@3.5.2: MIT
+ajv-keywords@5.1.0: MIT
 ajv@6.15.0: MIT
+ajv@8.20.0: MIT
 ansi-colors@4.1.3: MIT
 ansi-escapes@3.2.0: MIT
 ansi-escapes@7.3.0: MIT
@@ -363,6 +394,7 @@ bare-url@2.4.3: Apache-2.0
 base64-js@1.5.1: MIT
 baseline-browser-mapping@2.10.32: Apache-2.0
 basic-ftp@5.3.1: MIT
+big.js@5.2.2: MIT
 body-parser@1.20.5: MIT
 boolean@3.2.0: MIT
 brace-expansion@1.1.15: MIT
@@ -395,6 +427,7 @@ check-error@2.1.3: MIT
 chownr@3.0.0: BlueOak-1.0.0
 chrome-launcher@0.13.4: Apache-2.0
 chrome-launcher@1.2.1: Apache-2.0
+chrome-trace-event@1.0.4: MIT
 chromium-bidi@14.0.0: Apache-2.0
 chromium-pickle-js@0.2.0: MIT
 ci-info@4.3.1: MIT
@@ -413,6 +446,7 @@ color-name@1.1.4: MIT
 colorette@2.0.20: MIT
 combined-stream@1.0.8: MIT
 commander@13.1.0: MIT
+commander@2.20.3: MIT
 commander@5.1.0: MIT
 commander@9.5.0: MIT
 compare-version@0.1.2: MIT
@@ -430,9 +464,11 @@ cross-spawn@7.0.6: MIT
 crypto-random-string@2.0.0: MIT
 csp_evaluator@1.1.5: Apache-2.0
 css.escape@1.5.1: MIT
+cssstyle@3.0.0: MIT
 csstype@3.2.3: MIT
 damerau-levenshtein@1.0.8: BSD-2-Clause
 data-uri-to-buffer@6.0.2: MIT
+data-urls@4.0.0: MIT
 data-view-buffer@1.0.2: MIT
 data-view-byte-length@1.0.2: MIT
 data-view-byte-offset@1.0.1: MIT
@@ -467,6 +503,7 @@ dmg-builder@26.8.1: MIT
 doctrine@3.0.0: Apache-2.0
 dom-accessibility-api@0.5.16: MIT
 dom-accessibility-api@0.6.3: MIT
+domexception@4.0.0: MIT
 dot-prop@5.3.0: MIT
 dotenv-expand@11.0.7: BSD-2-Clause
 dotenv@16.6.1: BSD-2-Clause
@@ -483,10 +520,13 @@ electron@42.3.0: MIT
 emoji-regex@10.6.0: MIT
 emoji-regex@8.0.0: MIT
 emoji-regex@9.2.2: MIT
+emojis-list@3.0.0: MIT
 empathic@2.0.1: MIT
 encodeurl@2.0.0: MIT
 end-of-stream@1.4.5: MIT
+enhanced-resolve@5.22.1: MIT
 enquirer@2.4.1: MIT
+entities@6.0.1: BSD-2-Clause
 env-paths@2.2.1: MIT
 env-paths@3.0.0: MIT
 environment@1.1.0: MIT
@@ -510,6 +550,7 @@ escodegen@2.1.0: BSD-2-Clause
 eslint-config-prettier@10.1.8: MIT
 eslint-plugin-jsx-a11y@6.10.2: MIT
 eslint-plugin-storybook@10.4.1: MIT
+eslint-scope@5.1.1: BSD-2-Clause
 eslint-scope@8.4.0: BSD-2-Clause
 eslint-visitor-keys@3.4.3: Apache-2.0
 eslint-visitor-keys@4.2.1: Apache-2.0
@@ -520,6 +561,7 @@ espree@10.4.0: BSD-2-Clause
 esprima@4.0.1: BSD-2-Clause
 esquery@1.7.0: BSD-3-Clause
 esrecurse@4.3.0: BSD-2-Clause
+estraverse@4.3.0: BSD-2-Clause
 estraverse@5.3.0: BSD-2-Clause
 estree-walker@2.0.2: MIT
 estree-walker@3.0.3: MIT
@@ -527,6 +569,7 @@ esutils@2.0.3: BSD-2-Clause
 etag@1.8.1: MIT
 eventemitter3@5.0.4: MIT
 events-universal@1.0.1: Apache-2.0
+events@3.3.0: MIT
 execa@8.0.1: MIT
 expect-type@1.3.0: Apache-2.0
 exponential-backoff@3.1.3: Apache-2.0
@@ -538,6 +581,7 @@ fast-deep-equal@3.1.3: MIT
 fast-fifo@1.3.2: MIT
 fast-json-stable-stringify@2.1.0: MIT
 fast-levenshtein@2.0.6: MIT
+fast-uri@3.1.2: BSD-3-Clause
 fd-slicer@1.1.0: MIT
 fdir@6.5.0: MIT
 figures@2.0.0: MIT
@@ -573,8 +617,10 @@ get-stream@8.0.1: MIT
 get-symbol-description@1.1.0: MIT
 get-uri@6.0.5: MIT
 glob-parent@6.0.2: ISC
+glob-to-regexp@0.4.1: BSD-2-Clause
 glob@13.0.6: BlueOak-1.0.0
 glob@7.2.3: ISC
+glob@9.3.5: ISC
 global-agent@3.0.0: BSD-3-Clause
 globals@14.0.0: MIT
 globalthis@1.0.4: MIT
@@ -591,12 +637,15 @@ has-tostringtag@1.0.2: MIT
 hasown@2.0.3: MIT
 hosted-git-info@2.8.9: ISC
 hosted-git-info@4.1.0: ISC
+html-encoding-sniffer@3.0.0: MIT
 html-escaper@2.0.2: MIT
 http-cache-semantics@4.2.0: BSD-2-Clause
 http-errors@2.0.1: MIT
 http-link-header@1.1.3: MIT
+http-proxy-agent@5.0.0: MIT
 http-proxy-agent@7.0.2: MIT
 http2-wrapper@1.0.3: MIT
+https-proxy-agent@5.0.1: MIT
 https-proxy-agent@7.0.6: MIT
 human-signals@5.0.0: Apache-2.0
 husky@9.1.7: MIT
@@ -640,6 +689,7 @@ is-negative-zero@2.0.3: MIT
 is-number-object@1.1.1: MIT
 is-number@7.0.0: MIT
 is-obj@2.0.0: MIT
+is-potential-custom-element-name@1.0.1: MIT
 is-regex@1.2.1: MIT
 is-set@2.0.3: MIT
 is-shared-array-buffer@1.0.4: MIT
@@ -664,6 +714,7 @@ istanbul-lib-coverage@3.2.2: BSD-3-Clause
 istanbul-lib-report@3.0.1: BSD-3-Clause
 istanbul-reports@3.2.0: BSD-3-Clause
 jake@10.9.4: Apache-2.0
+jest-worker@27.5.1: MIT
 jiti@2.7.0: MIT
 jpeg-js@0.4.4: BSD-3-Clause
 js-library-detector@6.7.0: MIT
@@ -671,11 +722,13 @@ js-tokens@10.0.0: MIT
 js-tokens@4.0.0: MIT
 js-yaml@3.14.2: MIT
 js-yaml@4.1.1: MIT
+jsdom@21.1.2: MIT
 jsesc@3.1.0: MIT
 json-buffer@3.0.1: MIT
 json-parse-even-better-errors@2.3.1: MIT
 json-rpc-2.0@1.7.1: MIT
 json-schema-traverse@0.4.1: MIT
+json-schema-traverse@1.0.0: MIT
 json-stable-stringify-without-jsonify@1.0.1: MIT
 json-stringify-safe@5.0.1: ISC
 json5@2.2.3: MIT
@@ -697,6 +750,8 @@ lighthouse@12.6.1: Apache-2.0
 lilconfig@3.1.3: MIT
 lint-staged@15.5.2: MIT
 listr2@8.3.3: MIT
+loader-runner@4.3.2: MIT
+loader-utils@2.0.4: MIT
 localforage@1.10.0: Apache-2.0
 locate-path@5.0.0: MIT
 locate-path@6.0.0: MIT
@@ -707,6 +762,7 @@ log-update@6.1.0: MIT
 lookup-closest-locale@6.2.0: MIT
 loupe@3.2.1: MIT
 lowercase-keys@2.0.0: MIT
+lru-cache@10.4.3: ISC
 lru-cache@11.5.1: BlueOak-1.0.0
 lru-cache@5.1.1: ISC
 lru-cache@6.0.0: ISC
@@ -739,8 +795,10 @@ min-indent@1.0.1: MIT
 minimatch@10.2.5: BlueOak-1.0.0
 minimatch@3.1.5: ISC
 minimatch@5.1.9: ISC
+minimatch@8.0.7: ISC
 minimatch@9.0.9: ISC
 minimist@1.2.8: MIT
+minipass@4.2.8: ISC
 minipass@7.1.3: BlueOak-1.0.0
 minizlib@3.1.0: MIT
 mitt@3.0.1: MIT
@@ -753,6 +811,7 @@ nanoid@3.3.12: MIT
 natural-compare@1.4.0: MIT
 negotiator@0.6.3: MIT
 negotiator@0.6.4: MIT
+neo-async@2.6.2: MIT
 netmask@2.1.1: MIT
 node-abi@4.31.0: MIT
 node-api-version@0.2.1: MIT
@@ -765,6 +824,7 @@ normalize-package-data@2.5.0: BSD-2-Clause
 normalize-url@6.1.0: MIT
 npm-normalize-package-bin@1.0.1: ISC
 npm-run-path@5.3.0: MIT
+nwsapi@2.2.23: MIT
 object-inspect@1.13.4: MIT
 object-keys@1.1.1: MIT
 object.assign@4.1.7: MIT
@@ -797,12 +857,14 @@ pac-proxy-agent@7.2.0: MIT
 pac-resolver@7.0.1: MIT
 parent-module@1.0.1: MIT
 parse-cache-control@1.0.1: BSD
+parse5@7.3.0: MIT
 parseurl@1.3.3: MIT
 path-exists@4.0.0: MIT
 path-is-absolute@1.0.1: MIT
 path-key@3.1.1: MIT
 path-key@4.0.0: MIT
 path-parse@1.0.7: MIT
+path-scurry@1.11.1: BlueOak-1.0.0
 path-scurry@2.0.2: BlueOak-1.0.0
 path-to-regexp@0.1.13: MIT
 pathe@2.0.3: MIT
@@ -819,10 +881,13 @@ playwright-core@1.60.0: Apache-2.0
 playwright@1.60.0: Apache-2.0
 plist@3.1.0: MIT
 pngjs@7.0.0: MIT
+polished@4.3.1: MIT
 possible-typed-array-names@1.1.0: MIT
+postcss-scss@4.0.9: MIT
 postcss@8.5.15: MIT
 postject@1.0.0-alpha.6: MIT
 prelude-ls@1.2.1: MIT
+prettier@2.8.8: MIT
 prettier@3.8.3: MIT
 pretty-format@27.5.1: MIT
 proc-log@6.1.0: ISC
@@ -834,13 +899,16 @@ proxy-agent@6.5.0: MIT
 proxy-compare@3.0.1: MIT
 proxy-from-env@1.1.0: MIT
 proxy-memoize@3.0.1: MIT
+psl@1.15.0: MIT
 pump@3.0.4: MIT
 punycode@2.3.1: MIT
 puppeteer-core@24.43.1: Apache-2.0
 qs@6.15.2: BSD-3-Clause
+querystringify@2.2.0: MIT
 quick-lru@5.1.1: MIT
 range-parser@1.2.1: MIT
 raw-body@2.5.3: MIT
+raw-loader@4.0.2: MIT
 react-docgen-typescript@2.4.0: MIT
 react-docgen@8.0.3: MIT
 react-dom@19.2.6: MIT
@@ -855,7 +923,9 @@ redent@3.0.0: MIT
 reflect.getprototypeof@1.0.10: MIT
 regexp.prototype.flags@1.5.4: MIT
 require-directory@2.1.1: MIT
+require-from-string@2.0.2: MIT
 require-main-filename@2.0.0: ISC
+requires-port@1.0.0: MIT
 resedit@1.7.2: MIT
 resolve-alpn@1.2.1: MIT
 resolve-from@4.0.0: MIT
@@ -871,6 +941,7 @@ rimraf@3.0.2: ISC
 roarr@2.15.4: BSD-3-Clause
 robots-parser@3.0.1: MIT
 rollup@4.60.4: MIT
+rrweb-cssom@0.6.0: MIT
 run-applescript@7.1.0: MIT
 run-async@2.4.1: MIT
 rxjs@6.6.7: Apache-2.0
@@ -881,7 +952,10 @@ safe-regex-test@1.1.0: MIT
 safer-buffer@2.1.2: MIT
 sanitize-filename@1.6.4: WTFPL OR ISC
 sax@1.6.0: BlueOak-1.0.0
+saxes@6.0.0: ISC
 scheduler@0.27.0: MIT
+schema-utils@3.3.0: MIT
+schema-utils@4.3.3: MIT
 semver-compare@1.0.0: MIT
 semver@5.7.2: ISC
 semver@6.3.1: ISC
@@ -931,6 +1005,7 @@ stat-mode@1.0.0: MIT
 statuses@2.0.2: MIT
 std-env@4.1.0: MIT
 stop-iteration-iterator@1.1.0: MIT
+storybook-design-token@5.0.0: MIT
 storybook@10.4.1: MIT
 streamx@2.26.0: MIT
 string-argv@0.3.2: MIT
@@ -953,13 +1028,18 @@ strip-json-comments@3.1.1: MIT
 sumchecker@3.0.1: Apache-2.0
 supports-color@5.5.0: MIT
 supports-color@7.2.0: MIT
+supports-color@8.1.1: MIT
 supports-preserve-symlinks-flag@1.0.0: MIT
+symbol-tree@3.2.4: MIT
+tapable@2.3.3: MIT
 tar-fs@3.1.2: MIT
 tar-stream@3.2.0: MIT
 tar@7.5.15: BlueOak-1.0.0
 teex@1.0.1: MIT
 temp-file@3.4.0: MIT
 temp@0.9.4: MIT
+terser-webpack-plugin@5.6.1: MIT
+terser@5.48.0: BSD-2-Clause
 text-decoder@1.2.7: Apache-2.0
 third-party-web@0.26.7: MIT
 third-party-web@0.29.2: MIT
@@ -982,7 +1062,9 @@ tmp@0.2.7: MIT
 to-regex-range@5.0.1: MIT
 toidentifier@1.0.1: MIT
 totalist@3.0.1: MIT
+tough-cookie@4.1.4: BSD-3-Clause
 tr46@0.0.3: MIT
+tr46@4.1.1: MIT
 tree-kill@1.2.2: MIT
 treeify@1.1.0: MIT
 truncate-utf8-bytes@1.0.2: WTFPL
@@ -1008,6 +1090,7 @@ undici@6.26.0: MIT
 undici@7.26.0: MIT
 unique-string@2.0.0: MIT
 universalify@0.1.2: MIT
+universalify@0.2.0: MIT
 universalify@2.0.1: MIT
 unpipe@1.0.0: MIT
 unplugin@2.3.11: MIT
@@ -1015,6 +1098,7 @@ update-browserslist-db@1.2.3: MIT
 uqr@0.1.3: MIT
 uri-js@4.4.1: BSD-2-Clause
 uri-template-matcher@1.1.2: ISC
+url-parse@1.5.10: MIT
 use-sync-external-store@1.6.0: MIT
 utf8-byte-length@1.0.5: (WTFPL OR MIT)
 util-extend@1.0.3: MIT
@@ -1025,10 +1109,18 @@ validate-npm-package-license@3.0.4: Apache-2.0
 vary@1.1.2: MIT
 vite@7.3.3: MIT
 vitest@4.1.7: MIT
+w3c-xmlserializer@4.0.0: MIT
+watchpack@2.5.1: MIT
 webdriver-bidi-protocol@0.4.1: Apache-2.0
 webidl-conversions@3.0.1: BSD-2-Clause
+webidl-conversions@7.0.0: BSD-2-Clause
+webpack-sources@3.5.0: MIT
 webpack-virtual-modules@0.6.2: MIT
+webpack@5.107.2: MIT
+whatwg-encoding@2.0.0: MIT
 whatwg-fetch@3.6.20: MIT
+whatwg-mimetype@3.0.0: MIT
+whatwg-url@12.0.1: MIT
 whatwg-url@5.0.0: MIT
 which-boxed-primitive@1.1.1: MIT
 which-builtin-type@1.2.1: MIT
@@ -1049,7 +1141,9 @@ ws@7.5.11: MIT
 ws@8.21.0: MIT
 wsl-utils@0.1.0: MIT
 xdg-basedir@4.0.0: MIT
+xml-name-validator@4.0.0: Apache-2.0
 xmlbuilder@15.1.1: MIT
+xmlchars@2.2.0: MIT
 y18n@4.0.3: ISC
 y18n@5.0.8: ISC
 yallist@3.1.1: ISC
