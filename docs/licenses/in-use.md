@@ -17,7 +17,7 @@ We use `pnpm licenses list` rather than `license-checker --json` for this full-t
 
 ## Last regenerated
 
-2026-05-28 (post-pnpm migration; full tree via `pnpm licenses list`)
+2026-05-30 (post-`@ark-ui/react` install; full tree via `pnpm licenses list`)
 
 ## AGPL-compatible license allowlist
 
@@ -68,6 +68,7 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 ```
 7zip-bin@5.2.0: MIT
 @adobe/css-tools@4.5.0: MIT
+@ark-ui/react@5.37.0: MIT
 @axe-core/playwright@4.11.3: MPL-2.0
 @babel/code-frame@7.29.7: MIT
 @babel/compat-data@7.29.7: MIT
@@ -112,6 +113,9 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @eslint/object-schema@2.1.7: Apache-2.0
 @eslint/plugin-kit@0.4.1: Apache-2.0
 @fallow-cli/win32-x64-msvc@2.83.0: MIT
+@floating-ui/core@1.7.5: MIT
+@floating-ui/dom@1.7.6: MIT
+@floating-ui/utils@0.2.11: MIT
 @formatjs/ecma402-abstract@2.3.6: MIT
 @formatjs/fast-memoize@2.2.7: MIT
 @formatjs/icu-messageformat-parser@2.11.4: MIT
@@ -122,6 +126,8 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @humanfs/types@0.15.0: Apache-2.0
 @humanwhocodes/module-importer@1.0.1: Apache-2.0
 @humanwhocodes/retry@0.4.3: Apache-2.0
+@internationalized/date@3.12.0: Apache-2.0
+@internationalized/number@3.6.6: Apache-2.0
 @isaacs/fs-minipass@4.0.1: ISC
 @joshwooding/vite-plugin-react-docgen-typescript@0.7.0: MIT
 @jridgewell/gen-mapping@0.3.13: MIT
@@ -164,6 +170,7 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @storybook/react-dom-shim@10.4.1: MIT
 @storybook/react-vite@10.4.1: MIT
 @storybook/react@10.4.1: MIT
+@swc/helpers@0.5.23: Apache-2.0
 @szmarczak/http-timer@4.0.6: MIT
 @testing-library/dom@10.4.1: MIT
 @testing-library/jest-dom@6.9.1: MIT
@@ -223,6 +230,81 @@ The lone `UNLICENSED` entry below is this repo itself (marked `private: true` in
 @vitest/utils@4.1.7: MIT
 @webcontainer/env@1.1.1: MIT
 @xmldom/xmldom@0.8.13: MIT
+@zag-js/accordion@1.41.1: MIT
+@zag-js/anatomy@1.41.1: MIT
+@zag-js/angle-slider@1.41.1: MIT
+@zag-js/aria-hidden@1.41.1: MIT
+@zag-js/async-list@1.41.1: MIT
+@zag-js/auto-resize@1.41.1: MIT
+@zag-js/avatar@1.41.1: MIT
+@zag-js/carousel@1.41.1: MIT
+@zag-js/cascade-select@1.41.1: MIT
+@zag-js/checkbox@1.41.1: MIT
+@zag-js/clipboard@1.41.1: MIT
+@zag-js/collapsible@1.41.1: MIT
+@zag-js/collection@1.41.1: MIT
+@zag-js/color-picker@1.41.1: MIT
+@zag-js/color-utils@1.41.1: MIT
+@zag-js/combobox@1.41.1: MIT
+@zag-js/core@1.41.1: MIT
+@zag-js/date-input@1.41.1: MIT
+@zag-js/date-picker@1.41.1: MIT
+@zag-js/date-utils@1.41.1: MIT
+@zag-js/dialog@1.41.1: MIT
+@zag-js/dismissable@1.41.1: MIT
+@zag-js/dom-query@1.41.1: MIT
+@zag-js/drawer@1.41.1: MIT
+@zag-js/editable@1.41.1: MIT
+@zag-js/file-upload@1.41.1: MIT
+@zag-js/file-utils@1.41.1: MIT
+@zag-js/floating-panel@1.41.1: MIT
+@zag-js/focus-trap@1.41.1: MIT
+@zag-js/focus-visible@1.41.1: MIT
+@zag-js/highlight-word@1.41.1: MIT
+@zag-js/hover-card@1.41.1: MIT
+@zag-js/i18n-utils@1.41.1: MIT
+@zag-js/image-cropper@1.41.1: MIT
+@zag-js/interact-outside@1.41.1: MIT
+@zag-js/json-tree-utils@1.41.1: MIT
+@zag-js/listbox@1.41.1: MIT
+@zag-js/live-region@1.41.1: MIT
+@zag-js/marquee@1.41.1: MIT
+@zag-js/menu@1.41.1: MIT
+@zag-js/navigation-menu@1.41.1: MIT
+@zag-js/number-input@1.41.1: MIT
+@zag-js/pagination@1.41.1: MIT
+@zag-js/password-input@1.41.1: MIT
+@zag-js/pin-input@1.41.1: MIT
+@zag-js/popover@1.41.1: MIT
+@zag-js/popper@1.41.1: MIT
+@zag-js/presence@1.41.1: MIT
+@zag-js/progress@1.41.1: MIT
+@zag-js/qr-code@1.41.1: MIT
+@zag-js/radio-group@1.41.1: MIT
+@zag-js/rating-group@1.41.1: MIT
+@zag-js/react@1.41.1: MIT
+@zag-js/rect-utils@1.41.1: MIT
+@zag-js/remove-scroll@1.41.1: MIT
+@zag-js/scroll-area@1.41.1: MIT
+@zag-js/scroll-snap@1.41.1: MIT
+@zag-js/select@1.41.1: MIT
+@zag-js/signature-pad@1.41.1: MIT
+@zag-js/slider@1.41.1: MIT
+@zag-js/splitter@1.41.1: MIT
+@zag-js/steps@1.41.1: MIT
+@zag-js/store@1.41.1: MIT
+@zag-js/switch@1.41.1: MIT
+@zag-js/tabs@1.41.1: MIT
+@zag-js/tags-input@1.41.1: MIT
+@zag-js/timer@1.41.1: MIT
+@zag-js/toast@1.41.1: MIT
+@zag-js/toggle-group@1.41.1: MIT
+@zag-js/toggle@1.41.1: MIT
+@zag-js/tooltip@1.41.1: MIT
+@zag-js/tour@1.41.1: MIT
+@zag-js/tree-view@1.41.1: MIT
+@zag-js/types@1.41.1: MIT
+@zag-js/utils@1.41.1: MIT
 abbrev@1.1.1: ISC
 abbrev@4.0.0: ISC
 accepts@1.3.8: MIT
@@ -681,7 +763,6 @@ nopt@4.0.3: ISC
 nopt@9.0.0: ISC
 normalize-package-data@2.5.0: BSD-2-Clause
 normalize-url@6.1.0: MIT
-notebook-app@0.0.0: UNLICENSED
 npm-normalize-package-bin@1.0.1: ISC
 npm-run-path@5.3.0: MIT
 object-inspect@1.13.4: MIT
@@ -728,6 +809,7 @@ pathe@2.0.3: MIT
 pathval@2.0.1: MIT
 pe-library@0.4.1: MIT
 pend@1.2.0: MIT
+perfect-freehand@1.2.3: MIT
 picocolors@1.1.1: ISC
 picomatch@2.3.2: MIT
 picomatch@4.0.4: MIT
@@ -749,7 +831,9 @@ promise-retry@2.0.1: MIT
 proper-lockfile@4.1.2: MIT
 proxy-addr@2.0.7: MIT
 proxy-agent@6.5.0: MIT
+proxy-compare@3.0.1: MIT
 proxy-from-env@1.1.0: MIT
+proxy-memoize@3.0.1: MIT
 pump@3.0.4: MIT
 punycode@2.3.1: MIT
 puppeteer-core@24.43.1: Apache-2.0
@@ -928,6 +1012,7 @@ universalify@2.0.1: MIT
 unpipe@1.0.0: MIT
 unplugin@2.3.11: MIT
 update-browserslist-db@1.2.3: MIT
+uqr@0.1.3: MIT
 uri-js@4.4.1: BSD-2-Clause
 uri-template-matcher@1.1.2: ISC
 use-sync-external-store@1.6.0: MIT
@@ -979,4 +1064,5 @@ yargs@17.7.2: MIT
 yauzl@2.10.0: MIT
 yocto-queue@0.1.0: MIT
 zod@3.25.76: MIT
+notebook-app@0.0.0: UNLICENSED
 ```

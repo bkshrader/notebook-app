@@ -23,13 +23,12 @@ When adding a feature: add a roadmap line + create `docs/features/<kebab-name>/O
 - **Keep it current.** Whenever a session defines, renames, or meaningfully refines a project term, update `docs/GLOSSARY.md` in the same change — add the new entry (or edit the existing one) so the glossary never drifts behind the work. Cross-link related entries.
 - **Respect the casing convention.** A capitalized glossary term in prose (e.g. "the Library", "a Project") carries its specific glossary meaning, not the generic English sense.
 
-## Storybook MCP
+## MCP servers for UI work
 
-Before doing any React UI, frontend, or component work, call the `storybook-mcp` MCP server (registered in [`.mcp.json`](./.mcp.json)) to read live component manifests, generate stories, and run interaction tests against the running Storybook.
+Two MCP servers are registered at project scope in [`.mcp.json`](./.mcp.json) and load-bearing for any React UI, frontend, or component work. Call them BEFORE re-reading the codebase or guessing component shapes.
 
-The server is exposed at `http://localhost:6006/mcp` when Storybook is running locally (`npm run storybook`). If the server is unreachable, start Storybook first.
-
-The MCP server is the source of truth for what components exist, what props they take, and what stories already cover them. Prefer it over re-reading the codebase for those facts.
+- **`storybook-mcp`** — live component manifests, story generation, and interaction tests against the running Storybook. Exposed at `http://localhost:6006/mcp` when Storybook is running locally (`pnpm storybook`); start Storybook first if unreachable. Source of truth for what components exist in our repo, what props they take, and what stories already cover them.
+- **`ark-ui`** — Ark UI's reference documentation, exposed via stdio (`npx -y @ark-ui/mcp`). Source of truth for Ark component anatomies (`data-scope`/`data-part`/`data-state`), example code, and styling guidance. Tools: `list_components`, `list_examples`, `get_example`, `styling_guide`. Call it before authoring or modifying any component built on Ark primitives — see [`unstyled-primitives-ark` ADR](./docs/features/accessibility/adrs/unstyled-primitives-ark.md).
 
 ## Commands
 
