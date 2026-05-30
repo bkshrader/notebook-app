@@ -19,7 +19,7 @@ on:
       - 'src/**' # application source
       - '.storybook/**' # Storybook config (drives the storybook build)
       - 'package.json' # intent (new deps, scripts, engines)
-      - 'pnpm-workspace.yaml' # onlyBuiltDependencies governs lifecycle-script execution (supply-chain)
+      - 'pnpm-workspace.yaml' # allowBuilds governs lifecycle-script execution (supply-chain)
       - '.npmrc' # node-linker / resolution model — changes how the whole tree installs
       - 'electron.vite.config.ts' # build/lint/typecheck-affecting configs
       - 'eslint.config.mjs'

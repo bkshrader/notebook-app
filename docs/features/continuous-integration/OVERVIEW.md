@@ -59,7 +59,7 @@ The ADRs in this directory capture decisions that are non-obvious, hard to rever
 
 - **Every workflow has `permissions: contents: read` at workflow level.** Per-job permissions only widen this when a specific step needs more (e.g. `pull-requests: write` for the dep-review comment).
 - **Every checkout has `persist-credentials: false`.** No workflow's later steps should be able to invoke `git push` with the runner's default token.
-- **Every `pnpm install` uses `--ignore-scripts`.** Blanket protection against upstream lifecycle-script execution. pnpm additionally does not run dependency build scripts unless allow-listed in `pnpm-workspace.yaml` (`onlyBuiltDependencies`); see [`adrs/package-manager.md`](adrs/package-manager.md).
+- **Every `pnpm install` uses `--ignore-scripts`.** Blanket protection against upstream lifecycle-script execution. pnpm additionally does not run dependency build scripts unless allowed in `pnpm-workspace.yaml` (`allowBuilds`, a `<pkg>: true|false` map; v11 removed the old `onlyBuiltDependencies` list); see [`adrs/package-manager.md`](adrs/package-manager.md).
 - **Every long-running workflow has `timeout-minutes` and a `concurrency` group with `cancel-in-progress: true`** — except the dep-review workflow, where cancel-in-progress combined with the wrong trigger types created a race that tore down in-flight runs (see ADR).
 - **Claude workflows use OIDC.** The `id-token: write` permission is for _issuing_ an OIDC token (not write-to-repo). The Claude GitHub App mints a short-lived, app-scoped installation token from the OIDC assertion; that's what Claude uses for any repo operations.
 - **`anthropics/claude-code-action@v1` is a moving tag and that's deliberate.** See ADR.

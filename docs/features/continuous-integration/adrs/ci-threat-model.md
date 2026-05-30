@@ -78,7 +78,7 @@ The model is enforced through these patterns, applied uniformly:
 
 - **`permissions: contents: read` at workflow level.** Per-job permissions only widen this when a specific step needs more.
 - **`persist-credentials: false` on every checkout.** No workflow step can later invoke `git push` with the runner's default token.
-- **`--ignore-scripts` on every `pnpm install`.** Blanket protection against upstream lifecycle-script execution; matches the dominant supply-chain attack shape. Reinforced by pnpm's default of not building dependencies outside the `onlyBuiltDependencies` allow list.
+- **`--ignore-scripts` on every `pnpm install`.** Blanket protection against upstream lifecycle-script execution; matches the dominant supply-chain attack shape. Reinforced by pnpm's default of not building dependencies outside the `allowBuilds` map (`<pkg>: true`; v11's replacement for the old `onlyBuiltDependencies` list).
 - **`pull_request`, never `pull_request_target`.** The canonical "pwn request" footgun is out of scope by construction.
 - **Identity gates use `pull_request.user.login` rather than `github.actor`.** The former is the actual PR author; the latter can be influenced by the triggering event in fork-PR scenarios.
 - **Checkouts pin to `pull_request.base.sha`, not the merge commit**, when the workflow's job is to analyze the PR's diff against pre-merge code. The merge commit would include the PR's changes and obscure what was actually being introduced.

@@ -38,7 +38,7 @@ pnpm directly solves the worktree problem: packages are stored once in a global 
 pnpm's other defaults reinforce the project's existing posture rather than fighting it:
 
 - **Strict, non-hoisted `node_modules`.** A package can only `import` what it actually declares. This surfaces phantom-dependency bugs (code relying on an undeclared transitive that npm's flat tree happened to hoist) at install/build time instead of in production. We keep this default on purpose (`.npmrc` documents it). It did require promoting one previously-transitive dependency, `yaml`, to a direct `devDependency` so `scripts/extract-dep-signals.mjs` can import it — see "Consequences."
-- **No dependency lifecycle scripts by default.** pnpm does not run `preinstall`/`install`/`postinstall` scripts unless the package is on an explicit allow list (`onlyBuiltDependencies` in `pnpm-workspace.yaml`). This is a supply-chain hardening default npm lacks; it complements the `--ignore-scripts` we already pass everywhere. Only `esbuild` and `electron-winstaller` are allow-listed, with rationale inline in `pnpm-workspace.yaml`. CI installs still pass `--ignore-scripts`, so the allow list governs local installs only.
+- **No dependency lifecycle scripts by default.** pnpm does not run `preinstall`/`install`/`postinstall` scripts unless the package is explicitly allowed (`allowBuilds` in `pnpm-workspace.yaml` — a map of `<pkg>: true|false`; pnpm v11 removed the v10 `onlyBuiltDependencies` list key). This is a supply-chain hardening default npm lacks; it complements the `--ignore-scripts` we already pass everywhere. Only `esbuild` and `electron-winstaller` are allowed (`true`), with rationale inline in `pnpm-workspace.yaml`. CI installs still pass `--ignore-scripts`, so the allow map governs local installs only.
 
 The migration is mechanical and total: `package-lock.json` → `pnpm-lock.yaml`; `npm ci` → `pnpm install --frozen-lockfile`; `npx <bin>` → `pnpm exec <bin>` (or a direct `node_modules/.bin/<bin>` spawn where the wrapper overhead matters, as in the prettier hook); `npm audit` → `pnpm audit`; CI uses `corepack enable` before `actions/setup-node` so `cache: pnpm` resolves the pinned pnpm. The `engines` field requires `node >=24` and `pnpm >=11`, and `engine-strict=true` makes a mismatched toolchain fail loudly at install rather than producing a subtly-different tree.
 
@@ -83,13 +83,13 @@ The migration is mechanical and total: `package-lock.json` → `pnpm-lock.yaml`;
 ### Option 4 — Bun
 
 - **Good**, because Bun's installer is extremely fast and it bundles a runtime/test-runner.
-- **Bad**, because the project is committed to **Electron** with a Node runtime (see [typescript-desktop-frameworks](../../../references/typescript-desktop-frameworks.md)); adopting Bun as the package manager invites runtime-divergence questions we have no reason to take on.
+- **Bad**, because the project is committed to **Electron** with a Node runtime (see [typescript-desktop-frameworks](../../../research/typescript-desktop-frameworks.md)); adopting Bun as the package manager invites runtime-divergence questions we have no reason to take on.
 - **Bad**, because Bun's lockfile and ecosystem maturity around Electron packaging and our specific tool stack are less proven than pnpm's, and the worktree win is comparable to pnpm's anyway.
 
 ## Follow-up
 
 - After any future `pnpm install` that changes the tree, regenerate [`docs/licenses/in-use.md`](../../../licenses/in-use.md) and keep the `license-check` allow list in `.github/workflows/ci.yml` in sync.
-- Keep `onlyBuiltDependencies` in `pnpm-workspace.yaml` minimal; add an entry only with an inline justification, and prefer leaving a package inert if its build script is not actually needed.
+- Keep the `allowBuilds` map in `pnpm-workspace.yaml` minimal; add an entry only with an inline justification (set it to `true`), and prefer leaving a package inert if its build script is not actually needed. Approve new build scripts with `pnpm approve-builds <pkg>` (writes the map) rather than re-adding the removed v10 `onlyBuiltDependencies` list key — pnpm 11 ignores that key, which silently disables approval and makes pnpm re-inject a placeholder stub on every install.
 - If a contributor reports a phantom-dependency build failure, fix it by declaring the missing dependency directly — do **not** loosen the strict layout (`shamefully-hoist`/`node-linker=hoisted`) to paper over it.
 - Revisit if pnpm's lockfile format changes in a way that breaks `extract-dep-signals.mjs`; the extractor pins to the `packages:`/`name@version` shape of lockfileVersion 9.
 
@@ -100,6 +100,7 @@ The migration is mechanical and total: `package-lock.json` → `pnpm-lock.yaml`;
 - CI threat model: [ci-threat-model.md](ci-threat-model.md)
 - Build-tool license-scope rationale: [docs/licenses/in-use.md](../../../licenses/in-use.md)
 - pnpm motivation (content-addressable store): <https://pnpm.io/motivation>
-- pnpm `onlyBuiltDependencies`: <https://pnpm.io/settings#onlybuiltdependencies>
+- pnpm `allowBuilds` (v11 replacement for the v10 `onlyBuiltDependencies` list): <https://pnpm.io/settings#allowbuilds>
+- pnpm 11 release notes (build-setting consolidation): <https://pnpm.io/blog/releases/11.0>
 - Corepack: <https://nodejs.org/api/corepack.html>
 - MADR template: <https://adr.github.io/madr/>
