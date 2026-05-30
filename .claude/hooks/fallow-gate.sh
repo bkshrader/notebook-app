@@ -43,13 +43,35 @@ fi
 #
 # Override the timeout with HUSKY_GATE_WAIT_SECS (e.g. 0 to disable the
 # wait entirely and rely on whatever state exists right now).
+#
+# Anchor every path to the WORKTREE ROOT, not the gate's ambient CWD. The
+# gate never cd's, so a bare check of `.husky/_/pre-commit` is relative to
+# wherever the Bash tool happened to be — which can be a subdir of the
+# worktree, or (after a stray cd) a different checkout entirely. That risks
+# the gate stating the wrong tree: blocking a tree that IS bootstrapped, or
+# — the dangerous direction — passing a commit into a tree whose wrapper is
+# genuinely missing because a sibling it checked has one. `git rev-parse
+# --show-toplevel` resolves the root of the SAME worktree a bare `git
+# commit`/`git push` in this CWD would use (git changes to the worktree
+# root before firing hooks), so anchoring to it makes the readiness check
+# and the actual hook-firing agree. `--git-path` is likewise run from that
+# root so the lock/log resolve to this worktree's git dir, not a sibling's.
+# If we're somehow not in a work tree, ROOT stays empty and we fall back to
+# the old CWD-relative behavior rather than erroring.
 BOOT_WAIT_SECS="${HUSKY_GATE_WAIT_SECS-120}"
-if [ ! -f .husky/_/pre-commit ] && [ "$BOOT_WAIT_SECS" != 0 ]; then
-  BOOT_LOCK="$(git rev-parse --git-path husky-bootstrap.lock 2>/dev/null || echo .husky-bootstrap.lock)"
-  BOOT_LOG="$(git rev-parse --git-path husky-bootstrap.log 2>/dev/null || echo .husky-bootstrap.log)"
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+WRAPPER="${ROOT:+$ROOT/}.husky/_/pre-commit"
+if [ ! -f "$WRAPPER" ] && [ "$BOOT_WAIT_SECS" != 0 ]; then
+  if [ -n "$ROOT" ]; then
+    BOOT_LOCK="$(git -C "$ROOT" rev-parse --git-path husky-bootstrap.lock 2>/dev/null || echo "$ROOT/.husky-bootstrap.lock")"
+    BOOT_LOG="$(git -C "$ROOT" rev-parse --git-path husky-bootstrap.log 2>/dev/null || echo "$ROOT/.husky-bootstrap.log")"
+  else
+    BOOT_LOCK="$(git rev-parse --git-path husky-bootstrap.lock 2>/dev/null || echo .husky-bootstrap.lock)"
+    BOOT_LOG="$(git rev-parse --git-path husky-bootstrap.log 2>/dev/null || echo .husky-bootstrap.log)"
+  fi
   echo "fallow-gate: git hooks not yet materialized; waiting up to ${BOOT_WAIT_SECS}s for the background bootstrap install to finish..." >&2
   waited=0
-  while [ ! -f .husky/_/pre-commit ] && [ "$waited" -lt "$BOOT_WAIT_SECS" ]; do
+  while [ ! -f "$WRAPPER" ] && [ "$waited" -lt "$BOOT_WAIT_SECS" ]; do
     # If the lock is gone, the background install has EXITED. If the
     # wrapper still isn't present, the install failed/no-op'd — stop
     # waiting and fall through to the block below rather than burn the
@@ -60,7 +82,7 @@ if [ ! -f .husky/_/pre-commit ] && [ "$BOOT_WAIT_SECS" != 0 ]; then
     sleep 2
     waited=$((waited + 2))
   done
-  if [ ! -f .husky/_/pre-commit ]; then
+  if [ ! -f "$WRAPPER" ]; then
     {
       echo "fallow-gate: blocked: git hooks are not installed in this checkout (.husky/_/pre-commit is missing)."
       echo "fallow-gate: the background bootstrap install did not finish in ${BOOT_WAIT_SECS}s, or it failed."
