@@ -141,11 +141,30 @@ jobs:
       # `{ advisories: { <id>: { module_name, severity, title, url, ... } } }`
       # (the npm v6 schema), which differs from npm v7+'s `vulnerabilities`
       # map — hence the parser shape here is pnpm-specific.
+      # This step is purely advisory: it annotates devDep findings and must
+      # NEVER gate merge (the blocking prod audit above already owns the
+      # job's pass/fail). `pnpm audit` exits non-zero whenever advisories
+      # exist — which is exactly the condition under which this step runs
+      # (`audit_full.outcome == 'failure'`). Under Actions' default
+      # `bash -eo pipefail`, that non-zero left side of the pipe would
+      # abort the step and fail the job, turning a non-blocking surface
+      # into a merge blocker. Two guards prevent that: `continue-on-error`
+      # at the step level (the job stays green even if this step errors),
+      # and `{ ...; } || true` inline (the step itself stays green so it
+      # doesn't render a spurious red ✗ on a routine devDep advisory).
       - name: Surface devDep advisories as warnings
         if: steps.audit_full.outcome == 'failure'
+        continue-on-error: true
         run: |
-          pnpm audit --json 2>/dev/null | node -e '
+          { pnpm audit --json 2>/dev/null || true; } | node -e '
             const j = JSON.parse(require("fs").readFileSync(0, "utf8"));
+            // Strip CR/LF and the `::` workflow-command delimiter from any
+            // value we interpolate into a `::warning` command. The advisory
+            // text comes from the upstream advisory DB, not the PR author,
+            // so this is defense-in-depth against a crafted advisory string
+            // forging or breaking out of the annotation, not a known hole.
+            const clean = (s) =>
+              String(s).replace(/[\r\n]+/g, " ").replace(/::/g, "：：");
             const advisories = Object.values(j.advisories || {})
               .filter(a => ["high", "critical"].includes(a.severity));
             for (const a of advisories) {
@@ -157,8 +176,8 @@ jobs:
                 .slice(0, 3)
                 .join(", ");
               const tail = paths ? ` (via ${paths})` : "";
-              const annTitle = `${name} (${a.severity}) — ${title}`;
-              const annBody = url ? `${url}${tail}` : `unknown advisory${tail}`;
+              const annTitle = clean(`${name} (${a.severity}) — ${title}`);
+              const annBody = clean(url ? `${url}${tail}` : `unknown advisory${tail}`);
               console.log(`::warning title=${annTitle}::${annBody}`);
             }
           '
