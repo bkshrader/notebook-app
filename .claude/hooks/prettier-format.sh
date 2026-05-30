@@ -71,6 +71,51 @@ esac
 # whose node_modules holds a different prettier. Fall back to `pnpm exec`
 # (resolves via the workspace), then a global `prettier` on PATH.
 PROJECT_PRETTIER="$ABS_PROJECT/node_modules/.bin/prettier"
+
+# --- Wait out an in-flight background bootstrap install -----------------
+# husky-bootstrap.sh (SessionStart/CwdChanged) provisions a fresh worktree's
+# deps in a DETACHED background `pnpm install`, so the session is usable in
+# ~0.5s instead of ~40s. The cost: for a brief window after a fresh-worktree
+# session opens, the local prettier ($PROJECT_PRETTIER) doesn't exist yet.
+# Without this wait, an edit inside that window would fall through to the
+# `pnpm exec`/global fallbacks or "not found" and SILENTLY skip formatting on
+# a worktree that is actually provisioning fine — the invisible-skip failure
+# mode this project treats as the worst kind (see hook-environments.md).
+#
+# So: if the local prettier is missing, wait for this checkout's husky wrapper
+# (.husky/_/pre-commit — the bootstrap's documented post-condition,
+# materialized by the SAME `pnpm install` that installs node_modules) up to
+# HUSKY_GATE_WAIT_SECS (default 120s; set 0 to disable). Break early if the
+# bootstrap lock disappears (the install exited). This hook never cd's, so
+# anchor git at $ABS_PROJECT (the edited file's own project root) — NOT the
+# ambient CWD, which can be a sibling worktree. Unlike fallow-gate.sh (a
+# commit safety gate that exits 2 on timeout), we only WAIT, then fall through
+# to the existing resolution chain below.
+BOOT_WAIT_SECS="${HUSKY_GATE_WAIT_SECS-120}"
+if [ ! -x "$PROJECT_PRETTIER" ] && [ "$BOOT_WAIT_SECS" != 0 ]; then
+  ROOT="$(git -C "$ABS_PROJECT" rev-parse --show-toplevel 2>/dev/null || true)"
+  WRAPPER="${ROOT:+$ROOT/}.husky/_/pre-commit"
+  if [ ! -f "$WRAPPER" ]; then
+    if [ -n "$ROOT" ]; then
+      BOOT_LOCK="$(git -C "$ROOT" rev-parse --git-path husky-bootstrap.lock 2>/dev/null || echo "$ROOT/.husky-bootstrap.lock")"
+    else
+      BOOT_LOCK="$(git -C "$ABS_PROJECT" rev-parse --git-path husky-bootstrap.lock 2>/dev/null || echo "$ABS_PROJECT/.husky-bootstrap.lock")"
+    fi
+    echo "prettier-format: prettier not yet installed; waiting up to ${BOOT_WAIT_SECS}s for the background bootstrap install to finish..." >&2
+    waited=0
+    while [ ! -f "$WRAPPER" ] && [ "$waited" -lt "$BOOT_WAIT_SECS" ]; do
+      # Lock gone => the background install has EXITED. Stop waiting and fall
+      # through rather than burning the rest of the timeout on a dead install.
+      if [ ! -f "$BOOT_LOCK" ]; then
+        break
+      fi
+      sleep 2
+      waited=$((waited + 2))
+    done
+  fi
+fi
+# --- end bootstrap wait ------------------------------------------------
+
 if [ -x "$PROJECT_PRETTIER" ]; then
   RUNNER=("$PROJECT_PRETTIER")
 elif command -v pnpm >/dev/null 2>&1; then

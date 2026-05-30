@@ -7,6 +7,7 @@ const config: StorybookConfig = {
     '@storybook/addon-a11y',
     '@storybook/addon-docs',
     '@storybook/addon-mcp',
+    'storybook-design-token',
   ],
   framework: '@storybook/react-vite',
   typescript: {
