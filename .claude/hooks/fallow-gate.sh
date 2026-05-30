@@ -26,6 +26,54 @@ if ! printf '%s\n' "$CMD" | grep -Eq '(^|[[:space:];|&()])git[[:space:]]+(commit
   exit 0
 fi
 
+# --- Husky-bootstrap readiness gate ------------------------------------
+# husky-bootstrap.sh (SessionStart) provisions a fresh worktree's deps in
+# a DETACHED background `pnpm install`, so the session is usable in ~0.5s
+# instead of ~40s. The cost: for a brief window after a fresh-worktree
+# session opens, the husky wrapper (.husky/_/pre-commit) may not exist yet,
+# which means git would silently NOT fire pre-commit/pre-push. Since we're
+# about to run a commit/push, block here until the wrapper is materialized
+# so the commit is actually gated.
+#
+# Behavior: if the wrapper is missing, poll for it (the bootstrap writes a
+# lock with the install's PID). We wait up to BOOT_WAIT_SECS, then BLOCK
+# (exit 2) with instructions — never allow an ungated commit through. If
+# the wrapper already exists (the steady-state case: already-bootstrapped
+# worktree), this is a single stat and falls straight through.
+#
+# Override the timeout with HUSKY_GATE_WAIT_SECS (e.g. 0 to disable the
+# wait entirely and rely on whatever state exists right now).
+BOOT_WAIT_SECS="${HUSKY_GATE_WAIT_SECS-120}"
+if [ ! -f .husky/_/pre-commit ] && [ "$BOOT_WAIT_SECS" != 0 ]; then
+  BOOT_LOCK="$(git rev-parse --git-path husky-bootstrap.lock 2>/dev/null || echo .husky-bootstrap.lock)"
+  BOOT_LOG="$(git rev-parse --git-path husky-bootstrap.log 2>/dev/null || echo .husky-bootstrap.log)"
+  echo "fallow-gate: git hooks not yet materialized; waiting up to ${BOOT_WAIT_SECS}s for the background bootstrap install to finish..." >&2
+  waited=0
+  while [ ! -f .husky/_/pre-commit ] && [ "$waited" -lt "$BOOT_WAIT_SECS" ]; do
+    # If the lock is gone, the background install has EXITED. If the
+    # wrapper still isn't present, the install failed/no-op'd — stop
+    # waiting and fall through to the block below rather than burn the
+    # whole timeout on an install that will never finish.
+    if [ ! -f "$BOOT_LOCK" ]; then
+      break
+    fi
+    sleep 2
+    waited=$((waited + 2))
+  done
+  if [ ! -f .husky/_/pre-commit ]; then
+    {
+      echo "fallow-gate: blocked: git hooks are not installed in this checkout (.husky/_/pre-commit is missing)."
+      echo "fallow-gate: the background bootstrap install did not finish in ${BOOT_WAIT_SECS}s, or it failed."
+      echo "fallow-gate: committing now would SKIP pre-commit/pre-push gating. Run 'pnpm install' manually"
+      echo "fallow-gate: to materialize the hooks, then retry. Install log: $BOOT_LOG"
+      echo "fallow-gate: (set HUSKY_GATE_WAIT_SECS=0 to bypass this wait, at the cost of ungated commits.)"
+    } >&2
+    exit 2
+  fi
+  echo "fallow-gate: git hooks materialized; proceeding." >&2
+fi
+# --- end readiness gate ------------------------------------------------
+
 if command -v fallow >/dev/null 2>&1; then
   RUNNER=(fallow)
   BIN_DESC="$(command -v fallow)"
