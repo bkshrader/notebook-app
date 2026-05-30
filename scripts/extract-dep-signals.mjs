@@ -476,12 +476,16 @@ function parseLockfile(text, path) {
   }
 }
 
-// Walk the lockfile's `packages` map and return a Map keyed by the raw
-// `name@version` package key. Each value carries the fields we need for
-// peer-compat analysis. pnpm's `packages:` keys are already
-// `name@version` with no peer-context suffix, so each key is a distinct
-// resolution and there is no hoisting/nesting ambiguity to dedup around
-// (unlike npm's path-keyed lockfile).
+// Walk the lockfile's `packages` map and return a Map keyed by the
+// PARSED `name@version` (from parseDepKey), NOT the raw lockfile key.
+// For most packages the two are identical; for aliased deps the raw key
+// is `alias@npm:real@version` while the parsed key is `alias@version` —
+// and the parsed form is what every consumer of this index looks up.
+// Each value carries the fields we need for peer-compat analysis. pnpm's
+// `packages:` keys are already `name@version` with no peer-context
+// suffix, so each key is a distinct resolution and there is no
+// hoisting/nesting ambiguity to dedup around (unlike npm's path-keyed
+// lockfile).
 //
 // A package can legitimately appear at multiple versions (`foo@1.0.0`
 // and `foo@2.0.0` are separate keys); both are kept, because different
@@ -497,7 +501,16 @@ export function indexLockfile(lock) {
     const isObj = meta && typeof meta === 'object';
     const peer = isObj ? (meta.peerDependencies ?? {}) : {};
     const peerMeta = isObj ? (meta.peerDependenciesMeta ?? {}) : {};
-    out.set(key, {
+    // Key by the PARSED `name@version`, not the raw lockfile key. For
+    // aliased deps the raw key is `alias@npm:real@version`, but every
+    // consumer of this index looks up by parsed name@version
+    // (classifyChanges does `baseIndex.has(`${name}@${rem[0]}`)`). Keying
+    // by the raw `@npm:` blob would make that lookup always miss, silently
+    // demoting an aliased-dep bump to removal+netNew and losing its
+    // isMajor / peer-mismatch analysis. parseDepKey returns the ALIAS name
+    // (not the underlying real name), so two aliases of the same
+    // underlying version stay distinct keys — no collision.
+    out.set(`${parsed.name}@${parsed.version}`, {
       name: parsed.name,
       version: parsed.version,
       peerDependencies: typeof peer === 'object' && peer !== null ? peer : {},

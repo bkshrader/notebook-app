@@ -504,6 +504,70 @@ test('indexLockfile: handles missing peerDependencies as empty object', () => {
   assert.deepEqual(indexLockfile(lock).get('foo@1.0.0').peerDependencies, {});
 });
 
+test('indexLockfile: aliased dep is keyed by parsed alias@version, not the raw @npm: key', () => {
+  // pnpm writes an aliased dep's `packages:` key as
+  // `alias@npm:realname@version`. The index must key it by the PARSED
+  // `alias@version` so corroboration lookups (classifyChanges does
+  // `baseIndex.has(`${name}@${version}`)`) hit. Keying by the raw blob
+  // would make every aliased-dep bump fail corroboration.
+  const lock = {
+    packages: {
+      'string-width-cjs@npm:string-width@4.2.3': { resolution: {}, peerDependencies: {} },
+    },
+  };
+  const idx = indexLockfile(lock);
+  assert.ok(idx.has('string-width-cjs@4.2.3'), 'keyed by parsed alias@version');
+  assert.ok(!idx.has('string-width-cjs@npm:string-width@4.2.3'), 'raw @npm: key not used');
+  assert.equal(idx.get('string-width-cjs@4.2.3').name, 'string-width-cjs');
+  assert.equal(idx.get('string-width-cjs@4.2.3').version, '4.2.3');
+});
+
+test('indexLockfile: scoped aliased dep keyed by parsed scope/alias@version', () => {
+  const lock = {
+    packages: {
+      '@scope/alias@npm:@other/real@1.2.3': { resolution: {}, peerDependencies: {} },
+    },
+  };
+  const idx = indexLockfile(lock);
+  assert.ok(idx.has('@scope/alias@1.2.3'));
+  assert.equal(idx.get('@scope/alias@1.2.3').version, '1.2.3');
+});
+
+test('classifyChanges: an aliased-dep bump corroborates against the real index (C1 regression)', () => {
+  // End-to-end against an index built by indexLockfile from a REAL aliased
+  // packages: key — not the synthetic baseIndexOf helper. This is the
+  // regression that caught the keying bug: before the fix, indexLockfile
+  // stored `string-width-cjs@npm:string-width@4.2.3` while classifyChanges
+  // looked up `string-width-cjs@4.2.3`, so the bump was demoted to
+  // removal+netNew+warning instead of a clean corroborated bump.
+  const baseLock = {
+    packages: {
+      'string-width-cjs@npm:string-width@4.2.3': { resolution: {}, peerDependencies: {} },
+    },
+  };
+  const baseIndex = indexLockfile(baseLock);
+  // Use the AUTHENTIC raw diff-line shape a real `git diff pnpm-lock.yaml`
+  // emits for an aliased dep (`alias@npm:real@version:`), not the
+  // simplified diffOf form — so this guards the true production input.
+  const diff = [
+    'diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml',
+    '--- a/pnpm-lock.yaml',
+    '+++ b/pnpm-lock.yaml',
+    '@@ -100,7 +100,7 @@ packages:',
+    ' ',
+    '-  string-width-cjs@npm:string-width@4.2.3:',
+    '-    resolution: {integrity: sha512-OLD}',
+    '+  string-width-cjs@npm:string-width@4.3.0:',
+    '+    resolution: {integrity: sha512-NEW}',
+    ' ',
+  ].join('\n');
+  const { bumps, removals, netNew, warnings } = classifyChanges(extractDepChanges(diff), baseIndex);
+  assert.deepEqual(bumps, [{ name: 'string-width-cjs', oldVersion: '4.2.3', newVersion: '4.3.0' }]);
+  assert.equal(removals.length, 0);
+  assert.equal(netNew.length, 0);
+  assert.equal(warnings.length, 0, 'no "unconfirmed change" warning for a corroborated alias bump');
+});
+
 // ---------------------------------------------------------------------------
 // findPeerMismatches — the headline feature
 // ---------------------------------------------------------------------------
