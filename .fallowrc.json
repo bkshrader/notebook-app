@@ -7,7 +7,14 @@
     "electron.vite.config.ts",
     "scripts/extract-dep-signals.mjs"
   ],
-  "ignorePatterns": ["out/**", "dist/**", "**/*.d.ts", "scripts/**/*.test.mjs"],
+  "ignorePatterns": [
+    "out/**",
+    "dist/**",
+    "**/*.d.ts",
+    "scripts/**/*.test.mjs",
+    "src/renderer/src/styles/app.css"
+  ],
+  "ignoreDependencies": ["@double-great/stylelint-a11y"],
   "rules": {
     "unused-files": "error",
     "unused-exports": "warn",

@@ -3,6 +3,8 @@
 
 pnpm lint || exit 1
 
+pnpm lint:css || exit 1
+
 pnpm format:check || exit 1
 
 pnpm typecheck || exit 1
