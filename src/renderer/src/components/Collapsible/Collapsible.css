@@ -1,0 +1,162 @@
+/**
+ * Collapsible — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * State comes from Ark's data-attributes (data-state="open|closed",
+ * data-disabled, data-focus-visible on the trigger button).
+ *
+ * Motion: open/close animation on the Content is suppressed under
+ * reduced-motion — both the OS `prefers-reduced-motion` media query AND the
+ * Storybook toolbar's `[data-reduced-motion='reduce']` attribute on <html>.
+ * Each animated selector gets its own reduced-motion reset (stylelint a11y
+ * rule matches per-selector).
+ */
+
+[data-scope='collapsible'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  border: solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-medium);
+}
+
+[data-scope='collapsible'][data-part='trigger'] {
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  inline-size: 100%;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: none;
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+  text-align: start;
+
+  background: var(--token-color-surface-faint);
+}
+
+[data-scope='collapsible'][data-part='trigger']:hover:not([data-disabled]) {
+  color: var(--token-color-foreground-action-hover);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='collapsible'][data-part='trigger'][data-state='open'] {
+  /* foreground-action (#1060ff) fails on surface-interactive-active (#dedfe3,
+     ~3.8:1). Use foreground-strong (#0c0c0e) which clears 4.5:1 on any surface. */
+  color: var(--token-color-foreground-strong);
+  background: var(--token-color-surface-interactive-active);
+}
+
+[data-scope='collapsible'][data-part='trigger'][data-disabled] {
+  cursor: not-allowed;
+
+  /* foreground-disabled (#8c909c) fails axe even on near-white surfaces.
+     Use foreground-faint (#656a76, ~5.7:1 on white) for the text; convey
+     disabled state via cursor + the background tint, not by dimming below AA. */
+  color: var(--token-color-foreground-faint);
+  background: var(--token-color-surface-interactive-disabled);
+}
+
+/* Keyboard focus only — never decorate mouse focus. */
+[data-scope='collapsible'][data-part='trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='collapsible'][data-part='indicator'] {
+  transform-origin: center;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--token-color-foreground-faint);
+
+  transition: transform var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='collapsible'][data-part='indicator'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='collapsible'][data-part='indicator'] {
+  transition: none;
+}
+
+[data-scope='collapsible'][data-part='indicator'][data-state='open'] {
+  transform: rotate(90deg);
+}
+
+[data-scope='collapsible'][data-part='content'] {
+  overflow: hidden;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='collapsible'][data-part='content'][data-state='open'] {
+  animation: collapsible-expand var(--token-form-radiocard-transition-duration) ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='collapsible'][data-part='content'][data-state='open'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='collapsible'][data-part='content'][data-state='open'] {
+  animation: none;
+}
+
+[data-scope='collapsible'][data-part='content'][data-state='closed'] {
+  animation: collapsible-collapse var(--token-form-radiocard-transition-duration) ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='collapsible'][data-part='content'][data-state='closed'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce']
+  [data-scope='collapsible'][data-part='content'][data-state='closed'] {
+  animation: none;
+}
+
+@keyframes collapsible-expand {
+  from {
+    block-size: var(--collapsed-height, 0);
+  }
+
+  to {
+    block-size: var(--height);
+  }
+}
+
+@keyframes collapsible-collapse {
+  from {
+    block-size: var(--height);
+  }
+
+  to {
+    block-size: var(--collapsed-height, 0);
+  }
+}

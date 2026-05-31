@@ -1,0 +1,104 @@
+/**
+ * PinInput — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * State comes from Ark's data-attributes (data-disabled, data-invalid,
+ * data-complete, data-focus-visible, data-filled). The focus ring is applied
+ * ONLY on keyboard focus (data-focus-visible), never on every :focus.
+ *
+ * Each Input slot is a real <input> element — no reduced-motion concern for
+ * individual inputs (no transitions there). The control wrapper has no
+ * transitions either, so no reduced-motion blocks are needed here.
+ */
+
+[data-scope='pin-input'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='pin-input'][data-part='root'][data-disabled] {
+  color: var(--token-color-foreground-disabled);
+}
+
+[data-scope='pin-input'][data-part='label'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+}
+
+[data-scope='pin-input'][data-part='label'][data-disabled] {
+  color: var(--token-color-foreground-disabled);
+}
+
+[data-scope='pin-input'][data-part='control'] {
+  display: inline-flex;
+  gap: var(--token-form-control-padding);
+}
+
+[data-scope='pin-input'][data-part='input'] {
+  inline-size: var(--token-form-toggle-height);
+  block-size: var(--token-form-toggle-height);
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-base-border-color-default);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+  text-align: center;
+
+  background: var(--token-form-control-base-surface-color-default);
+  outline: none;
+}
+
+[data-scope='pin-input'][data-part='input']:hover:not([data-disabled], [data-invalid]) {
+  border-color: var(--token-form-control-base-border-color-hover);
+  background: var(--token-form-control-base-surface-color-hover);
+}
+
+/* Keyboard focus only — never decorate mouse focus. */
+[data-scope='pin-input'][data-part='input'][data-focus-visible] {
+  border-color: var(--token-color-border-action);
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='pin-input'][data-part='input'][data-disabled] {
+  cursor: not-allowed;
+  border-color: var(--token-form-control-disabled-border-color);
+  color: var(--token-form-control-disabled-foreground-color);
+  background: var(--token-form-control-disabled-surface-color);
+}
+
+[data-scope='pin-input'][data-part='input'][data-invalid] {
+  border-color: var(--token-form-control-invalid-border-color-default);
+}
+
+[data-scope='pin-input'][data-part='input'][data-invalid]:hover:not([data-disabled]) {
+  border-color: var(--token-form-control-invalid-border-color-hover);
+}
+
+[data-scope='pin-input'][data-part='input'][data-invalid][data-focus-visible] {
+  border-color: var(--token-form-control-invalid-border-color-default);
+  outline: none;
+  box-shadow: var(--token-focus-ring-critical-box-shadow);
+}
+
+[data-scope='pin-input'][data-part='input'][data-complete] {
+  border-color: var(--token-form-control-checked-border-color-default);
+  color: var(--token-form-control-checked-foreground-color);
+}

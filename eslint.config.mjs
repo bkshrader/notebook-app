@@ -19,6 +19,11 @@ export default tseslint.config(
       // output. CI doesn't see this because CI checks out a fresh
       // repo with no nested worktrees; local pre-push does.
       '.claude/worktrees/',
+      // Claude-Code scratch artifacts (workflow scripts, token allowlist,
+      // transient logs) are not project source. They use the Workflow
+      // runtime's injected globals (`agent`, `pipeline`, `log`, etc.) which
+      // aren't declared anywhere lint can see — and they're never shipped.
+      '.claude/',
     ],
   },
   js.configs.recommended,

@@ -1,0 +1,168 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset. */
+
+[data-scope='steps'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  inline-size: 100%;
+}
+
+[data-scope='steps'][data-part='root'][data-orientation='vertical'] {
+  flex-direction: row;
+}
+
+[data-scope='steps'][data-part='list'] {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+[data-scope='steps'][data-part='list'][data-orientation='vertical'] {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+[data-scope='steps'][data-part='item'] {
+  position: relative;
+  display: flex;
+  flex: 1 0 0;
+  align-items: center;
+}
+
+[data-scope='steps'][data-part='item']:last-of-type {
+  flex: initial;
+}
+
+[data-scope='steps'][data-part='item'][data-orientation='vertical'] {
+  align-items: flex-start;
+}
+
+[data-scope='steps'][data-part='trigger'] {
+  cursor: pointer;
+
+  display: flex;
+  gap: var(--token-border-radius-medium);
+  align-items: center;
+
+  padding-block: var(--token-border-radius-medium);
+  padding-inline: 0;
+  border: none;
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: transparent;
+}
+
+[data-scope='steps'][data-part='trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='steps'][data-part='trigger'][data-disabled] {
+  cursor: default;
+
+  /* foreground-disabled (#8c909c) is 3.18:1 on white — fails WCAG AA.
+     Use foreground-faint (#656a76, 4.59:1) for text; communicate disabled
+     state via cursor, data-disabled chrome, and reduced-opacity indicators. */
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='steps'][data-part='indicator'] {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-large);
+
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-primary);
+}
+
+[data-scope='steps'][data-part='indicator'][data-current] {
+  border-color: var(--token-color-border-action);
+  color: var(--token-color-foreground-action);
+  background: var(--token-color-surface-action);
+}
+
+[data-scope='steps'][data-part='indicator'][data-complete] {
+  border-color: var(--token-color-border-success);
+  color: var(--token-color-foreground-success);
+  background: var(--token-color-surface-success);
+}
+
+[data-scope='steps'][data-part='indicator'][data-incomplete] {
+  border-color: var(--token-color-border-faint);
+  color: var(--token-color-foreground-faint);
+  background: var(--token-color-surface-faint);
+}
+
+[data-scope='steps'][data-part='separator'] {
+  flex: 1;
+
+  block-size: var(--token-form-control-border-width);
+  margin-inline: var(--token-border-radius-medium);
+
+  background: var(--token-color-border-primary);
+
+  transition: background-color var(--token-tabs-indicator-transition-duration)
+    var(--token-tabs-indicator-transition-function);
+}
+
+[data-scope='steps'][data-part='separator'][data-complete] {
+  background: var(--token-color-border-success);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='steps'][data-part='separator'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='steps'][data-part='separator'] {
+  transition: none;
+}
+
+[data-scope='steps'][data-part='separator'][data-orientation='vertical'] {
+  position: absolute;
+  inline-size: var(--token-form-control-border-width);
+  block-size: 100%;
+}
+
+[data-scope='steps'][data-part='content'] {
+  padding-block: var(--token-border-radius-medium);
+  border-radius: var(--token-border-radius-medium);
+
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-faint);
+}
+
+[data-scope='steps'][data-part='content'][data-orientation='vertical'] {
+  flex: 1;
+}
+
+[data-scope='steps'][data-part='actions'] {
+  display: flex;
+  gap: var(--token-border-radius-medium);
+  justify-content: flex-end;
+  padding-block-start: var(--token-border-radius-medium);
+}

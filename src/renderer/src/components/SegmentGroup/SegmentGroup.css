@@ -1,0 +1,141 @@
+/**
+ * SegmentGroup — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * The sliding Indicator is positioned by Zag via inline CSS custom properties
+ * (--left, --top, --width, --height) that Ark writes onto the indicator element
+ * at runtime. The transition animates those geometry properties so the indicator
+ * glides between segments. Reduced motion suppresses this transition under both
+ * the OS `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute. Each animated selector gets its
+ * own reduced-motion reset (stylelint a11y rule matches per-selector).
+ *
+ * Focus ring is applied ONLY on `data-focus-visible` (keyboard focus), never
+ * on every `data-focus`. `outline: none` is always paired with the visible
+ * box-shadow ring on the same selector (a11y/no-outline-none rule).
+ */
+
+/* ── Root ─────────────────────────────────────────────────────────────────── */
+
+[data-scope='segment-group'][data-part='root'] {
+  isolation: isolate;
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-faint);
+  box-shadow: var(--token-elevation-inset-box-shadow);
+}
+
+[data-scope='segment-group'][data-part='root'][data-disabled] {
+  color: var(--token-color-foreground-disabled);
+}
+
+/* ── Label ────────────────────────────────────────────────────────────────── */
+
+[data-scope='segment-group'][data-part='label'] {
+  /* Visually hidden; kept for screen-reader accessible group name. */
+  position: absolute;
+
+  overflow: hidden;
+
+  inline-size: 1px;
+  block-size: 1px;
+
+  white-space: nowrap;
+
+  clip-path: inset(50%);
+}
+
+/* ── Indicator (the gliding selection pill) ───────────────────────────────── */
+
+[data-scope='segment-group'][data-part='indicator'] {
+  position: absolute;
+  z-index: 0;
+  inset-block-start: var(--top);
+  inset-inline-start: var(--left);
+
+  /* Zag writes --width/--height/--left/--top at runtime. */
+  inline-size: var(--width);
+  block-size: var(--height);
+  border-radius: var(--token-border-radius-small);
+
+  background: var(--token-color-surface-primary);
+  box-shadow: var(--token-elevation-low-box-shadow);
+
+  transition-timing-function: var(--token-tabs-indicator-transition-function);
+  transition-duration: var(--token-form-radiocard-transition-duration);
+  transition-property: inline-size, block-size, inset-inline-start, inset-block-start;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='segment-group'][data-part='indicator'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='segment-group'][data-part='indicator'] {
+  transition: none;
+}
+
+/* ── Item (each selectable segment) ──────────────────────────────────────── */
+
+[data-scope='segment-group'][data-part='item'] {
+  cursor: pointer;
+  user-select: none;
+
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  block-size: var(--token-tabs-tab-height-medium);
+  padding-inline: var(--token-tabs-tab-padding-horizontal-medium);
+  border-radius: var(--token-border-radius-small);
+
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='segment-group'][data-part='item'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-color-foreground-disabled);
+}
+
+[data-scope='segment-group'][data-part='item'][data-state='checked'] {
+  font-size: var(--token-typography-body-200-font-size);
+  color: var(--token-color-foreground-action);
+}
+
+/* Keyboard focus ring on the item (which wraps the hidden input). */
+[data-scope='segment-group'][data-part='item'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── ItemText (the visible text label, layered above the indicator) ────────── */
+
+[data-scope='segment-group'][data-part='item-text'] {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── ItemControl (the hidden presentational radio indicator — not shown) ───── */
+
+[data-scope='segment-group'][data-part='item-control'] {
+  display: none;
+}

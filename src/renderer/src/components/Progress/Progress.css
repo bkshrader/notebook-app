@@ -1,0 +1,99 @@
+/**
+ * Progress — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals, no
+ * `--token-color-palette-*`.
+ *
+ * State comes from Ark's data-attributes (data-state="indeterminate|loading|complete",
+ * data-orientation). The indeterminate animation is suppressed under
+ * reduced-motion — both the OS `prefers-reduced-motion` media query AND the
+ * Storybook toolbar's `[data-reduced-motion='reduce']` attribute on <html>.
+ * Each animated selector gets its own reduced-motion reset so the stylelint
+ * a11y rule (which matches per-selector) is satisfied.
+ */
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: scaleX(0.25) translateX(-100%);
+  }
+
+  100% {
+    transform: scaleX(0.25) translateX(400%);
+  }
+}
+
+[data-scope='progress'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-toggle-border-width);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='progress'][data-part='label'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+}
+
+[data-scope='progress'][data-part='track'] {
+  overflow: hidden;
+  block-size: var(--token-form-toggle-border-width);
+  border-radius: var(--token-border-radius-large);
+  background: var(--token-color-surface-strong);
+}
+
+[data-scope='progress'][data-part='range'] {
+  transform-origin: left center;
+
+  block-size: 100%;
+  border-radius: var(--token-border-radius-large);
+
+  background: var(--token-color-foreground-action);
+
+  transition: transform var(--token-form-radiocard-transition-duration)
+    var(--token-tooltip-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='progress'][data-part='range'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='progress'][data-part='range'] {
+  transition: none;
+}
+
+[data-scope='progress'][data-part='range'][data-state='indeterminate'] {
+  animation: progress-indeterminate 1.5s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='progress'][data-part='range'][data-state='indeterminate'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce']
+  [data-scope='progress'][data-part='range'][data-state='indeterminate'] {
+  animation: none;
+}
+
+[data-scope='progress'][data-part='range'][data-state='complete'] {
+  background: var(--token-color-foreground-success);
+}
+
+[data-scope='progress'][data-part='value-text'] {
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-color-foreground-faint);
+}

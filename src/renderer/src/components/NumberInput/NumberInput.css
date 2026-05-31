@@ -1,0 +1,154 @@
+/**
+ * NumberInput — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * The Input uses `--token-form-control-*` tokens (border, surface, foreground)
+ * mirroring other text-input form controls. Trigger buttons share the same
+ * border/surface treatment.
+ *
+ * Focus ring via [data-focus-visible] (keyboard focus only). Reduced-motion
+ * suppressed under BOTH `prefers-reduced-motion: reduce` AND the Storybook
+ * toolbar's `[data-reduced-motion='reduce']` attribute — each animated selector
+ * gets its own reset (stylelint a11y rule matches per-selector).
+ * Logical properties only (inline-size/block-size/padding-inline/etc.).
+ */
+
+[data-scope='number-input'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='number-input'][data-part='root'][data-disabled] {
+  color: var(--token-color-foreground-disabled);
+}
+
+[data-scope='number-input'][data-part='label'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+}
+
+[data-scope='number-input'][data-part='label'][data-disabled] {
+  color: var(--token-form-control-disabled-foreground-color);
+}
+
+[data-scope='number-input'][data-part='label'][data-invalid] {
+  color: var(--token-color-foreground-critical);
+}
+
+[data-scope='number-input'][data-part='control'] {
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-base-border-color-default);
+  border-radius: var(--token-form-control-border-radius);
+
+  background-color: var(--token-form-control-base-surface-color-default);
+
+  transition: border-color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='number-input'][data-part='control'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='number-input'][data-part='control'] {
+  transition: none;
+}
+
+[data-scope='number-input'][data-part='control'][data-focus] {
+  border-color: var(--token-color-border-action);
+}
+
+[data-scope='number-input'][data-part='control'][data-invalid] {
+  border-color: var(--token-color-border-critical);
+}
+
+[data-scope='number-input'][data-part='control'][data-disabled] {
+  border-color: var(--token-form-control-disabled-border-color);
+  background-color: var(--token-form-control-disabled-surface-color);
+}
+
+[data-scope='number-input'][data-part='input'] {
+  flex: 1;
+
+  min-inline-size: 0;
+  padding-inline: var(--token-form-control-padding);
+  border: none;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background-color: transparent;
+  outline: none;
+}
+
+[data-scope='number-input'][data-part='input'][data-disabled] {
+  color: var(--token-form-control-disabled-foreground-color);
+}
+
+[data-scope='number-input'][data-part='input'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='number-input'][data-part='increment-trigger'],
+[data-scope='number-input'][data-part='decrement-trigger'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-inline: var(--token-form-control-padding);
+  border: none;
+  border-inline-start: var(--token-form-control-border-width) solid
+    var(--token-form-control-base-border-color-default);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background-color: var(--token-color-surface-interactive);
+}
+
+[data-scope='number-input'][data-part='increment-trigger']:hover:not([data-disabled]),
+[data-scope='number-input'][data-part='decrement-trigger']:hover:not([data-disabled]) {
+  background-color: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='number-input'][data-part='increment-trigger']:active:not([data-disabled]),
+[data-scope='number-input'][data-part='decrement-trigger']:active:not([data-disabled]) {
+  background-color: var(--token-color-surface-interactive-active);
+}
+
+[data-scope='number-input'][data-part='increment-trigger'][data-disabled],
+[data-scope='number-input'][data-part='decrement-trigger'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-form-control-disabled-foreground-color);
+  background-color: var(--token-form-control-disabled-surface-color);
+}
+
+[data-scope='number-input'][data-part='increment-trigger'][data-focus-visible],
+[data-scope='number-input'][data-part='decrement-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}

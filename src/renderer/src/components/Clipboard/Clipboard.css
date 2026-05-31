@@ -1,0 +1,134 @@
+/**
+ * Clipboard — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*` palette tokens.
+ *
+ * State surfaces through Ark data-attributes:
+ *   data-copied — present when the value has been copied to the clipboard
+ *   data-readonly — present on the Input when read-only
+ *   data-focus-visible — present on the Trigger on keyboard focus
+ *
+ * Focus ring: applied ONLY on keyboard focus via [data-focus-visible], never
+ * on every :focus or [data-focus].
+ *
+ * Reduced motion: the trigger transition is suppressed under BOTH the OS
+ * `prefers-reduced-motion: reduce` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute. Each animated selector gets its
+ * own dedicated reset (the stylelint a11y rule matches per-selector).
+ *
+ * Logical properties are used throughout (inline-size, padding-inline, etc.)
+ * rather than width/padding-left per the stylelint-plugin-logical-css rule.
+ */
+
+[data-scope='clipboard'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+  inline-size: 100%;
+}
+
+[data-scope='clipboard'][data-part='label'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+}
+
+[data-scope='clipboard'][data-part='control'] {
+  display: flex;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+}
+
+[data-scope='clipboard'][data-part='input'] {
+  flex: 1;
+
+  min-inline-size: 0;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-base-border-color-default);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background: var(--token-form-control-base-surface-color-default);
+  outline: none;
+}
+
+[data-scope='clipboard'][data-part='input'][data-readonly] {
+  border-color: var(--token-form-control-readonly-border-color);
+  color: var(--token-form-control-readonly-foreground-color);
+  background: var(--token-form-control-readonly-surface-color);
+}
+
+[data-scope='clipboard'][data-part='trigger'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-action);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-action);
+  white-space: nowrap;
+
+  background: var(--token-color-surface-interactive);
+
+  transition:
+    background-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='clipboard'][data-part='trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='clipboard'][data-part='trigger'] {
+  transition: none;
+}
+
+[data-scope='clipboard'][data-part='trigger']:hover {
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='clipboard'][data-part='trigger'][data-copied] {
+  border-color: var(--token-color-border-success);
+
+  /* foreground-success (#008a22) on surface-success (#f2fbf6) is 4.27:1 — WCAG AA
+     fail. The *-on-surface variant is tuned to clear 4.5:1 on its matching tint. */
+  color: var(--token-color-foreground-success-on-surface);
+  background: var(--token-color-surface-success);
+}
+
+/* Keyboard focus only — never decorate mouse focus. */
+[data-scope='clipboard'][data-part='trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='clipboard'][data-part='indicator'] {
+  display: inline-flex;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+  justify-content: center;
+}

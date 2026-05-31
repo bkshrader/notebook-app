@@ -1,0 +1,32 @@
+/**
+ * Highlight — token-styled Ark UI text-highlight primitive.
+ *
+ * Ark's Highlight renders native <mark> elements directly (no data-scope/
+ * data-part attributes). We target them via the [data-component='highlight']
+ * wrapper that our React component adds, keeping selector specificity
+ * predictable and avoiding class names (selector-class-pattern would reject
+ * BEM or nb-* names).
+ *
+ * Every visual value resolves to a Helios --token-* custom property.
+ * No raw color literals, no --token-color-palette-* references.
+ *
+ * Highlight is a purely presentational, non-interactive element — it has no
+ * focus states, hover states, transitions, or animations. No reduced-motion
+ * resets are needed.
+ */
+
+[data-component='highlight'] mark {
+  border-radius: var(--token-border-radius-x-small);
+
+  font-weight: var(--token-typography-font-weight-medium);
+
+  /* Use the on-surface paired token: foreground-highlight-on-surface is tuned
+     to clear 4.5:1 on surface-highlight (#f9f2ff). The base
+     foreground-highlight (#a737ff) only achieves 4.13:1 on that surface. */
+  color: var(--token-color-foreground-highlight-on-surface);
+
+  background: var(--token-color-surface-highlight);
+
+  /* Ensure highlights wrap correctly across line breaks. */
+  box-decoration-break: clone;
+}

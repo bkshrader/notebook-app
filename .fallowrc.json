@@ -5,21 +5,31 @@
     "src/preload/index.ts",
     "src/renderer/src/main.ts",
     "electron.vite.config.ts",
-    "scripts/extract-dep-signals.mjs"
+    "scripts/extract-dep-signals.mjs",
+    "src/renderer/src/components/index.ts",
+    "src/renderer/src/components/*/index.ts"
   ],
   "ignorePatterns": [
     "out/**",
     "dist/**",
     "**/*.d.ts",
     "scripts/**/*.test.mjs",
-    "src/renderer/src/styles/app.css",
     "src/renderer/src/styles/tokens.css"
   ],
-  "ignoreDependencies": ["@double-great/stylelint-a11y", "@hashicorp/design-system-tokens"],
+  "ignoreDependencies": [
+    "@double-great/stylelint-a11y",
+    "@hashicorp/design-system-tokens",
+    "@internationalized/date",
+    "effect"
+  ],
   "rules": {
     "unused-files": "error",
     "unused-exports": "warn",
     "unused-dependencies": "warn",
     "circular-dependency": "error"
+  },
+  "audit": {
+    "dupesBaseline": ".fallow/dupes-baseline.json",
+    "healthBaseline": ".fallow/health-baseline.json"
   }
 }

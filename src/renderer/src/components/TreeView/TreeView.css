@@ -1,0 +1,288 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset. Logical properties used
+ * throughout (inline-size/block-size/padding-inline). */
+
+/* ── Root ─────────────────────────────────────────────────────────────────── */
+
+[data-scope='tree-view'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-app-side-nav-body-list-item-spacing-vertical);
+
+  inline-size: 100%;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+/* ── Label ────────────────────────────────────────────────────────────────── */
+
+[data-scope='tree-view'][data-part='label'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-strong);
+}
+
+/* ── Tree (the <ul> role="tree") ──────────────────────────────────────────── */
+
+[data-scope='tree-view'][data-part='tree'] {
+  display: flex;
+  flex-direction: column;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+/* ── Branch ───────────────────────────────────────────────────────────────── */
+
+[data-scope='tree-view'][data-part='branch'] {
+  position: relative;
+}
+
+/* ── BranchControl (the clickable/focusable row for a branch) ─────────────── */
+
+[data-scope='tree-view'][data-part='branch-control'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: flex;
+  gap: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
+  align-items: center;
+
+  inline-size: 100%;
+  padding-block: var(--token-app-side-nav-body-list-item-padding-vertical);
+
+  /* Depth-based indentation via Ark's --depth CSS variable */
+  padding-inline: calc(
+      var(--token-app-side-nav-body-list-item-padding-horizontal) + (var(--depth, 1) - 1) *
+        var(--token-app-side-nav-body-list-item-padding-horizontal)
+    )
+    var(--token-app-side-nav-body-list-item-padding-horizontal);
+  border: none;
+  border-radius: var(--token-border-radius-small);
+
+  font: inherit;
+  color: var(--token-app-side-nav-color-foreground-primary);
+  text-align: start;
+
+  background: transparent;
+}
+
+[data-scope='tree-view'][data-part='branch-control']:hover {
+  background: var(--token-app-side-nav-color-surface-interactive-hover);
+}
+
+[data-scope='tree-view'][data-part='branch-control'][data-selected] {
+  color: var(--token-app-side-nav-color-foreground-strong);
+  background: var(--token-app-side-nav-color-surface-interactive-active);
+}
+
+[data-scope='tree-view'][data-part='branch-control'][data-disabled] {
+  cursor: not-allowed;
+
+  /* foreground-disabled (#8c909c) fails WCAG 2.1 AA on white (3.18:1).
+   * Use foreground-faint (#656a76, 5.74:1) for the text color; convey
+   * disabled state via cursor and reduced opacity. */
+  color: var(--token-color-foreground-faint);
+  opacity: 0.6;
+}
+
+[data-scope='tree-view'][data-part='branch-control'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── BranchIndicator (the expand/collapse chevron) ───────────────────────── */
+
+[data-scope='tree-view'][data-part='branch-indicator'] {
+  transform-origin: center;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--token-app-side-nav-color-foreground-faint);
+
+  transition: transform var(--token-form-radiocard-transition-duration) ease;
+}
+
+[data-scope='tree-view'][data-part='branch-indicator'][data-state='open'] {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tree-view'][data-part='branch-indicator'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='tree-view'][data-part='branch-indicator'] {
+  transition: none;
+}
+
+/* ── BranchText ───────────────────────────────────────────────────────────── */
+
+[data-scope='tree-view'][data-part='branch-text'] {
+  overflow: hidden;
+  display: inline-flex;
+  flex: 1;
+  gap: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
+  align-items: center;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── BranchContent (the collapsible subtree container) ───────────────────── */
+
+[data-scope='tree-view'][data-part='branch-content'] {
+  position: relative;
+  overflow: hidden;
+}
+
+[data-scope='tree-view'][data-part='branch-content'][data-state='open'] {
+  animation: tree-view-slide-down var(--token-form-radiocard-transition-duration) ease-out;
+}
+
+[data-scope='tree-view'][data-part='branch-content'][data-state='closed'] {
+  animation: tree-view-slide-up var(--token-form-radiocard-transition-duration) ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tree-view'][data-part='branch-content'][data-state='open'] {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tree-view'][data-part='branch-content'][data-state='closed'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce']
+  [data-scope='tree-view'][data-part='branch-content'][data-state='open'] {
+  animation: none;
+}
+
+[data-reduced-motion='reduce']
+  [data-scope='tree-view'][data-part='branch-content'][data-state='closed'] {
+  animation: none;
+}
+
+/* ── BranchIndentGuide (vertical line connecting nested nodes) ────────────── */
+
+[data-scope='tree-view'][data-part='branch-indent-guide'] {
+  position: absolute;
+  inset-block-start: 0;
+
+  /* Shift guide rightward based on depth to align with the branch control icon */
+  translate: calc(
+    var(--token-app-side-nav-body-list-item-padding-horizontal) + (var(--depth, 1) - 1) *
+      var(--token-app-side-nav-body-list-item-padding-horizontal)
+  );
+
+  inline-size: var(--token-app-side-nav-wrapper-border-width);
+  block-size: 100%;
+
+  background: var(--token-color-border-faint);
+}
+
+/* ── Item (leaf node row) ─────────────────────────────────────────────────── */
+
+[data-scope='tree-view'][data-part='item'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: flex;
+  gap: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
+  align-items: center;
+
+  inline-size: 100%;
+  padding-block: var(--token-app-side-nav-body-list-item-padding-vertical);
+  padding-inline: calc(
+      var(--token-app-side-nav-body-list-item-padding-horizontal) + (var(--depth, 1) - 1) *
+        var(--token-app-side-nav-body-list-item-padding-horizontal)
+    )
+    var(--token-app-side-nav-body-list-item-padding-horizontal);
+  border-radius: var(--token-border-radius-small);
+
+  color: var(--token-app-side-nav-color-foreground-primary);
+  list-style: none;
+
+  background: transparent;
+}
+
+[data-scope='tree-view'][data-part='item']:hover {
+  background: var(--token-app-side-nav-color-surface-interactive-hover);
+}
+
+[data-scope='tree-view'][data-part='item'][data-selected] {
+  color: var(--token-app-side-nav-color-foreground-strong);
+  background: var(--token-app-side-nav-color-surface-interactive-active);
+}
+
+[data-scope='tree-view'][data-part='item'][data-disabled] {
+  cursor: not-allowed;
+
+  /* foreground-disabled (#8c909c) fails WCAG 2.1 AA on white (3.18:1).
+   * Use foreground-faint (#656a76, 5.74:1) for the text color; convey
+   * disabled state via cursor and reduced opacity. */
+  color: var(--token-color-foreground-faint);
+  opacity: 0.6;
+}
+
+[data-scope='tree-view'][data-part='item'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── ItemText ─────────────────────────────────────────────────────────────── */
+
+[data-scope='tree-view'][data-part='item-text'] {
+  overflow: hidden;
+  display: inline-flex;
+  flex: 1;
+  gap: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
+  align-items: center;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Height-animation keyframes ───────────────────────────────────────────── */
+
+@keyframes tree-view-slide-down {
+  from {
+    block-size: 0;
+    opacity: 0.01;
+  }
+
+  to {
+    block-size: var(--height);
+    opacity: 1;
+  }
+}
+
+@keyframes tree-view-slide-up {
+  from {
+    block-size: var(--height);
+    opacity: 1;
+  }
+
+  to {
+    block-size: 0;
+    opacity: 0.01;
+  }
+}

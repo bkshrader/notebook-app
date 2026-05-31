@@ -1,0 +1,124 @@
+/**
+ * RadioGroup — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals, no
+ * `--token-color-palette-*`.
+ *
+ * State comes from Ark's data-attributes (data-state="checked|unchecked",
+ * data-disabled, data-focus-visible). The focus ring is applied ONLY on
+ * keyboard focus (data-focus-visible), never on every focus.
+ *
+ * Motion: the item-control transition is suppressed under reduced-motion — both
+ * the OS `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute on <html> (see .storybook/preview.tsx).
+ * Each animated selector gets its own reduced-motion reset so the stylelint
+ * a11y rule (which matches per-selector) is satisfied.
+ */
+
+[data-scope='radio-group'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='radio-group'][data-part='root'][data-disabled] {
+  color: var(--token-color-foreground-disabled);
+}
+
+[data-scope='radio-group'][data-part='label'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+}
+
+[data-scope='radio-group'][data-part='label'][data-disabled] {
+  color: var(--token-color-foreground-disabled);
+}
+
+/* Each radio option row */
+[data-scope='radio-group'][data-part='item'] {
+  cursor: pointer;
+  display: inline-flex;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+}
+
+[data-scope='radio-group'][data-part='item'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-color-foreground-disabled);
+}
+
+/* The circular control (visual-only, aria-hidden) */
+[data-scope='radio-group'][data-part='item-control'] {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--token-form-radio-size);
+  block-size: var(--token-form-radio-size);
+  border-color: var(--token-form-control-base-border-color-default);
+  border-style: solid;
+  border-width: var(--token-form-radio-border-width);
+  border-radius: var(--token-border-radius-large);
+
+  background: var(--token-form-control-base-surface-color-default);
+
+  transition:
+    border-color var(--token-form-radiocard-transition-duration) ease,
+    background var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='radio-group'][data-part='item-control'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='radio-group'][data-part='item-control'] {
+  transition: none;
+}
+
+[data-scope='radio-group'][data-part='item-control'][data-state='checked'] {
+  border-color: var(--token-form-control-checked-border-color-default);
+
+  background: var(--token-form-control-checked-surface-color-default);
+  background-image: var(--token-form-radio-background-image-data-url);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: var(--token-form-radio-background-image-size);
+}
+
+[data-scope='radio-group'][data-part='item-control'][data-disabled] {
+  border-color: var(--token-form-control-disabled-border-color);
+
+  background: var(--token-form-control-disabled-surface-color);
+  background-image: var(--token-form-radio-background-image-data-url-disabled);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: var(--token-form-radio-background-image-size);
+}
+
+/* Keyboard focus only — never decorate mouse focus. */
+[data-scope='radio-group'][data-part='item-control'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='radio-group'][data-part='item-text'] {
+  user-select: none;
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='radio-group'][data-part='item-text'][data-disabled] {
+  color: var(--token-color-foreground-disabled);
+}

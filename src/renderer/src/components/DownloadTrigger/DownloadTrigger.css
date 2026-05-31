@@ -1,0 +1,85 @@
+/**
+ * DownloadTrigger — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope='download-trigger'` attribute (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals, no
+ * `--token-color-palette-*`.
+ *
+ * DownloadTrigger is a single-part component (one <button> element). Ark sets
+ * `data-scope='download-trigger'` on the root button; there are no sub-parts.
+ *
+ * Selector order: base → disabled → focus-visible → hover → active.
+ * Disabled and focus-visible come before hover/active to avoid
+ * no-descending-specificity violations (the :not() guards on hover/active
+ * have higher computed specificity than plain :disabled/:focus-visible).
+ *
+ * Each animated selector gets its own reduced-motion reset so the stylelint
+ * a11y rule (which matches per-selector) is satisfied.
+ */
+
+[data-scope='download-trigger'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: inline-flex;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+  justify-content: center;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-color: var(--token-color-border-action);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-action);
+
+  background: var(--token-color-surface-action);
+
+  transition:
+    background-color var(--token-form-radiocard-transition-duration) ease,
+    border-color var(--token-form-radiocard-transition-duration) ease,
+    color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='download-trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='download-trigger'] {
+  transition: none;
+}
+
+[data-scope='download-trigger'][data-disabled],
+[data-scope='download-trigger']:disabled {
+  cursor: not-allowed;
+  border-color: var(--token-color-border-faint);
+  color: var(--token-color-foreground-disabled);
+  background: var(--token-color-surface-interactive-disabled);
+}
+
+/* Keyboard focus only — never decorate pointer focus. */
+[data-scope='download-trigger']:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='download-trigger']:hover:not([data-disabled], :disabled) {
+  border-color: var(--token-color-foreground-action-hover);
+  color: var(--token-color-foreground-action-hover);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='download-trigger']:active:not([data-disabled], :disabled) {
+  border-color: var(--token-color-foreground-action-active);
+  color: var(--token-color-foreground-action-active);
+  background: var(--token-color-surface-interactive-active);
+}

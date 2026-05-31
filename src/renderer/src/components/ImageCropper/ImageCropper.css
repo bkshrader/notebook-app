@@ -1,0 +1,147 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset. */
+
+[data-scope='image-cropper'][data-part='root'] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-scope='image-cropper'][data-part='viewport'] {
+  position: relative;
+
+  overflow: hidden;
+
+  aspect-ratio: 16 / 9;
+  border: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+  border-radius: var(--token-border-radius-medium);
+
+  background: var(--token-color-surface-strong);
+}
+
+[data-scope='image-cropper'][data-part='viewport'][data-disabled] {
+  border-color: var(--token-color-border-faint);
+  background: var(--token-color-surface-interactive-disabled);
+}
+
+[data-scope='image-cropper'][data-part='image'] {
+  pointer-events: none;
+  user-select: none;
+
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+
+  inline-size: 100%;
+  block-size: 100%;
+
+  object-fit: contain;
+}
+
+[data-scope='image-cropper'][data-part='selection'] {
+  cursor: move;
+
+  box-sizing: content-box;
+  border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
+
+  outline: none;
+  box-shadow: var(--token-elevation-inset-box-shadow);
+}
+
+[data-scope='image-cropper'][data-part='selection'][data-shape='circle'] {
+  border-radius: var(--token-form-toggle-border-radius);
+}
+
+[data-scope='image-cropper'][data-part='selection'][data-disabled] {
+  cursor: default;
+  border-color: var(--token-color-border-faint);
+}
+
+[data-scope='image-cropper'][data-part='selection'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='image-cropper'][data-part='selection'][data-dragging] {
+  border-color: var(--token-color-border-action);
+}
+
+[data-scope='image-cropper'][data-part='handle'] {
+  touch-action: none;
+
+  position: absolute;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: transparent;
+}
+
+[data-scope='image-cropper'][data-part='handle'][data-disabled] {
+  display: none;
+}
+
+[data-scope='image-cropper'][data-part='handle'][data-position='nw'],
+[data-scope='image-cropper'][data-part='handle'][data-position='ne'],
+[data-scope='image-cropper'][data-part='handle'][data-position='se'],
+[data-scope='image-cropper'][data-part='handle'][data-position='sw'] {
+  cursor: pointer;
+}
+
+[data-scope='image-cropper'][data-part='handle'][data-position='n'],
+[data-scope='image-cropper'][data-part='handle'][data-position='s'] {
+  cursor: row-resize;
+}
+
+[data-scope='image-cropper'][data-part='handle'][data-position='e'],
+[data-scope='image-cropper'][data-part='handle'][data-position='w'] {
+  cursor: col-resize;
+}
+
+[data-scope='image-cropper'][data-part='grid'] {
+  pointer-events: none;
+
+  position: absolute;
+
+  border-color: var(--token-color-border-faint);
+
+  opacity: 0;
+
+  transition: opacity var(--token-form-radiocard-transition-duration)
+    var(--token-tabs-indicator-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='image-cropper'][data-part='grid'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='image-cropper'][data-part='grid'] {
+  transition: none;
+}
+
+[data-scope='image-cropper'][data-part='grid'][data-axis='horizontal'] {
+  inset-block: 33.33%;
+  inset-inline: 0;
+  border-block-start: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+  border-block-end: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+}
+
+[data-scope='image-cropper'][data-part='grid'][data-axis='vertical'] {
+  inset-block: 0;
+  inset-inline: 33.33%;
+  border-inline-start: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+  border-inline-end: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+}
+
+[data-scope='image-cropper'][data-part='grid'][data-dragging],
+[data-scope='image-cropper'][data-part='grid'][data-panning] {
+  opacity: 1;
+}

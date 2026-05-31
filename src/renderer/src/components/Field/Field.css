@@ -1,0 +1,115 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
+ * per-selector, so comma-grouped resets fail). */
+
+[data-scope='field'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+  align-items: start;
+
+  inline-size: 100%;
+}
+
+[data-scope='field'][data-part='label'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+}
+
+[data-scope='field'][data-part='root'][data-disabled] [data-scope='field'][data-part='label'] {
+  /* foreground-disabled (#8c909c) fails WCAG AA contrast on white (3.18:1).
+   * Use foreground-faint (#656a76, 5.74:1) instead; disabled state is
+   * communicated via cursor/opacity on the input chrome. */
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='field'][data-part='input'] {
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding: var(--token-form-control-padding);
+  border-color: var(--token-form-control-base-border-color-default);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background-color: var(--token-form-control-base-surface-color-default);
+  outline: none;
+
+  transition:
+    border-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    box-shadow var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='field'][data-part='input'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='field'][data-part='input'] {
+  transition: none;
+}
+
+[data-scope='field'][data-part='input']:hover {
+  border-color: var(--token-form-control-base-border-color-hover);
+  background-color: var(--token-form-control-base-surface-color-hover);
+}
+
+[data-scope='field'][data-part='input'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='field'][data-part='input'][data-invalid] {
+  border-color: var(--token-form-control-invalid-border-color-default);
+}
+
+[data-scope='field'][data-part='input'][data-invalid]:hover {
+  border-color: var(--token-form-control-invalid-border-color-hover);
+}
+
+[data-scope='field'][data-part='input'][data-disabled] {
+  cursor: not-allowed;
+  border-color: var(--token-form-control-disabled-border-color);
+  color: var(--token-form-control-disabled-foreground-color);
+  background-color: var(--token-form-control-disabled-surface-color);
+}
+
+[data-scope='field'][data-part='input'][data-readonly] {
+  border-color: var(--token-form-control-readonly-border-color);
+  color: var(--token-form-control-readonly-foreground-color);
+  background-color: var(--token-form-control-readonly-surface-color);
+}
+
+[data-scope='field'][data-part='helper-text'] {
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-form-helper-text-color);
+}
+
+[data-scope='field'][data-part='error-text'] {
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-form-error-color);
+}
+
+[data-scope='field'][data-part='required-indicator'] {
+  color: var(--token-form-error-color);
+}

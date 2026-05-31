@@ -1,0 +1,109 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
+ * per-selector, so comma-grouped resets fail). Logical properties throughout. */
+
+/* Root container — stacks list above panels (horizontal default). */
+[data-scope='tabs'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  color: var(--token-color-foreground-primary);
+}
+
+/* Tab list — horizontal row of triggers separated by the divider underline. */
+[data-scope='tabs'][data-part='list'] {
+  position: relative;
+
+  display: inline-flex;
+  flex-direction: row;
+  gap: var(--token-tabs-tab-gutter);
+
+  border-block-end: var(--token-tabs-divider-height) solid var(--token-color-border-faint);
+}
+
+/* Individual tab trigger — button-like pill with active indicator underline. */
+[data-scope='tabs'][data-part='trigger'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  block-size: var(--token-tabs-tab-height-medium);
+
+  /* Shift upward so the bottom border of the list sits flush with the
+     active indicator that Zag/Ark positions below the trigger. */
+  margin-block-end: calc(-1 * var(--token-tabs-divider-height));
+  padding-block: var(--token-tabs-tab-padding-vertical);
+  padding-inline: var(--token-tabs-tab-padding-horizontal-medium);
+  border: none;
+  border-radius: var(--token-tabs-tab-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-faint);
+
+  background: transparent;
+
+  transition: color var(--token-tabs-indicator-transition-duration)
+    var(--token-tabs-indicator-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tabs'][data-part='trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='tabs'][data-part='trigger'] {
+  transition: none;
+}
+
+/* Hover: lift foreground one step. */
+[data-scope='tabs'][data-part='trigger']:hover {
+  color: var(--token-color-foreground-strong);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+/* Selected state. */
+[data-scope='tabs'][data-part='trigger'][data-selected] {
+  border-block-end: var(--token-tabs-indicator-height) solid var(--token-color-border-action);
+  color: var(--token-color-foreground-action);
+}
+
+/* Disabled state. */
+[data-scope='tabs'][data-part='trigger'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-color-foreground-disabled);
+  background: transparent;
+}
+
+/* Focus ring — keyboard only (data-focus-visible), never on every :focus. */
+[data-scope='tabs'][data-part='trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Content panel — remove the default outline; provide focus ring when panel
+   receives programmatic focus (Ark tabs focus the panel on activation). */
+[data-scope='tabs'][data-part='content'] {
+  padding-block: var(--token-tabs-tab-padding-vertical);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  outline: none;
+}
+
+[data-scope='tabs'][data-part='content'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}

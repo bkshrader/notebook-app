@@ -1,0 +1,355 @@
+/**
+ * Tour — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * Tour is a portal-based overlay (Tier B). Content renders outside the canvas
+ * into document.body. The backdrop dims the page; the spotlight highlights the
+ * target element; the positioner/content is the floating step panel.
+ *
+ * Enter/exit animations are suppressed under BOTH the OS
+ * `prefers-reduced-motion: reduce` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute on <html>. Each animated selector
+ * has its own reduced-motion reset (stylelint a11y rule matches per-selector).
+ *
+ * Focus ring is applied ONLY on `[data-focus-visible]` (keyboard focus only),
+ * never on every :focus / [data-focus].
+ */
+
+/* ── Backdrop ──────────────────────────────────────────────────────────────── */
+
+[data-scope='tour'][data-part='backdrop'] {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+
+  opacity: 0.5;
+  background: var(--token-color-surface-strong);
+}
+
+[data-scope='tour'][data-part='backdrop'][data-state='open'] {
+  animation: tour-backdrop-in 150ms var(--token-tooltip-transition-function);
+}
+
+[data-scope='tour'][data-part='backdrop'][data-state='closed'] {
+  animation: tour-backdrop-out 100ms var(--token-tooltip-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tour'][data-part='backdrop'][data-state='open'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='tour'][data-part='backdrop'][data-state='open'] {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tour'][data-part='backdrop'][data-state='closed'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='tour'][data-part='backdrop'][data-state='closed'] {
+  animation: none;
+}
+
+/* ── Spotlight ─────────────────────────────────────────────────────────────── */
+
+[data-scope='tour'][data-part='spotlight'] {
+  pointer-events: none;
+
+  position: fixed;
+  z-index: 41;
+
+  border-radius: var(--token-border-radius-small);
+
+  opacity: 0.5;
+
+  /* Spotlight scrim: a huge spread casts the (token-colored) surface over the
+     whole viewport around the highlighted target. The 0 offset/blur values are
+     geometry, not theming, and the color is a token. */
+  /* stylelint-disable-next-line scale-unlimited/declaration-strict-value */
+  box-shadow: 0 0 0 9999px var(--token-color-surface-strong);
+}
+
+/* ── Positioner ────────────────────────────────────────────────────────────── */
+
+[data-scope='tour'][data-part='positioner'] {
+  position: fixed;
+  z-index: 42;
+}
+
+[data-scope='tour'][data-part='positioner'][data-type='dialog'] {
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Content ───────────────────────────────────────────────────────────────── */
+
+[data-scope='tour'][data-part='content'] {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-border-radius-small);
+
+  inline-size: 20rem;
+  padding-block: var(--token-tooltip-padding-vertical);
+  padding-inline: var(--token-tooltip-padding-horizontal);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-primary);
+  outline: none;
+  box-shadow: var(--token-elevation-overlay-box-shadow);
+}
+
+[data-scope='tour'][data-part='content'][data-type='dialog'] {
+  inline-size: 25rem;
+}
+
+[data-scope='tour'][data-part='content'][data-state='open'] {
+  animation: tour-content-in 150ms var(--token-tooltip-transition-function);
+}
+
+[data-scope='tour'][data-part='content'][data-state='closed'] {
+  animation: tour-content-out 100ms var(--token-tooltip-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tour'][data-part='content'][data-state='open'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='tour'][data-part='content'][data-state='open'] {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tour'][data-part='content'][data-state='closed'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='tour'][data-part='content'][data-state='closed'] {
+  animation: none;
+}
+
+/* ── Arrow ─────────────────────────────────────────────────────────────────── */
+
+[data-scope='tour'][data-part='arrow'] {
+  --arrow-background: var(--token-color-surface-primary);
+  --arrow-size: 8px;
+}
+
+[data-scope='tour'][data-part='arrow-tip'] {
+  border-block-start: var(--token-form-control-border-width) solid var(--token-color-border-primary);
+  border-inline-start: var(--token-form-control-border-width) solid
+    var(--token-color-border-primary);
+}
+
+/* ── Title ─────────────────────────────────────────────────────────────────── */
+
+[data-scope='tour'][data-part='title'] {
+  margin: 0;
+
+  font-family: var(--token-typography-body-300-font-family);
+  font-size: var(--token-typography-body-300-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-300-line-height);
+  color: var(--token-color-foreground-strong);
+}
+
+/* ── Description ───────────────────────────────────────────────────────────── */
+
+[data-scope='tour'][data-part='description'] {
+  margin: 0;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-faint);
+}
+
+/* ── Progress text ─────────────────────────────────────────────────────────── */
+
+[data-scope='tour'][data-part='progress-text'] {
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-color-foreground-faint);
+}
+
+/* ── Close trigger ─────────────────────────────────────────────────────────── */
+
+[data-scope='tour'][data-part='close-trigger'] {
+  cursor: pointer;
+
+  position: absolute;
+  inset-block-start: var(--token-border-radius-small);
+  inset-inline-end: var(--token-border-radius-small);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border: none;
+  border-radius: var(--token-border-radius-small);
+
+  color: var(--token-color-foreground-faint);
+
+  background: transparent;
+}
+
+[data-scope='tour'][data-part='close-trigger']:hover {
+  color: var(--token-color-foreground-primary);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='tour'][data-part='close-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── Control (action row) ──────────────────────────────────────────────────── */
+
+[data-scope='tour'][data-part='control'] {
+  display: flex;
+  gap: var(--token-border-radius-small);
+  align-items: center;
+  margin-block-start: var(--token-border-radius-medium);
+}
+
+/* ── Action trigger ────────────────────────────────────────────────────────── */
+
+[data-scope='tour'][data-part='action-trigger'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-block: var(--token-border-radius-x-small);
+  padding-inline: var(--token-border-radius-medium);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-faint);
+
+  transition:
+    background-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    border-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tour'][data-part='action-trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='tour'][data-part='action-trigger'] {
+  transition: none;
+}
+
+/* Primary (last) action — base styles ordered before the :hover rules below so
+   stylelint's no-descending-specificity (lower specificity first) is satisfied. */
+[data-scope='tour'][data-part='action-trigger']:last-child {
+  border-color: var(--token-color-border-action);
+  color: var(--token-color-foreground-action);
+  background: var(--token-color-surface-action);
+}
+
+[data-scope='tour'][data-part='action-trigger']:hover:not([data-disabled]) {
+  border-color: var(--token-color-border-strong);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='tour'][data-part='action-trigger']:last-child:hover:not([data-disabled]) {
+  border-color: var(--token-color-border-action);
+  background: var(--token-color-surface-interactive-active);
+}
+
+[data-scope='tour'][data-part='action-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='tour'][data-part='action-trigger'][data-disabled] {
+  cursor: not-allowed;
+
+  /* foreground-disabled (#8c909c) fails contrast at 3.18:1 on the disabled
+     surface; foreground-faint (#656a76) passes at 4.64:1 and still reads
+     clearly as inactive text when paired with cursor + surface chrome. */
+  border-color: var(--token-color-border-faint);
+  color: var(--token-color-foreground-faint);
+  background: var(--token-color-surface-interactive-disabled);
+}
+
+/* ── Keyframes ─────────────────────────────────────────────────────────────── */
+
+@keyframes tour-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 0.5;
+  }
+}
+
+@keyframes tour-backdrop-out {
+  from {
+    opacity: 0.5;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes tour-content-in {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes tour-content-out {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  to {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+}

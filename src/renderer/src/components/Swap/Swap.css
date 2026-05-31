@@ -1,0 +1,71 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
+ * per-selector, so comma-grouped resets fail). */
+
+[data-scope='swap'][data-part='root'] {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-scope='swap'][data-part='indicator'] {
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='swap'][data-part='indicator'][data-state='open'] {
+  animation-name: swap-fade-in;
+  animation-duration: var(--token-form-toggle-transition-duration);
+  animation-timing-function: var(--token-form-toggle-transition-timing-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='swap'][data-part='indicator'][data-state='open'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='swap'][data-part='indicator'][data-state='open'] {
+  animation: none;
+}
+
+[data-scope='swap'][data-part='indicator'][data-state='closed'] {
+  animation-name: swap-fade-out;
+  animation-duration: var(--token-form-toggle-transition-duration);
+  animation-timing-function: var(--token-form-toggle-transition-timing-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='swap'][data-part='indicator'][data-state='closed'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='swap'][data-part='indicator'][data-state='closed'] {
+  animation: none;
+}
+
+@keyframes swap-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes swap-fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}

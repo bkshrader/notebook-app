@@ -1,0 +1,194 @@
+/**
+ * JsonTreeView — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals, no
+ * `--token-color-palette-*`.
+ *
+ * The JsonTreeView is built on top of Ark's tree-view anatomy. Parts rendered
+ * by JsonTreeView.Tree: root (scope=tree-view), branch-control, branch-indicator,
+ * branch-text, branch-content, branch-indent-guide, item, item-text.
+ * Data attributes used for value typing: [data-type], [data-kind], [data-depth].
+ *
+ * Focus ring applied ONLY on [data-focus-visible] (keyboard focus), never on
+ * every :focus / [data-focus].
+ *
+ * No transitions or animations are used in this component, so no reduced-motion
+ * resets are needed. The branch-indicator rotation is a CSS transform on
+ * data-state; if future changes add animation to it, add reduced-motion resets
+ * per-selector for both @media and [data-reduced-motion='reduce'].
+ */
+
+/* ── Root container ─────────────────────────────────────────────────────── */
+
+[data-scope='tree-view'][data-part='root'] {
+  inline-size: 100%;
+
+  font-family: var(--token-typography-code-100-font-family);
+  font-size: var(--token-typography-code-100-font-size);
+  line-height: var(--token-typography-code-100-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+/* ── Tree (the scrollable list element) ─────────────────────────────────── */
+
+[data-scope='tree-view'][data-part='tree'] {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Branch control (the clickable row for an expandable node) ──────────── */
+
+[data-scope='tree-view'][data-part='branch-control'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: flex;
+  align-items: center;
+
+  padding-inline-start: calc(
+    (var(--depth, 1) - 1) * var(--token-app-side-nav-body-list-item-padding-horizontal)
+  );
+
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='tree-view'][data-part='branch-control']:hover {
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='tree-view'][data-part='branch-control'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── Branch indicator (the expand/collapse chevron) ─────────────────────── */
+
+[data-scope='tree-view'][data-part='branch-indicator'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-inline-end: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
+
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='tree-view'][data-part='branch-indicator'][data-state='open'] {
+  transform: rotate(90deg);
+}
+
+/* ── Branch text (the key label for a branch node) ──────────────────────── */
+
+[data-scope='tree-view'][data-part='branch-text'] {
+  display: flex;
+  align-items: baseline;
+  color: var(--token-color-foreground-primary);
+}
+
+/* ── Branch content (the container for a branch's children) ─────────────── */
+
+[data-scope='tree-view'][data-part='branch-content'] {
+  position: relative;
+}
+
+/* ── Branch indent guide (the vertical line for nesting depth) ──────────── */
+
+[data-scope='tree-view'][data-part='branch-indent-guide'] {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--token-app-side-nav-body-list-item-padding-horizontal);
+
+  inline-size: var(--token-app-side-nav-wrapper-border-width);
+
+  background: var(--token-color-border-faint);
+}
+
+/* ── Leaf item (a non-expandable key/value row) ─────────────────────────── */
+
+[data-scope='tree-view'][data-part='item'] {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+
+  padding-inline-start: calc(
+    ((var(--depth, 1) - 1) * var(--token-app-side-nav-body-list-item-padding-horizontal)) +
+      var(--token-app-side-nav-body-list-item-padding-horizontal)
+  );
+
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='tree-view'][data-part='item']:hover {
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='tree-view'][data-part='item'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── Item text ───────────────────────────────────────────────────────────── */
+
+[data-scope='tree-view'][data-part='item-text'] {
+  display: flex;
+  align-items: baseline;
+}
+
+/* ── JSON value type colouring ───────────────────────────────────────────── */
+
+/* These [data-type] attributes are set by Ark's internal rendering. We map   */
+
+/* each type to a semantic Helios token.                                       */
+
+[data-scope='tree-view'] [data-type='string'] {
+  color: var(--token-color-foreground-success);
+}
+
+[data-scope='tree-view'] [data-type='number'] {
+  color: var(--token-color-foreground-highlight);
+}
+
+[data-scope='tree-view'] [data-type='boolean'] {
+  color: var(--token-color-foreground-warning);
+}
+
+[data-scope='tree-view'] [data-type='null'],
+[data-scope='tree-view'] [data-type='undefined'] {
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='tree-view'] [data-type='error'] {
+  color: var(--token-color-foreground-critical);
+}
+
+[data-scope='tree-view'] [data-type='function'],
+[data-scope='tree-view'] [data-type='regex'],
+[data-scope='tree-view'] [data-type='date'] {
+  color: var(--token-color-foreground-action);
+}
+
+/* ── JSON syntax kind colouring ──────────────────────────────────────────── */
+
+[data-scope='tree-view'] [data-kind='key'] {
+  color: var(--token-color-foreground-strong);
+}
+
+[data-scope='tree-view'] [data-kind='brace'] {
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='tree-view'] [data-kind='colon'] {
+  margin-inline: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='tree-view'] [data-kind='preview-text'] {
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='tree-view'] [data-kind='constructor'] {
+  color: var(--token-color-foreground-action);
+}

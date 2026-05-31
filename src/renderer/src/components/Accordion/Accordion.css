@@ -1,0 +1,200 @@
+/**
+ * Accordion — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * State comes from Ark's data-attributes:
+ *   data-state="open|closed"  (on Item, ItemContent, ItemIndicator, ItemTrigger)
+ *   data-disabled             (on Item, ItemTrigger, ItemContent, ItemIndicator)
+ *   data-focus-visible        (applied by Ark on keyboard focus)
+ *
+ * Motion: the indicator rotation and content reveal animations are suppressed
+ * under reduced-motion — both the OS `prefers-reduced-motion` media query AND
+ * the Storybook toolbar's `[data-reduced-motion='reduce']` attribute on <html>.
+ * Each animated selector gets its own reduced-motion reset so the stylelint
+ * a11y rule (which matches per-selector) is satisfied.
+ *
+ * The `--height` CSS variable is injected by Ark on the ItemContent element and
+ * enables the height-based expand/collapse keyframe animation.
+ */
+
+/* ─── Keyframes ─────────────────────────────────────────────────────────────── */
+
+@keyframes accordion-expand {
+  from {
+    block-size: 0;
+    opacity: 0;
+  }
+
+  to {
+    block-size: var(--height);
+    opacity: 1;
+  }
+}
+
+@keyframes accordion-collapse {
+  from {
+    block-size: var(--height);
+    opacity: 1;
+  }
+
+  to {
+    block-size: 0;
+    opacity: 0;
+  }
+}
+
+/* ─── Root ───────────────────────────────────────────────────────────────────── */
+
+[data-scope='accordion'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+/* ─── Item ───────────────────────────────────────────────────────────────────── */
+
+[data-scope='accordion'][data-part='item'] {
+  border-block-end: 1px solid var(--token-color-border-faint);
+}
+
+[data-scope='accordion'][data-part='item']:first-child {
+  border-block-start: 1px solid var(--token-color-border-faint);
+}
+
+/* ─── Item Trigger ───────────────────────────────────────────────────────────── */
+
+[data-scope='accordion'][data-part='item-trigger'] {
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  inline-size: 100%;
+  padding-block: var(--token-tabs-tab-padding-vertical);
+  padding-inline: var(--token-tabs-tab-padding-horizontal-medium);
+  border: none;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+  text-align: start;
+
+  background: transparent;
+}
+
+[data-scope='accordion'][data-part='item-trigger']:hover {
+  color: var(--token-color-foreground-action-hover);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='accordion'][data-part='item-trigger'][data-state='open'] {
+  color: var(--token-color-foreground-action);
+}
+
+[data-scope='accordion'][data-part='item-trigger'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-color-foreground-disabled);
+}
+
+/* Keyboard focus only — never decorate mouse focus. */
+[data-scope='accordion'][data-part='item-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ─── Item Indicator (chevron) ───────────────────────────────────────────────── */
+
+[data-scope='accordion'][data-part='item-indicator'] {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--token-color-foreground-faint);
+
+  transition: rotate var(--token-tabs-indicator-transition-duration)
+    var(--token-tabs-indicator-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='accordion'][data-part='item-indicator'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='accordion'][data-part='item-indicator'] {
+  transition: none;
+}
+
+[data-scope='accordion'][data-part='item-indicator'][data-state='open'] {
+  rotate: 180deg;
+  color: var(--token-color-foreground-action);
+}
+
+[data-scope='accordion'][data-part='item-indicator'][data-disabled] {
+  color: var(--token-color-foreground-disabled);
+}
+
+/* ─── Item Content ───────────────────────────────────────────────────────────── */
+
+[data-scope='accordion'][data-part='item-content'] {
+  overflow: hidden;
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='accordion'][data-part='item-content'][data-state='open'] {
+  animation-name: accordion-expand;
+  animation-duration: var(--token-tabs-indicator-transition-duration);
+  animation-timing-function: var(--token-tabs-indicator-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='accordion'][data-part='item-content'][data-state='open'] {
+    animation-name: none;
+  }
+}
+
+[data-reduced-motion='reduce']
+  [data-scope='accordion'][data-part='item-content'][data-state='open'] {
+  animation-name: none;
+}
+
+[data-scope='accordion'][data-part='item-content'][data-state='closed'] {
+  animation-name: accordion-collapse;
+  animation-duration: var(--token-tabs-indicator-transition-duration);
+  animation-timing-function: var(--token-tabs-indicator-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='accordion'][data-part='item-content'][data-state='closed'] {
+    animation-name: none;
+  }
+}
+
+[data-reduced-motion='reduce']
+  [data-scope='accordion'][data-part='item-content'][data-state='closed'] {
+  animation-name: none;
+}
+
+/* ─── Item Body (inner padding wrapper) ──────────────────────────────────────── */
+
+[data-scope='accordion'][data-part='item-body'] {
+  padding-block-end: var(--token-tabs-tab-padding-vertical);
+  padding-inline: var(--token-tabs-tab-padding-horizontal-medium);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}

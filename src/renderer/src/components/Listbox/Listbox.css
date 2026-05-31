@@ -1,0 +1,139 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset. */
+
+[data-scope='listbox'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+  inline-size: 100%;
+}
+
+[data-scope='listbox'][data-part='label'] {
+  user-select: none;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+}
+
+[data-scope='listbox'][data-part='label'][data-disabled] {
+  /* foreground-disabled (#8c909c) fails AA at 3.18:1 on white.
+   * foreground-faint (#656a76) passes at 4.5:1+ — use it for text.
+   * Do NOT apply opacity to text: blending with white would drop the
+   * effective contrast below AA (opacity 0.7 on #656a76 -> ~#93979f, 2.92:1).
+   * Disabled state is conveyed via cursor and the data-disabled attribute. */
+  cursor: not-allowed;
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='listbox'][data-part='content'] {
+  overflow-block: auto;
+  display: flex;
+  flex-direction: column;
+
+  block-size: auto;
+  max-block-size: 18rem;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-base-border-color-default);
+  border-radius: var(--token-form-control-border-radius);
+
+  background: var(--token-color-surface-primary);
+  outline: none;
+}
+
+[data-scope='listbox'][data-part='content']:hover {
+  border-color: var(--token-form-control-base-border-color-hover);
+  background: var(--token-form-control-base-surface-color-hover);
+}
+
+[data-scope='listbox'][data-part='item'] {
+  cursor: default;
+  user-select: none;
+
+  display: flex;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+  justify-content: space-between;
+
+  min-block-size: 2rem;
+  padding-inline: var(--token-form-control-padding);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  outline: none;
+
+  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='listbox'][data-part='item'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='listbox'][data-part='item'] {
+  transition: none;
+}
+
+[data-scope='listbox'][data-part='item'][data-highlighted] {
+  color: var(--token-color-foreground-action-hover);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='listbox'][data-part='item'][data-state='checked'] {
+  color: var(--token-color-foreground-action);
+}
+
+[data-scope='listbox'][data-part='item'][data-state='checked'][data-highlighted] {
+  color: var(--token-color-foreground-action-active);
+  background: var(--token-color-surface-interactive-active);
+}
+
+[data-scope='listbox'][data-part='item'][data-disabled] {
+  /* foreground-disabled (#8c909c) fails AA on white (3.18:1).
+   * foreground-faint (#656a76, 4.5:1+) passes and is visually muted enough
+   * to convey unavailability alongside cursor: not-allowed + data-disabled. */
+  cursor: not-allowed;
+  color: var(--token-color-foreground-faint);
+  background: var(--token-color-surface-interactive-disabled);
+}
+
+[data-scope='listbox'][data-part='item'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='listbox'][data-part='item-text'] {
+  overflow: hidden;
+  flex: 1;
+
+  color: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-scope='listbox'][data-part='item-indicator'] {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--token-color-foreground-action);
+}
+
+[data-scope='listbox'][data-part='item-indicator'][data-state='unchecked'] {
+  visibility: hidden;
+}

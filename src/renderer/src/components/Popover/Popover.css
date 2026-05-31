@@ -1,0 +1,199 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset. Logical properties throughout. */
+
+/* ── Trigger ──────────────────────────────────────────────────────────────── */
+
+[data-scope='popover'][data-part='trigger'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background-color: var(--token-color-surface-interactive);
+}
+
+[data-scope='popover'][data-part='trigger']:hover:not([disabled], [data-disabled]) {
+  border-color: var(--token-color-border-strong);
+  background-color: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='popover'][data-part='trigger'][data-state='open'] {
+  border-color: var(--token-color-border-action);
+  color: var(--token-color-foreground-action);
+  background-color: var(--token-color-surface-interactive-active);
+}
+
+[data-scope='popover'][data-part='trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='popover'][data-part='trigger'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-color-foreground-disabled);
+  background-color: var(--token-color-surface-interactive-disabled);
+}
+
+/* ── Positioner ───────────────────────────────────────────────────────────── */
+
+[data-scope='popover'][data-part='positioner'] {
+  z-index: var(--z-index, 1000);
+}
+
+/* ── Content panel ────────────────────────────────────────────────────────── */
+
+[data-scope='popover'][data-part='content'] {
+  transform-origin: var(--transform-origin);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+
+  inline-size: max(var(--reference-width, 0px), 18rem);
+  max-inline-size: var(--token-tooltip-max-width);
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background-color: var(--token-color-surface-primary);
+  outline: none;
+  box-shadow: var(--token-elevation-overlay-box-shadow);
+}
+
+[data-scope='popover'][data-part='content'][data-state='open'] {
+  animation: popover-scale-in var(--token-form-radiocard-transition-duration) ease-out;
+}
+
+[data-scope='popover'][data-part='content'][data-state='closed'] {
+  animation: popover-scale-out var(--token-form-radiocard-transition-duration) ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='popover'][data-part='content'][data-state='open'] {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='popover'][data-part='content'][data-state='closed'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='popover'][data-part='content'][data-state='open'] {
+  animation: none;
+}
+
+[data-reduced-motion='reduce'] [data-scope='popover'][data-part='content'][data-state='closed'] {
+  animation: none;
+}
+
+/* ── Title ────────────────────────────────────────────────────────────────── */
+
+[data-scope='popover'][data-part='title'] {
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-300-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-300-line-height);
+  color: var(--token-color-foreground-strong);
+}
+
+/* ── Description ──────────────────────────────────────────────────────────── */
+
+[data-scope='popover'][data-part='description'] {
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-faint);
+}
+
+/* ── Close trigger ────────────────────────────────────────────────────────── */
+
+[data-scope='popover'][data-part='close-trigger'] {
+  cursor: pointer;
+
+  position: absolute;
+  inset-block-start: var(--token-form-control-padding);
+  inset-inline-end: var(--token-form-control-padding);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: var(--token-border-radius-small);
+
+  color: var(--token-color-foreground-faint);
+
+  background-color: transparent;
+}
+
+[data-scope='popover'][data-part='close-trigger']:hover {
+  color: var(--token-color-foreground-primary);
+  background-color: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='popover'][data-part='close-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── Arrow ────────────────────────────────────────────────────────────────── */
+
+[data-scope='popover'][data-part='arrow'] {
+  --arrow-background: var(--token-color-surface-primary);
+}
+
+[data-scope='popover'][data-part='arrow-tip'] {
+  border-block-start: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+  border-inline-start: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+}
+
+/* ── Keyframes ────────────────────────────────────────────────────────────── */
+
+@keyframes popover-scale-in {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes popover-scale-out {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  to {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+}

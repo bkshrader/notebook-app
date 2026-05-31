@@ -1,0 +1,244 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
+ * per-selector, so comma-grouped resets fail). */
+
+/* Backdrop — the scrim behind the drawer panel */
+[data-scope='drawer'][data-part='backdrop'] {
+  position: fixed;
+  inset: 0;
+  opacity: 0.6;
+  background: var(--token-color-surface-strong);
+}
+
+[data-scope='drawer'][data-part='backdrop'][data-state='open'] {
+  animation: drawer-backdrop-in var(--token-tabs-indicator-transition-duration)
+    var(--token-tabs-indicator-transition-function);
+}
+
+[data-scope='drawer'][data-part='backdrop'][data-state='closed'] {
+  animation: drawer-backdrop-out var(--token-tabs-indicator-transition-duration)
+    var(--token-tabs-indicator-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='drawer'][data-part='backdrop'][data-state='open'] {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='drawer'][data-part='backdrop'][data-state='closed'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='drawer'][data-part='backdrop'][data-state='open'] {
+  animation: none;
+}
+
+[data-reduced-motion='reduce'] [data-scope='drawer'][data-part='backdrop'][data-state='closed'] {
+  animation: none;
+}
+
+/* Positioner — fixed full-viewport edge-anchoring layer */
+[data-scope='drawer'][data-part='positioner'] {
+  position: fixed;
+  inset: 0;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+[data-scope='drawer'][data-part='positioner'][data-swipe-direction='up'] {
+  align-items: flex-start;
+}
+
+[data-scope='drawer'][data-part='positioner'][data-swipe-direction='left'] {
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+[data-scope='drawer'][data-part='positioner'][data-swipe-direction='right'] {
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+/* Content — the drawer panel itself */
+[data-scope='drawer'][data-part='content'] {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  inline-size: 100%;
+  max-block-size: 96svb;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-start-start-radius: var(--token-border-radius-large);
+  border-start-end-radius: var(--token-border-radius-large);
+
+  background: var(--token-color-surface-primary);
+  outline: none;
+  box-shadow: var(--token-elevation-overlay-box-shadow);
+}
+
+[data-scope='drawer'][data-part='content'][data-swipe-direction='left'],
+[data-scope='drawer'][data-part='content'][data-swipe-direction='right'] {
+  inline-size: 24rem;
+  max-inline-size: calc(100vi - 2rem);
+  max-block-size: none;
+  border-radius: var(--token-border-radius-large);
+}
+
+[data-scope='drawer'][data-part='content'][data-state='open'] {
+  animation: drawer-content-in var(--token-tabs-indicator-transition-duration)
+    var(--token-tabs-indicator-transition-function);
+}
+
+[data-scope='drawer'][data-part='content'][data-state='closed'] {
+  animation: drawer-content-out var(--token-tabs-indicator-transition-duration)
+    var(--token-tabs-indicator-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='drawer'][data-part='content'][data-state='open'] {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='drawer'][data-part='content'][data-state='closed'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='drawer'][data-part='content'][data-state='open'] {
+  animation: none;
+}
+
+[data-reduced-motion='reduce'] [data-scope='drawer'][data-part='content'][data-state='closed'] {
+  animation: none;
+}
+
+/* Grabber — drag handle container */
+[data-scope='drawer'][data-part='grabber'] {
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: 100%;
+  padding-block: var(--token-form-control-padding);
+}
+
+/* GrabberIndicator — the visible pill handle */
+[data-scope='drawer'][data-part='grabber-indicator'] {
+  inline-size: 2.5rem;
+  block-size: 0.25rem;
+  border-radius: var(--token-border-radius-x-small);
+  background: var(--token-color-border-faint);
+}
+
+/* Title */
+[data-scope='drawer'][data-part='title'] {
+  font-family: var(--token-typography-font-stack-display);
+  font-size: var(--token-typography-display-100-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-display-100-line-height);
+  color: var(--token-color-foreground-strong);
+}
+
+/* Trigger button */
+[data-scope='drawer'][data-part='trigger'] {
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-action);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-action);
+
+  background: var(--token-color-surface-primary);
+}
+
+[data-scope='drawer'][data-part='trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Close trigger button */
+[data-scope='drawer'][data-part='close-trigger'] {
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-action);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-action);
+
+  background: var(--token-color-surface-primary);
+}
+
+[data-scope='drawer'][data-part='close-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Keyframe animations for enter/exit */
+@keyframes drawer-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 0.6;
+  }
+}
+
+@keyframes drawer-backdrop-out {
+  from {
+    opacity: 0.6;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes drawer-content-in {
+  from {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes drawer-content-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
+}

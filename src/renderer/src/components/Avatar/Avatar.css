@@ -1,0 +1,30 @@
+[data-scope='avatar'][data-part='root'] {
+  user-select: none;
+
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border-radius: var(--token-border-radius-large);
+
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-strong);
+}
+
+[data-scope='avatar'][data-part='image'] {
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+[data-scope='avatar'][data-part='fallback'] {
+  border-radius: inherit;
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+}

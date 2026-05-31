@@ -1,0 +1,126 @@
+/**
+ * Timer — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals, no
+ * `--token-color-palette-*`.
+ *
+ * The timer is a display-only widget (Tier A-Display): no complex keyboard nav,
+ * but the action trigger buttons must have a visible focus ring.
+ *
+ * Focus ring applied ONLY on [data-focus-visible] (keyboard focus). Motion
+ * suppressed via BOTH `prefers-reduced-motion` media query AND
+ * `[data-reduced-motion='reduce']` (Storybook toolbar), each animated selector
+ * getting its own per-selector reset (stylelint a11y rule requires per-selector).
+ * Logical properties used throughout (no width/height/padding-left).
+ */
+
+[data-scope='timer'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-toggle-background-image-size);
+
+  font-family: var(--token-typography-body-200-font-family);
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='timer'][data-part='area'] {
+  display: flex;
+  gap: var(--token-form-toggle-border-width);
+  align-items: center;
+}
+
+[data-scope='timer'][data-part='item'] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  min-inline-size: 2ch;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-font-stack-code);
+  font-size: var(--token-typography-display-200-font-size);
+  line-height: var(--token-typography-display-200-line-height);
+  color: var(--token-color-foreground-strong);
+  text-align: center;
+
+  /* Helios surface card — timer digits sit on a distinct surface */
+  background: var(--token-color-surface-faint);
+}
+
+[data-scope='timer'][data-part='item-label'] {
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='timer'][data-part='item-value'] {
+  font-size: var(--token-typography-display-200-font-size);
+  line-height: var(--token-typography-display-200-line-height);
+  color: var(--token-color-foreground-strong);
+}
+
+[data-scope='timer'][data-part='separator'] {
+  padding-inline: var(--token-border-radius-x-small);
+
+  font-family: var(--token-typography-font-stack-code);
+  font-size: var(--token-typography-display-200-font-size);
+  line-height: var(--token-typography-display-200-line-height);
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='timer'][data-part='control'] {
+  display: flex;
+  gap: var(--token-border-radius-medium);
+}
+
+[data-scope='timer'][data-part='action-trigger'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-strong);
+
+  background: var(--token-color-surface-interactive);
+
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='timer'][data-part='action-trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='timer'][data-part='action-trigger'] {
+  transition: none;
+}
+
+[data-scope='timer'][data-part='action-trigger']:hover {
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='timer'][data-part='action-trigger']:active {
+  background: var(--token-color-surface-interactive-active);
+}
+
+/* Keyboard focus only — never decorate mouse focus. */
+[data-scope='timer'][data-part='action-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}

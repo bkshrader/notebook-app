@@ -1,0 +1,68 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset. */
+
+[data-scope='qr-code'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+  inline-size: fit-content;
+}
+
+[data-scope='qr-code'][data-part='frame'] {
+  /* fill cascades down to the Pattern <path>; use a semantic foreground token */
+  fill: var(--token-color-foreground-primary);
+}
+
+[data-scope='qr-code'][data-part='pattern'] {
+  fill: inherit;
+}
+
+[data-scope='qr-code'][data-part='download-trigger'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-inline: var(--token-form-control-padding);
+  border-color: var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-interactive);
+
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='qr-code'][data-part='download-trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='qr-code'][data-part='download-trigger'] {
+  transition: none;
+}
+
+[data-scope='qr-code'][data-part='download-trigger']:hover {
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='qr-code'][data-part='download-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='qr-code'][data-part='download-trigger']:disabled,
+[data-scope='qr-code'][data-part='download-trigger'][data-disabled] {
+  color: var(--token-color-foreground-disabled);
+  background: var(--token-color-surface-interactive-disabled);
+}

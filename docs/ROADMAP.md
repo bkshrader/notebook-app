@@ -10,6 +10,7 @@ Features:
   - First-class keyboard navigation
   - Screen reader support
   - WCAG 2.1 AA baseline, AAA aspirationally
+- [Component Library](./features/component-library/OVERVIEW.md) — accessible, token-styled React primitives (Ark UI wrappers) that every interactive surface is built from
 - [Plain `.md` with YAML front matter, files-on-disk](./features/plain-md-storage/OVERVIEW.md)
 - [Git integration](./features/git-integration/OVERVIEW.md) — automatic background version history of notes; foundation for [Remote sync](./features/remote-sync/OVERVIEW.md)
 - [Library and Projects](./features/library-and-projects/OVERVIEW.md) for organizing and managing research/notes

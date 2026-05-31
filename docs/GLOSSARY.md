@@ -94,6 +94,29 @@ Synthesis of audio from text — the app reading a document or Note aloud. Imple
 
 Synchronized word/sentence highlighting **during** [TTS](#tts-text-to-speech) playback (v1.1). Builds on TTS — TTS produces the audio; read-along adds the visual sync. See [read-along](./features/read-along/OVERVIEW.md).
 
+## User interface
+
+### Component Library
+
+The developer-facing set of accessible React UI primitives under
+`src/renderer/src/components/` — thin, Helios-token-styled `forwardRef` wrappers over
+[Ark UI](#ark-ui) headless components, each documented and play-tested in Storybook
+(styled with [Helios](./features/accessibility/adrs/design-system-helios.md) `--token-*`
+custom properties). The building blocks every interactive surface is assembled from. See
+[component-library](./features/component-library/OVERVIEW.md).
+
+> ⚠️ **Not** the [Library](#library). The Library is the user's note collection (a product
+> concept); the Component Library is the UI toolkit (a code concept). Always write
+> "Component Library" in full — never shorten it to "Library" — so the two never collide.
+
+### Ark UI
+
+The MIT-licensed headless React primitives library (built on Zag.js finite-state machines)
+that the [Component Library](#component-library) wraps. Ark owns focus management, keyboard
+handling, and ARIA wiring; we own the styling and the app-shaped API. State is exposed via
+`data-scope` / `data-part` / `data-state` attributes that our token CSS targets. Chosen in
+the [unstyled-primitives-ark ADR](./features/accessibility/adrs/unstyled-primitives-ark.md).
+
 ## Tooling and process
 
 ### Sidecar (Python sidecar)
