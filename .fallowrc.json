@@ -14,7 +14,6 @@
     "dist/**",
     "**/*.d.ts",
     "scripts/**/*.test.mjs",
-    "src/renderer/src/styles/app.css",
     "src/renderer/src/styles/tokens.css"
   ],
   "ignoreDependencies": ["@double-great/stylelint-a11y", "@hashicorp/design-system-tokens"],
