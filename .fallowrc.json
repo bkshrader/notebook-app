@@ -5,7 +5,9 @@
     "src/preload/index.ts",
     "src/renderer/src/main.ts",
     "electron.vite.config.ts",
-    "scripts/extract-dep-signals.mjs"
+    "scripts/extract-dep-signals.mjs",
+    "src/renderer/src/components/index.ts",
+    "src/renderer/src/components/*/index.ts"
   ],
   "ignorePatterns": [
     "out/**",

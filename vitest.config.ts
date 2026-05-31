@@ -35,7 +35,12 @@ export default defineConfig({
           storybookTest({ configDir: path.join(dirname, '.storybook') }),
         ],
         optimizeDeps: {
-          include: ['react/jsx-dev-runtime'],
+          // Pre-bundle the deps the storybook browser tests pull in. Without
+          // this, the first story importing an Ark subpath triggers an on-the-fly
+          // optimize + full page reload mid-test ("Failed to fetch dynamically
+          // imported module" / "Vite unexpectedly reloaded a test"). Ark ships
+          // per-component entry points, so include the wildcard subpath.
+          include: ['react/jsx-dev-runtime', '@ark-ui/react/*'],
         },
         server: {
           fs: {

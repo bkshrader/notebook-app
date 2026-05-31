@@ -15,3 +15,5 @@ public/design-tokens.source.json
 
 # Claude Code session runtime artifacts (e.g. scheduled-tasks locks)
 .claude/*.lock
+# Claude Code scratch artifacts (token allowlist, transient logs)
+.claude/artifacts/
