@@ -1,0 +1,239 @@
+/**
+ * TagsInput — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`. Focus ring ONLY on data-focus-visible.
+ *
+ * Reduced motion: every transition/animation is suppressed under BOTH
+ * @media (prefers-reduced-motion: reduce) AND [data-reduced-motion='reduce']
+ * on <html> (Storybook toolbar). Each animated selector has its own reset
+ * (stylelint a11y rule matches per-selector, comma-grouped resets fail).
+ *
+ * Logical properties (inline-size/block-size/padding-inline) are used
+ * throughout instead of width/height/padding-left.
+ */
+
+/* ── Root ──────────────────────────────────────────────────────────────── */
+
+[data-scope='tags-input'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+
+  inline-size: 100%;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='tags-input'][data-part='root'][data-disabled] {
+  /* foreground-disabled fails AA; foreground-faint passes on white. */
+  color: var(--token-color-foreground-faint);
+}
+
+/* ── Label ─────────────────────────────────────────────────────────────── */
+
+[data-scope='tags-input'][data-part='label'] {
+  user-select: none;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+}
+
+[data-scope='tags-input'][data-part='label'][data-disabled] {
+  /* foreground-disabled fails AA; foreground-faint passes on white. */
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='tags-input'][data-part='label'][data-invalid] {
+  color: var(--token-form-error-color);
+}
+
+/* ── Control (the tag pill + input container) ──────────────────────────── */
+
+[data-scope='tags-input'][data-part='control'] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-base-border-color-default);
+  border-radius: var(--token-form-control-border-radius);
+
+  background: var(--token-form-control-base-surface-color-default);
+
+  transition: border-color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tags-input'][data-part='control'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='tags-input'][data-part='control'] {
+  transition: none;
+}
+
+[data-scope='tags-input'][data-part='control'][data-focus] {
+  border-color: var(--token-color-border-action);
+}
+
+[data-scope='tags-input'][data-part='control'][data-focus][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='tags-input'][data-part='control'][data-invalid] {
+  border-color: var(--token-form-control-invalid-border-color-default);
+}
+
+[data-scope='tags-input'][data-part='control'][data-disabled] {
+  border-color: var(--token-form-control-disabled-border-color);
+  background: var(--token-form-control-disabled-surface-color);
+}
+
+/* ── Item (wrapper around preview + inline edit input) ─────────────────── */
+
+[data-scope='tags-input'][data-part='item'] {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ── ItemPreview (the visible pill) ────────────────────────────────────── */
+
+[data-scope='tags-input'][data-part='item-preview'] {
+  display: inline-flex;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-radius: var(--token-border-radius-small);
+
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-interactive);
+
+  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tags-input'][data-part='item-preview'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='tags-input'][data-part='item-preview'] {
+  transition: none;
+}
+
+[data-scope='tags-input'][data-part='item-preview'][data-highlighted] {
+  color: var(--token-color-foreground-action);
+  background: var(--token-color-surface-interactive-active);
+}
+
+[data-scope='tags-input'][data-part='item-preview'][data-disabled] {
+  /* foreground-disabled (#8c909c) fails 4.5:1 on surface-interactive-disabled.
+     foreground-faint (#656a76) passes on white/near-white surfaces. */
+  color: var(--token-color-foreground-faint);
+  background: var(--token-color-surface-interactive-disabled);
+}
+
+/* ── ItemText ──────────────────────────────────────────────────────────── */
+
+[data-scope='tags-input'][data-part='item-text'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+}
+
+[data-scope='tags-input'][data-part='item-text'][data-disabled] {
+  /* foreground-disabled (#8c909c) is 3.05:1 on surface-interactive-disabled — fails AA.
+     foreground-faint (#656a76) passes ≥4.5:1 on white/near-white. */
+  color: var(--token-color-foreground-faint);
+}
+
+/* ── ItemDeleteTrigger ─────────────────────────────────────────────────── */
+
+[data-scope='tags-input'][data-part='item-delete-trigger'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-block: 0;
+  padding-inline: 0;
+  border: none;
+  border-radius: var(--token-border-radius-x-small);
+
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: inherit;
+
+  background: transparent;
+}
+
+[data-scope='tags-input'][data-part='item-delete-trigger'][data-highlighted] {
+  color: var(--token-color-foreground-action);
+}
+
+[data-scope='tags-input'][data-part='item-delete-trigger'][data-disabled] {
+  cursor: not-allowed;
+
+  /* foreground-disabled fails AA on near-white; foreground-faint passes. */
+  color: var(--token-color-foreground-faint);
+}
+
+/* ── ItemInput (inline edit input, hidden until editing) ───────────────── */
+
+[data-scope='tags-input'][data-part='item-input'] {
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-base-border-color-default);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background: var(--token-form-control-base-surface-color-default);
+  outline: none;
+}
+
+/* ── Input (the new-tag text field) ────────────────────────────────────── */
+
+[data-scope='tags-input'][data-part='input'] {
+  flex: 1;
+
+  min-inline-size: 4rem;
+  border: none;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background: transparent;
+  outline: none;
+}
+
+[data-scope='tags-input'][data-part='input']::placeholder {
+  color: var(--token-form-control-base-foreground-placeholder-color);
+}
+
+[data-scope='tags-input'][data-part='input'][data-readonly] {
+  color: var(--token-form-control-readonly-foreground-color);
+}

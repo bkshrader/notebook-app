@@ -1,0 +1,140 @@
+/**
+ * Splitter — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * Anatomy parts styled: root, panel, resize-trigger, resize-trigger-indicator.
+ * State attributes used: data-orientation, data-focus-visible, data-dragging,
+ * data-disabled.
+ *
+ * Focus ring is applied ONLY on keyboard focus (data-focus-visible), never on
+ * every focus. Each animated selector gets its own reduced-motion reset so the
+ * stylelint a11y per-selector rule is satisfied.
+ */
+
+[data-scope='splitter'][data-part='root'] {
+  display: flex;
+  inline-size: 100%;
+}
+
+[data-scope='splitter'][data-part='root'][data-orientation='vertical'] {
+  flex-direction: column;
+}
+
+[data-scope='splitter'][data-part='panel'] {
+  overflow: auto;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+/* ── Resize trigger (the draggable handle button) ── */
+
+[data-scope='splitter'][data-part='resize-trigger'] {
+  cursor: col-resize;
+
+  position: relative;
+
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+
+  padding-block: 0;
+  padding-inline: 0;
+  border: none;
+
+  background: var(--token-color-surface-faint);
+
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='splitter'][data-part='resize-trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='splitter'][data-part='resize-trigger'] {
+  transition: none;
+}
+
+[data-scope='splitter'][data-part='resize-trigger'][data-orientation='horizontal'] {
+  cursor: col-resize;
+  min-inline-size: var(--token-border-radius-x-small);
+}
+
+[data-scope='splitter'][data-part='resize-trigger'][data-orientation='vertical'] {
+  cursor: row-resize;
+  min-block-size: var(--token-border-radius-x-small);
+}
+
+[data-scope='splitter'][data-part='resize-trigger'][data-dragging] {
+  background: var(--token-color-surface-interactive-active);
+}
+
+[data-scope='splitter'][data-part='resize-trigger'][data-disabled] {
+  cursor: default;
+  background: var(--token-color-surface-interactive-disabled);
+}
+
+/* Keyboard focus only — never decorate mouse focus. */
+[data-scope='splitter'][data-part='resize-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── Resize trigger indicator (visual drag handle pill) ── */
+
+[data-scope='splitter'][data-part='resize-trigger-indicator'] {
+  position: relative;
+  z-index: 1;
+
+  border-radius: var(--token-border-radius-large);
+
+  background: var(--token-color-border-primary);
+  box-shadow: var(--token-elevation-low-box-shadow);
+
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='splitter'][data-part='resize-trigger-indicator'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='splitter'][data-part='resize-trigger-indicator'] {
+  transition: none;
+}
+
+[data-scope='splitter'][data-part='resize-trigger-indicator'][data-orientation='horizontal'] {
+  inline-size: var(--token-border-radius-small);
+  block-size: var(--token-tabs-tab-height-medium);
+}
+
+[data-scope='splitter'][data-part='resize-trigger-indicator'][data-orientation='vertical'] {
+  inline-size: var(--token-tabs-tab-height-medium);
+  block-size: var(--token-border-radius-small);
+}
+
+[data-scope='splitter'][data-part='resize-trigger'][data-dragging]
+  [data-scope='splitter'][data-part='resize-trigger-indicator'] {
+  background: var(--token-color-border-action);
+}
+
+[data-scope='splitter'][data-part='resize-trigger'][data-focus-visible]
+  [data-scope='splitter'][data-part='resize-trigger-indicator'] {
+  background: var(--token-color-border-action);
+}
+
+[data-scope='splitter'][data-part='resize-trigger'][data-disabled]
+  [data-scope='splitter'][data-part='resize-trigger-indicator'] {
+  background: var(--token-color-border-faint);
+}

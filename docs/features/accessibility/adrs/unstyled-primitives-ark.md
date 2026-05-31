@@ -133,6 +133,7 @@ There is no adapter layer, no Tailwind dependency, no token-renaming, and no sty
 ## Links
 
 - Project charter: [accessibility OVERVIEW](../OVERVIEW.md)
+- Feature this enables: [Component Library](../../component-library/OVERVIEW.md) — the per-component wrapper + stories + a11y-test contract built on this decision.
 - Sibling ADRs: [design-system-helios.md](./design-system-helios.md), [react-and-storybook.md](./react-and-storybook.md)
 - Ark UI: <https://ark-ui.com/>, <https://github.com/chakra-ui/ark>
 - Zag.js: <https://github.com/chakra-ui/zag>

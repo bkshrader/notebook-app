@@ -1,3 +1,12 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
+ * per-selector, so comma-grouped resets fail). */
+
 /* Backdrop — the scrim behind the dialog panel */
 [data-scope='dialog'][data-part='backdrop'] {
   position: fixed;
@@ -11,25 +20,25 @@
     var(--token-tabs-indicator-transition-function);
 }
 
-[data-scope='dialog'][data-part='backdrop'][data-state='closed'] {
-  animation: dialog-backdrop-out var(--token-tabs-indicator-transition-duration)
-    var(--token-tabs-indicator-transition-function);
-}
-
 @media (prefers-reduced-motion: reduce) {
   [data-scope='dialog'][data-part='backdrop'][data-state='open'] {
     animation: none;
   }
 }
 
+[data-reduced-motion='reduce'] [data-scope='dialog'][data-part='backdrop'][data-state='open'] {
+  animation: none;
+}
+
+[data-scope='dialog'][data-part='backdrop'][data-state='closed'] {
+  animation: dialog-backdrop-out var(--token-tabs-indicator-transition-duration)
+    var(--token-tabs-indicator-transition-function);
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-scope='dialog'][data-part='backdrop'][data-state='closed'] {
     animation: none;
   }
-}
-
-[data-reduced-motion='reduce'] [data-scope='dialog'][data-part='backdrop'][data-state='open'] {
-  animation: none;
 }
 
 [data-reduced-motion='reduce'] [data-scope='dialog'][data-part='backdrop'][data-state='closed'] {
@@ -52,6 +61,7 @@
 
   display: flex;
   flex-direction: column;
+  gap: var(--token-form-radiocard-group-gap);
 
   inline-size: 24rem;
   max-inline-size: calc(100vi - 2rem);
@@ -62,6 +72,10 @@
   border-radius: var(--token-border-radius-medium);
 
   background: var(--token-color-surface-primary);
+
+  /* outline:none is intentional — the panel is programmatically focused by Ark
+   * but is not itself a user-operable control; visible focus context is conveyed
+   * by the backdrop + focus moving to the first focusable child inside. */
   outline: none;
   box-shadow: var(--token-elevation-overlay-box-shadow);
 }
@@ -71,25 +85,25 @@
     var(--token-tabs-indicator-transition-function);
 }
 
-[data-scope='dialog'][data-part='content'][data-state='closed'] {
-  animation: dialog-content-out var(--token-tabs-indicator-transition-duration)
-    var(--token-tabs-indicator-transition-function);
-}
-
 @media (prefers-reduced-motion: reduce) {
   [data-scope='dialog'][data-part='content'][data-state='open'] {
     animation: none;
   }
 }
 
+[data-reduced-motion='reduce'] [data-scope='dialog'][data-part='content'][data-state='open'] {
+  animation: none;
+}
+
+[data-scope='dialog'][data-part='content'][data-state='closed'] {
+  animation: dialog-content-out var(--token-tabs-indicator-transition-duration)
+    var(--token-tabs-indicator-transition-function);
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-scope='dialog'][data-part='content'][data-state='closed'] {
     animation: none;
   }
-}
-
-[data-reduced-motion='reduce'] [data-scope='dialog'][data-part='content'][data-state='open'] {
-  animation: none;
 }
 
 [data-reduced-motion='reduce'] [data-scope='dialog'][data-part='content'][data-state='closed'] {

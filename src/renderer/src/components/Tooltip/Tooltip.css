@@ -1,0 +1,108 @@
+/**
+ * Tooltip — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * The tooltip content renders in a Portal (Tier B overlay). Enter/exit
+ * animations use `@keyframes` triggered by `[data-state='open|closed']`.
+ * Both animations are suppressed under reduced-motion — both the OS
+ * `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute on <html>. Each animated
+ * selector gets its own reduced-motion reset (stylelint a11y rule matches
+ * per-selector; comma-grouped resets fail).
+ */
+
+[data-scope='tooltip'][data-part='content'] {
+  /* Arrow CSS variables — used by Ark's internal arrow positioning */
+  --arrow-background: var(--token-tooltip-color-surface-primary);
+
+  position: relative;
+  z-index: 1;
+  transform-origin: var(--transform-origin);
+
+  max-inline-size: var(--token-tooltip-max-width);
+  padding-block: var(--token-tooltip-padding-vertical);
+  padding-inline: var(--token-tooltip-padding-horizontal);
+  border-radius: var(--token-tooltip-border-radius);
+
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-tooltip-color-foreground-primary);
+
+  background: var(--token-tooltip-color-surface-primary);
+  box-shadow: var(--token-elevation-overlay-box-shadow);
+}
+
+[data-scope='tooltip'][data-part='content'][data-state='open'] {
+  animation: tooltip-scale-fade-in 150ms var(--token-tooltip-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tooltip'][data-part='content'][data-state='open'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='tooltip'][data-part='content'][data-state='open'] {
+  animation: none;
+}
+
+[data-scope='tooltip'][data-part='content'][data-state='closed'] {
+  animation: tooltip-scale-fade-out 100ms var(--token-tooltip-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='tooltip'][data-part='content'][data-state='closed'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='tooltip'][data-part='content'][data-state='closed'] {
+  animation: none;
+}
+
+/* Arrow body — inherits --arrow-background set on the content part */
+[data-scope='tooltip'][data-part='arrow'] {
+  --arrow-size: 8px;
+}
+
+/* Arrow tip border — use a subtle border token for definition */
+[data-scope='tooltip'][data-part='arrow-tip'] {
+  border-block-start-color: var(--token-color-border-faint);
+  border-inline-start-color: var(--token-color-border-faint);
+}
+
+/* Trigger: Ark renders a <button> by default; ensure the focus ring appears
+ * only on keyboard focus via [data-focus-visible]. */
+[data-scope='tooltip'][data-part='trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+@keyframes tooltip-scale-fade-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes tooltip-scale-fade-out {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  to {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}

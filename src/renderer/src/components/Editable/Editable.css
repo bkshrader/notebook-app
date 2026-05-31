@@ -1,0 +1,309 @@
+/**
+ * Editable — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*` (semantic tokens only).
+ *
+ * Focus ring is applied ONLY on [data-focus-visible] (keyboard focus), never
+ * on plain [data-focus] or :focus. outline: none is always paired with a
+ * visible focus indicator on the same selector (box-shadow focus ring).
+ *
+ * Reduced motion: any transition is suppressed under BOTH
+ *   @media (prefers-reduced-motion: reduce)
+ * AND
+ *   [data-reduced-motion='reduce'] <selector>
+ * Each animated selector gets its own reset block (per-selector, never
+ * comma-grouped — stylelint a11y/media-prefers-reduced-motion matches per
+ * selector).
+ *
+ * Logical properties (inline-size/block-size/padding-inline/etc.) are used
+ * throughout — never width/height/padding-left.
+ */
+
+/* ── Root ────────────────────────────────────────────────────────────────── */
+
+[data-scope='editable'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+
+  inline-size: 100%;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='editable'][data-part='root'][data-disabled] {
+  color: var(--token-color-foreground-disabled);
+}
+
+/* ── Label ───────────────────────────────────────────────────────────────── */
+
+[data-scope='editable'][data-part='label'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+}
+
+[data-scope='editable'][data-part='label'][data-invalid] {
+  color: var(--token-form-error-color);
+}
+
+/* ── Area ────────────────────────────────────────────────────────────────── */
+
+[data-scope='editable'][data-part='area'] {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  inline-size: 100%;
+}
+
+/* ── Input (edit mode) ───────────────────────────────────────────────────── */
+
+[data-scope='editable'][data-part='input'] {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-color: var(--token-form-control-base-border-color-default);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background: var(--token-color-surface-primary);
+  outline: none;
+}
+
+[data-scope='editable'][data-part='input'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='editable'][data-part='input'][data-invalid] {
+  border-color: var(--token-form-control-invalid-border-color-default);
+}
+
+[data-scope='editable'][data-part='input'][data-disabled] {
+  border-color: var(--token-form-control-disabled-border-color);
+  color: var(--token-form-control-disabled-foreground-color);
+  background: var(--token-form-control-disabled-surface-color);
+}
+
+[data-scope='editable'][data-part='input'][data-readonly] {
+  border-color: var(--token-form-control-readonly-border-color);
+  color: var(--token-form-control-readonly-foreground-color);
+  background: var(--token-form-control-readonly-surface-color);
+}
+
+/* ── Preview (read/display mode) ─────────────────────────────────────────── */
+
+[data-scope='editable'][data-part='preview'] {
+  cursor: text;
+
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-color: transparent;
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background: transparent;
+
+  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='editable'][data-part='preview'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='editable'][data-part='preview'] {
+  transition: none;
+}
+
+[data-scope='editable'][data-part='preview']:hover {
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='editable'][data-part='preview'][data-placeholder-shown] {
+  color: var(--token-form-control-base-foreground-placeholder-color);
+}
+
+[data-scope='editable'][data-part='preview'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-form-control-disabled-foreground-color);
+}
+
+[data-scope='editable'][data-part='preview'][data-readonly] {
+  cursor: default;
+  color: var(--token-form-control-readonly-foreground-color);
+}
+
+[data-scope='editable'][data-part='preview'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── Control (trigger buttons row) ──────────────────────────────────────── */
+
+[data-scope='editable'][data-part='control'] {
+  display: flex;
+  gap: var(--token-form-control-padding);
+  padding-block-start: var(--token-form-control-padding);
+}
+
+/* ── Edit trigger ────────────────────────────────────────────────────────── */
+
+[data-scope='editable'][data-part='edit-trigger'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-color: var(--token-color-border-primary);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-interactive);
+
+  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='editable'][data-part='edit-trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='editable'][data-part='edit-trigger'] {
+  transition: none;
+}
+
+[data-scope='editable'][data-part='edit-trigger']:hover {
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='editable'][data-part='edit-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── Submit trigger ──────────────────────────────────────────────────────── */
+
+[data-scope='editable'][data-part='submit-trigger'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-color: var(--token-color-border-action);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-action);
+
+  background: var(--token-color-surface-action);
+
+  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='editable'][data-part='submit-trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='editable'][data-part='submit-trigger'] {
+  transition: none;
+}
+
+[data-scope='editable'][data-part='submit-trigger']:hover {
+  background: var(--token-color-surface-interactive-active);
+}
+
+[data-scope='editable'][data-part='submit-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── Cancel trigger ──────────────────────────────────────────────────────── */
+
+[data-scope='editable'][data-part='cancel-trigger'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-color: var(--token-color-border-primary);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-interactive);
+
+  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='editable'][data-part='cancel-trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='editable'][data-part='cancel-trigger'] {
+  transition: none;
+}
+
+[data-scope='editable'][data-part='cancel-trigger']:hover {
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='editable'][data-part='cancel-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}

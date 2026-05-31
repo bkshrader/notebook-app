@@ -16,11 +16,20 @@
     "scripts/**/*.test.mjs",
     "src/renderer/src/styles/tokens.css"
   ],
-  "ignoreDependencies": ["@double-great/stylelint-a11y", "@hashicorp/design-system-tokens"],
+  "ignoreDependencies": [
+    "@double-great/stylelint-a11y",
+    "@hashicorp/design-system-tokens",
+    "@internationalized/date",
+    "effect"
+  ],
   "rules": {
     "unused-files": "error",
     "unused-exports": "warn",
     "unused-dependencies": "warn",
     "circular-dependency": "error"
+  },
+  "audit": {
+    "dupesBaseline": ".fallow/dupes-baseline.json",
+    "healthBaseline": ".fallow/health-baseline.json"
   }
 }

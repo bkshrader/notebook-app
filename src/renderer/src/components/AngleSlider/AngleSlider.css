@@ -1,0 +1,160 @@
+/**
+ * AngleSlider — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * The circular control uses Ark's injected `--angle` CSS variable (degrees) to
+ * rotate the thumb line. State is conveyed through data-disabled, data-invalid,
+ * data-readonly, and data-focus-visible on the thumb.
+ *
+ * Motion: the thumb rotation transition is suppressed under reduced-motion —
+ * both the OS `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute on <html>. Each animated selector
+ * gets its own reduced-motion reset so the stylelint a11y rule (per-selector
+ * matching) is satisfied.
+ *
+ * Focus ring: applied ONLY on `data-focus-visible` (keyboard focus), never on
+ * every :focus or data-focus.
+ *
+ * Logical properties (inline-size/block-size/padding-inline) used throughout
+ * per stylelint-plugin-logical-css.
+ */
+
+[data-scope='angle-slider'][data-part='root'] {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='angle-slider'][data-part='root'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='angle-slider'][data-part='label'] {
+  user-select: none;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+}
+
+[data-scope='angle-slider'][data-part='label'][data-disabled] {
+  color: var(--token-color-foreground-faint);
+}
+
+/* Circular track container. Ark injects --angle (degrees) and --value on
+   the root; the control provides the circular canvas. */
+[data-scope='angle-slider'][data-part='control'] {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: 7rem;
+  block-size: 7rem;
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-base-border-color-default);
+  border-radius: var(--token-border-radius-large);
+
+  background: var(--token-color-surface-faint);
+  box-shadow: var(--token-elevation-inset-box-shadow);
+}
+
+[data-scope='angle-slider'][data-part='control'][data-disabled] {
+  border-color: var(--token-form-control-disabled-border-color);
+  background: var(--token-form-control-disabled-surface-color);
+}
+
+/* Thumb: a line extending from center, rotated by Ark's --angle variable.
+   The thumb is positioned absolutely spanning the full height, centred on the
+   x-axis, then Ark applies `rotate: var(--angle)` inline. */
+[data-scope='angle-slider'][data-part='thumb'] {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(50% - 0.0625rem);
+
+  inline-size: 0.125rem;
+  block-size: 100%;
+  border-radius: var(--token-border-radius-small);
+
+  background: var(--token-color-border-action);
+  outline: none;
+
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='angle-slider'][data-part='thumb'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='angle-slider'][data-part='thumb'] {
+  transition: none;
+}
+
+/* Keyboard focus only — never decorate mouse focus. */
+[data-scope='angle-slider'][data-part='thumb'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='angle-slider'][data-part='thumb'][data-disabled] {
+  background: var(--token-form-control-disabled-border-color);
+}
+
+/* Marker group: fills the control circle absolutely, pointer-events none so it
+   doesn't intercept drag. */
+[data-scope='angle-slider'][data-part='marker-group'] {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+/* Each marker: a thin vertical line, centred, rotated by
+   `rotate: calc(var(--marker-value) * 1deg)` applied inline by Ark. */
+[data-scope='angle-slider'][data-part='marker'] {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(50% - 0.0625rem);
+
+  inline-size: 0.125rem;
+  block-size: 100%;
+  border-radius: var(--token-border-radius-small);
+
+  background: var(--token-color-border-faint);
+}
+
+[data-scope='angle-slider'][data-part='marker'][data-state='at-value'] {
+  background: var(--token-color-border-action);
+}
+
+[data-scope='angle-slider'][data-part='marker'][data-state='under-value'] {
+  background: var(--token-color-border-strong);
+}
+
+/* Value text: numeric readout below the control. */
+[data-scope='angle-slider'][data-part='value-text'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='angle-slider'][data-part='value-text'][data-disabled] {
+  color: var(--token-color-foreground-faint);
+}

@@ -1,23 +1,76 @@
+/**
+ * Select — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * The trigger transition is suppressed under reduced-motion — both the OS
+ * `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute. Each animated selector gets its
+ * own reduced-motion reset so the stylelint a11y rule (per-selector) is satisfied.
+ *
+ * Focus ring is applied ONLY on `[data-focus-visible]` (keyboard focus), never
+ * on every `:focus` / `[data-focus]`.
+ *
+ * Logical properties (inline-size, block-size, padding-inline, padding-block)
+ * are used throughout instead of width/height/padding-left.
+ */
+
+[data-scope='select'][data-part='root'] {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--token-form-toggle-border-width);
+}
+
 [data-scope='select'][data-part='label'] {
+  user-select: none;
+
   font-family: var(--token-typography-body-100-font-family);
   font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
   color: var(--token-form-label-color);
 }
 
+[data-scope='select'][data-part='label'][data-disabled] {
+  color: var(--token-form-control-disabled-foreground-color);
+}
+
+[data-scope='select'][data-part='control'] {
+  display: flex;
+  align-items: center;
+  inline-size: 100%;
+}
+
 [data-scope='select'][data-part='trigger'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+  justify-content: space-between;
+
+  inline-size: 100%;
   padding-block: var(--token-form-control-padding);
   padding-inline: var(--token-form-control-padding);
   border-color: var(--token-form-control-base-border-color-default);
+  border-style: solid;
   border-width: var(--token-form-control-border-width);
   border-radius: var(--token-form-control-border-radius);
 
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
   color: var(--token-form-control-base-foreground-value-color);
 
   background-color: var(--token-form-control-base-surface-color-default);
 
   transition:
-    border-color 150ms ease,
-    box-shadow 150ms ease;
+    border-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    box-shadow var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -30,6 +83,7 @@
   transition: none;
 }
 
+/* Keyboard focus only — never decorate mouse focus. */
 [data-scope='select'][data-part='trigger'][data-focus-visible] {
   outline: none;
   box-shadow: var(--token-focus-ring-action-box-shadow);
@@ -41,6 +95,7 @@
 }
 
 [data-scope='select'][data-part='trigger'][data-disabled] {
+  cursor: not-allowed;
   border-color: var(--token-form-control-disabled-border-color);
   color: var(--token-form-control-disabled-foreground-color);
   background-color: var(--token-form-control-disabled-surface-color);
@@ -54,13 +109,53 @@
   border-color: var(--token-form-control-invalid-border-color-hover);
 }
 
+[data-scope='select'][data-part='value-text'][data-placeholder-shown] {
+  color: var(--token-form-control-base-foreground-placeholder-color);
+}
+
+[data-scope='select'][data-part='indicator'] {
+  flex-shrink: 0;
+  color: var(--token-color-foreground-faint);
+}
+
+/* Portalled content panel */
 [data-scope='select'][data-part='content'] {
+  overflow-block: auto;
+  display: flex;
+  flex-direction: column;
+
+  min-inline-size: var(--reference-width);
+  padding-block: var(--token-form-control-border-width);
   border-color: var(--token-color-border-primary);
+  border-style: solid;
   border-width: var(--token-form-control-border-width);
   border-radius: var(--token-border-radius-medium);
 
   background-color: var(--token-color-surface-primary);
   box-shadow: var(--token-elevation-overlay-box-shadow);
+}
+
+[data-scope='select'][data-part='item-group'] {
+  display: flex;
+  flex-direction: column;
+}
+
+[data-scope='select'][data-part='item'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
 }
 
 [data-scope='select'][data-part='item'][data-highlighted] {
@@ -72,10 +167,21 @@
   color: var(--token-color-foreground-action);
 }
 
+[data-scope='select'][data-part='item'][data-highlighted][data-state='checked'] {
+  color: var(--token-color-foreground-action-hover);
+  background-color: var(--token-color-surface-interactive-active);
+}
+
 [data-scope='select'][data-part='item'][data-disabled] {
+  cursor: not-allowed;
   color: var(--token-form-control-disabled-foreground-color);
 }
 
+[data-scope='select'][data-part='item-text'] {
+  flex: 1;
+}
+
 [data-scope='select'][data-part='item-indicator'] {
+  flex-shrink: 0;
   color: var(--token-color-foreground-action);
 }

@@ -1,0 +1,62 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Fieldset has no focusable root element, so no
+ * focus-ring rule is needed on the root itself — focus rings belong on the
+ * child controls (Checkbox, Switch, Field, etc.) rendered inside the slot.
+ * Reduced-motion resets are included for any transition/animation, each
+ * animated selector getting its own reset (stylelint a11y rule matches
+ * per-selector). Logical properties used throughout. */
+
+[data-scope='fieldset'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  min-inline-size: 0;
+  margin-block: 0;
+  margin-inline: 0;
+  padding-block: 0;
+  padding-inline: 0;
+  border: none;
+}
+
+[data-scope='fieldset'][data-part='legend'] {
+  padding-block: 0;
+  padding-inline: 0;
+
+  font-family: var(--token-typography-body-300-font-family);
+  font-size: var(--token-typography-body-300-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-300-line-height);
+  color: var(--token-form-legend-color);
+}
+
+[data-scope='fieldset'][data-part='legend'][data-disabled] {
+  /* foreground-disabled (#8c909c) fails axe AA on white; use foreground-faint
+   * (#656a76, 5.74:1) which passes. Disabled state is conveyed via cursor +
+   * the native fieldset disabled attribute, not just color. */
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='fieldset'][data-part='helper-text'] {
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-form-helper-text-color);
+}
+
+[data-scope='fieldset'][data-part='helper-text'][data-disabled] {
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='fieldset'][data-part='error-text'] {
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-form-error-color);
+}
+
+[data-scope='fieldset'][data-part='error-text'][data-disabled] {
+  color: var(--token-color-foreground-faint);
+}

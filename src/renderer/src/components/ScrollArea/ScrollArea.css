@@ -1,0 +1,131 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible (via
+ * :focus-visible on the Viewport). Reduced motion suppressed via BOTH the
+ * prefers-reduced-motion media query AND the [data-reduced-motion='reduce']
+ * attribute (Storybook toolbar), each animated selector getting its OWN
+ * reduced-motion reset. Logical properties only (inline-size / block-size /
+ * padding-inline / etc.). */
+
+/* ── Root ───────────────────────────────────────────────────────────────── */
+
+[data-scope='scroll-area'][data-part='root'] {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--token-color-surface-primary);
+}
+
+/* ── Viewport (the scrollable region / keyboard focus target) ────────────── */
+
+[data-scope='scroll-area'][data-part='viewport'] {
+  /* Hide the native scrollbar; custom scrollbars are rendered via Ark parts. */
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  block-size: 100%;
+}
+
+[data-scope='scroll-area'][data-part='viewport']::-webkit-scrollbar {
+  display: none;
+}
+
+[data-scope='scroll-area'][data-part='viewport']:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── Content ─────────────────────────────────────────────────────────────── */
+
+[data-scope='scroll-area'][data-part='content'] {
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+/* ── Scrollbar track ─────────────────────────────────────────────────────── */
+
+[data-scope='scroll-area'][data-part='scrollbar'] {
+  pointer-events: none;
+
+  position: relative;
+
+  display: flex;
+
+  border-radius: var(--token-border-radius-small);
+
+  /* Hidden by default; shown on hover/scroll via data-state attributes. */
+  opacity: 0;
+  background-color: var(--token-color-surface-faint);
+
+  transition: opacity var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+}
+
+/* Immediately visible when actively scrolling (no fade-in delay). */
+[data-scope='scroll-area'][data-part='scrollbar'][data-scrolling] {
+  transition-duration: 0ms;
+}
+
+[data-scope='scroll-area'][data-part='scrollbar'][data-hover],
+[data-scope='scroll-area'][data-part='scrollbar'][data-scrolling] {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+/* Vertical track sizing */
+[data-scope='scroll-area'][data-part='scrollbar'][data-orientation='vertical'] {
+  inline-size: var(--token-border-radius-small);
+}
+
+/* Hide vertical scrollbar when content does not overflow vertically. */
+[data-scope='scroll-area'][data-part='scrollbar'][data-orientation='vertical']:not(
+    [data-overflow-y]
+  ) {
+  display: none;
+}
+
+/* Horizontal track sizing */
+[data-scope='scroll-area'][data-part='scrollbar'][data-orientation='horizontal'] {
+  block-size: var(--token-border-radius-small);
+}
+
+/* Hide horizontal scrollbar when content does not overflow horizontally. */
+[data-scope='scroll-area'][data-part='scrollbar'][data-orientation='horizontal']:not(
+    [data-overflow-x]
+  ) {
+  display: none;
+}
+
+/* Reduced motion: disable the opacity transition on the scrollbar track. */
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='scroll-area'][data-part='scrollbar'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='scroll-area'][data-part='scrollbar'] {
+  transition: none;
+}
+
+/* ── Scrollbar thumb ─────────────────────────────────────────────────────── */
+
+[data-scope='scroll-area'][data-part='thumb'] {
+  inline-size: 100%;
+  border-radius: inherit;
+  background-color: var(--token-color-foreground-faint);
+}
+
+[data-scope='scroll-area'][data-part='thumb'][data-hover],
+[data-scope='scroll-area'][data-part='thumb'][data-dragging] {
+  background-color: var(--token-color-foreground-primary);
+}
+
+/* ── Corner (shown when both scrollbars are visible) ────────────────────── */
+
+[data-scope='scroll-area'][data-part='corner'] {
+  background-color: var(--token-color-surface-primary);
+}

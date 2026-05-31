@@ -1,0 +1,84 @@
+/**
+ * Toggle — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * The Toggle root IS the interactive button element. State comes from Ark's
+ * data-attributes: data-state="on"|"off", data-pressed (present when pressed),
+ * data-disabled (present when disabled), data-focus-visible (keyboard only).
+ *
+ * Focus ring is applied ONLY on keyboard focus ([data-focus-visible]), never
+ * on every focus (WCAG 2.4.7 — Focus Visible).
+ *
+ * Motion: the background-color transition is suppressed under reduced-motion —
+ * both the OS prefers-reduced-motion media query AND the Storybook toolbar's
+ * [data-reduced-motion='reduce'] attribute on <html>. Each animated selector
+ * gets its own reduced-motion reset so the stylelint a11y rule (which matches
+ * per-selector) is satisfied.
+ */
+
+[data-scope='toggle'][data-part='root'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: inline-flex;
+  gap: var(--token-form-toggle-background-image-size);
+  align-items: center;
+  justify-content: center;
+
+  block-size: var(--token-tabs-tab-height-medium);
+  padding-inline: var(--token-tabs-tab-padding-horizontal-medium);
+  border: var(--token-form-toggle-border-width) solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background-color: var(--token-color-surface-faint);
+
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='toggle'][data-part='root'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='toggle'][data-part='root'] {
+  transition: none;
+}
+
+[data-scope='toggle'][data-part='root'][data-state='on'] {
+  border-color: var(--token-color-border-action);
+  color: var(--token-color-foreground-action);
+  background-color: var(--token-color-surface-action);
+}
+
+[data-scope='toggle'][data-part='root']:not([data-disabled]):hover {
+  background-color: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='toggle'][data-part='root'][data-state='on']:not([data-disabled]):hover {
+  background-color: var(--token-color-surface-interactive-active);
+}
+
+[data-scope='toggle'][data-part='root'][data-disabled] {
+  cursor: not-allowed;
+  border-color: var(--token-color-border-faint);
+  color: var(--token-color-foreground-disabled);
+  background-color: var(--token-color-surface-interactive-disabled);
+}
+
+/* Keyboard focus only — never decorate mouse focus. */
+[data-scope='toggle'][data-part='root'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}

@@ -1,0 +1,360 @@
+/**
+ * Pagination — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * State comes from Ark's data-attributes:
+ *   - [data-part='item'][data-selected]    — currently active page
+ *   - [data-part='prev-trigger'][data-disabled] etc. — first/last page edges
+ *
+ * Focus ring is applied ONLY on keyboard focus ([data-focus-visible]), never
+ * on every focus. Each animated selector gets its own reduced-motion reset
+ * (stylelint a11y rule matches per-selector, so comma-grouping animated
+ * selectors fails the lint check).
+ */
+
+/* Root nav landmark — flex row wrapping all controls. */
+[data-scope='pagination'][data-part='root'] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--token-pagination-child-spacing-horizontal)
+    var(--token-pagination-child-spacing-vertical);
+  align-items: center;
+}
+
+/* ─── Page item buttons ─────────────────────────────────────────────────── */
+
+[data-scope='pagination'][data-part='item'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-inline-size: var(--token-pagination-nav-control-height);
+  block-size: var(--token-pagination-nav-control-height);
+  padding-inline: var(--token-pagination-nav-control-padding-horizontal);
+  border-color: var(--token-color-border-primary);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-primary);
+
+  transition:
+    background-color var(--token-form-radiocard-transition-duration) ease,
+    border-color var(--token-form-radiocard-transition-duration) ease,
+    color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='pagination'][data-part='item'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='pagination'][data-part='item'] {
+  transition: none;
+}
+
+/* ─── Prev trigger ──────────────────────────────────────────────────────── */
+
+[data-scope='pagination'][data-part='prev-trigger'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-inline-size: var(--token-pagination-nav-control-height);
+  block-size: var(--token-pagination-nav-control-height);
+  padding-inline: var(--token-pagination-nav-control-padding-horizontal);
+  border-color: var(--token-color-border-primary);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-primary);
+
+  transition:
+    background-color var(--token-form-radiocard-transition-duration) ease,
+    border-color var(--token-form-radiocard-transition-duration) ease,
+    color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='pagination'][data-part='prev-trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='pagination'][data-part='prev-trigger'] {
+  transition: none;
+}
+
+/* ─── Next trigger ──────────────────────────────────────────────────────── */
+
+[data-scope='pagination'][data-part='next-trigger'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-inline-size: var(--token-pagination-nav-control-height);
+  block-size: var(--token-pagination-nav-control-height);
+  padding-inline: var(--token-pagination-nav-control-padding-horizontal);
+  border-color: var(--token-color-border-primary);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-primary);
+
+  transition:
+    background-color var(--token-form-radiocard-transition-duration) ease,
+    border-color var(--token-form-radiocard-transition-duration) ease,
+    color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='pagination'][data-part='next-trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='pagination'][data-part='next-trigger'] {
+  transition: none;
+}
+
+/* ─── First trigger ─────────────────────────────────────────────────────── */
+
+[data-scope='pagination'][data-part='first-trigger'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-inline-size: var(--token-pagination-nav-control-height);
+  block-size: var(--token-pagination-nav-control-height);
+  padding-inline: var(--token-pagination-nav-control-padding-horizontal);
+  border-color: var(--token-color-border-primary);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-primary);
+
+  transition:
+    background-color var(--token-form-radiocard-transition-duration) ease,
+    border-color var(--token-form-radiocard-transition-duration) ease,
+    color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='pagination'][data-part='first-trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='pagination'][data-part='first-trigger'] {
+  transition: none;
+}
+
+/* ─── Last trigger ──────────────────────────────────────────────────────── */
+
+[data-scope='pagination'][data-part='last-trigger'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-inline-size: var(--token-pagination-nav-control-height);
+  block-size: var(--token-pagination-nav-control-height);
+  padding-inline: var(--token-pagination-nav-control-padding-horizontal);
+  border-color: var(--token-color-border-primary);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-primary);
+
+  transition:
+    background-color var(--token-form-radiocard-transition-duration) ease,
+    border-color var(--token-form-radiocard-transition-duration) ease,
+    color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='pagination'][data-part='last-trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='pagination'][data-part='last-trigger'] {
+  transition: none;
+}
+
+/* ─── Hover (non-selected, non-disabled) ───────────────────────────────── */
+
+[data-scope='pagination'][data-part='item']:hover:not([data-selected], [data-disabled]) {
+  border-color: var(--token-color-border-strong);
+  color: var(--token-color-foreground-strong);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='pagination'][data-part='prev-trigger']:hover:not([data-disabled]) {
+  border-color: var(--token-color-border-strong);
+  color: var(--token-color-foreground-strong);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='pagination'][data-part='next-trigger']:hover:not([data-disabled]) {
+  border-color: var(--token-color-border-strong);
+  color: var(--token-color-foreground-strong);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='pagination'][data-part='first-trigger']:hover:not([data-disabled]) {
+  border-color: var(--token-color-border-strong);
+  color: var(--token-color-foreground-strong);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='pagination'][data-part='last-trigger']:hover:not([data-disabled]) {
+  border-color: var(--token-color-border-strong);
+  color: var(--token-color-foreground-strong);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+/* ─── Selected (current page) ──────────────────────────────────────────── */
+
+/* foreground-action (#1060ff) fails on tinted surfaces; use foreground-strong
+   (#0c0c0e) which clears 4.5:1 on surface-action per WCAG 1.4.3 / axe AA. */
+[data-scope='pagination'][data-part='item'][data-selected] {
+  border-color: var(--token-color-border-action);
+  color: var(--token-color-foreground-strong);
+  background: var(--token-color-surface-action);
+}
+
+/* ─── Disabled ─────────────────────────────────────────────────────────── */
+
+[data-scope='pagination'][data-part='item'][data-disabled] {
+  cursor: not-allowed;
+  border-color: var(--token-color-border-faint);
+  color: var(--token-color-foreground-disabled);
+  background: var(--token-color-surface-interactive-disabled);
+}
+
+[data-scope='pagination'][data-part='prev-trigger'][data-disabled] {
+  cursor: not-allowed;
+  border-color: var(--token-color-border-faint);
+  color: var(--token-color-foreground-disabled);
+  background: var(--token-color-surface-interactive-disabled);
+}
+
+[data-scope='pagination'][data-part='next-trigger'][data-disabled] {
+  cursor: not-allowed;
+  border-color: var(--token-color-border-faint);
+  color: var(--token-color-foreground-disabled);
+  background: var(--token-color-surface-interactive-disabled);
+}
+
+[data-scope='pagination'][data-part='first-trigger'][data-disabled] {
+  cursor: not-allowed;
+  border-color: var(--token-color-border-faint);
+  color: var(--token-color-foreground-disabled);
+  background: var(--token-color-surface-interactive-disabled);
+}
+
+[data-scope='pagination'][data-part='last-trigger'][data-disabled] {
+  cursor: not-allowed;
+  border-color: var(--token-color-border-faint);
+  color: var(--token-color-foreground-disabled);
+  background: var(--token-color-surface-interactive-disabled);
+}
+
+/* ─── Keyboard focus ring (focus-visible only) ─────────────────────────── */
+
+[data-scope='pagination'][data-part='item'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='pagination'][data-part='prev-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='pagination'][data-part='next-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='pagination'][data-part='first-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='pagination'][data-part='last-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ─── Ellipsis ─────────────────────────────────────────────────────────── */
+
+[data-scope='pagination'][data-part='ellipsis'] {
+  user-select: none;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-inline-size: var(--token-pagination-nav-control-height);
+  block-size: var(--token-pagination-nav-control-height);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-faint);
+}

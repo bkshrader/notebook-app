@@ -1,0 +1,222 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
+ * per-selector, so comma-grouped resets fail). */
+
+/* Trigger button — opens the floating panel */
+[data-scope='floating-panel'][data-part='trigger'] {
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-action);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-action);
+
+  background: var(--token-color-surface-primary);
+}
+
+[data-scope='floating-panel'][data-part='trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Positioner — establishes the stacking context for the floating panel */
+[data-scope='floating-panel'][data-part='positioner'] {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+}
+
+/* Content — the panel surface itself */
+[data-scope='floating-panel'][data-part='content'] {
+  display: flex;
+  flex-direction: column;
+
+  inline-size: var(--width, 20rem);
+  block-size: var(--height, 16rem);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-medium);
+
+  background: var(--token-color-surface-primary);
+
+  /* outline:none is intentional — the panel is programmatically focused; visible
+   * focus context is conveyed by focus moving to the first interactive child. */
+  outline: none;
+  box-shadow: var(--token-elevation-overlay-box-shadow);
+}
+
+[data-scope='floating-panel'][data-part='content'][data-state='open'] {
+  animation: floating-panel-in var(--token-tabs-indicator-transition-duration)
+    var(--token-tabs-indicator-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='floating-panel'][data-part='content'][data-state='open'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce']
+  [data-scope='floating-panel'][data-part='content'][data-state='open'] {
+  animation: none;
+}
+
+[data-scope='floating-panel'][data-part='content'][data-state='closed'] {
+  animation: floating-panel-out var(--token-tabs-indicator-transition-duration)
+    var(--token-tabs-indicator-transition-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='floating-panel'][data-part='content'][data-state='closed'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce']
+  [data-scope='floating-panel'][data-part='content'][data-state='closed'] {
+  animation: none;
+}
+
+/* Topmost / behind stacking helpers */
+[data-scope='floating-panel'][data-part='content'][data-topmost] {
+  box-shadow: var(--token-elevation-higher-box-shadow);
+}
+
+[data-scope='floating-panel'][data-part='content'][data-behind] {
+  box-shadow: var(--token-elevation-low-box-shadow);
+}
+
+/* Header — drag target and title/control row */
+[data-scope='floating-panel'][data-part='header'] {
+  cursor: grab;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding-block: var(--token-app-side-nav-body-list-item-padding-vertical);
+  padding-inline: var(--token-app-side-nav-body-list-item-padding-horizontal);
+  border-block-end: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+  border-start-start-radius: var(--token-border-radius-medium);
+  border-start-end-radius: var(--token-border-radius-medium);
+
+  background: var(--token-color-surface-faint);
+}
+
+[data-scope='floating-panel'][data-part='header'][data-dragging] {
+  cursor: grabbing;
+}
+
+/* Title */
+[data-scope='floating-panel'][data-part='title'] {
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-strong);
+}
+
+/* Control — the row of stage/close trigger buttons */
+[data-scope='floating-panel'][data-part='control'] {
+  display: flex;
+  gap: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
+  align-items: center;
+}
+
+/* Stage triggers (minimize/maximize/restore) and close trigger */
+[data-scope='floating-panel'][data-part='stage-trigger'],
+[data-scope='floating-panel'][data-part='close-trigger'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+  border-radius: var(--token-border-radius-x-small);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-primary);
+}
+
+[data-scope='floating-panel'][data-part='stage-trigger'][data-focus-visible],
+[data-scope='floating-panel'][data-part='close-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Body — scrollable content area */
+[data-scope='floating-panel'][data-part='body'] {
+  overflow: auto;
+  flex: 1 1 auto;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+/* Body is hidden when the panel is minimized */
+[data-scope='floating-panel'][data-part='body'][data-minimized] {
+  display: none;
+}
+
+/* Resize triggers — the grab handles along each edge/corner */
+[data-scope='floating-panel'][data-part='resize-trigger'] {
+  position: absolute;
+}
+
+[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='n'],
+[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='s'] {
+  max-inline-size: 90%;
+  block-size: 6px;
+}
+
+[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='e'],
+[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='w'] {
+  inline-size: 6px;
+  max-block-size: 90%;
+}
+
+[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='ne'],
+[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='nw'],
+[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='se'],
+[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='sw'] {
+  inline-size: 10px;
+  block-size: 10px;
+}
+
+/* Keyframe animations for enter/exit */
+@keyframes floating-panel-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes floating-panel-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}

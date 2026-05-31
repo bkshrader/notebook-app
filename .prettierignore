@@ -6,3 +6,5 @@ pnpm-lock.yaml
 # Nested worktrees under `.claude/worktrees/` are independent checkouts
 # of this repo. See the matching block in eslint.config.mjs.
 .claude/worktrees/
+# fallow audit baselines are generated tooling output, not hand-edited source.
+.fallow/

@@ -1,0 +1,156 @@
+/**
+ * RatingGroup — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * State comes from Ark's data-attributes:
+ *   data-disabled, data-readonly on root/control/label
+ *   data-checked, data-highlighted on item
+ *   data-focus-visible on item (keyboard focus only)
+ *
+ * The [data-part='item-indicator'] span is our own wrapper (not an Ark part);
+ * it carries data-highlighted to drive the foreground star clip-path.
+ *
+ * Motion: any transition is suppressed under both the OS
+ * `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute on <html>. Each animated selector
+ * gets its own reduced-motion reset (stylelint a11y rule matches per-selector).
+ */
+
+[data-scope='rating-group'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-toggle-border-width);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='rating-group'][data-part='root'][data-disabled] {
+  color: var(--token-color-foreground-disabled);
+}
+
+[data-scope='rating-group'][data-part='label'] {
+  user-select: none;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+}
+
+[data-scope='rating-group'][data-part='label'][data-disabled] {
+  color: var(--token-color-foreground-disabled);
+}
+
+[data-scope='rating-group'][data-part='control'] {
+  display: inline-flex;
+  gap: var(--token-border-radius-x-small);
+  align-items: center;
+}
+
+[data-scope='rating-group'][data-part='control'][data-disabled] {
+  cursor: not-allowed;
+}
+
+[data-scope='rating-group'][data-part='item'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--token-form-checkbox-size);
+  block-size: var(--token-form-checkbox-size);
+
+  color: var(--token-color-foreground-faint);
+
+  transition: color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='rating-group'][data-part='item'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='rating-group'][data-part='item'] {
+  transition: none;
+}
+
+[data-scope='rating-group'][data-part='item'][data-highlighted] {
+  color: var(--token-color-foreground-warning);
+}
+
+[data-scope='rating-group'][data-part='item'][data-checked] {
+  color: var(--token-color-foreground-warning);
+}
+
+[data-scope='rating-group'][data-part='item'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-color-foreground-disabled);
+}
+
+/* Keyboard focus only — never decorate mouse focus. */
+[data-scope='rating-group'][data-part='item'][data-focus-visible] {
+  border-radius: var(--token-border-radius-x-small);
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Item indicator: two overlapping SVG stars (bg unfilled, fg filled + clipped) */
+[data-scope='rating-group'][data-part='item'] [data-part='item-indicator'] {
+  position: relative;
+  display: inline-flex;
+  inline-size: var(--token-form-checkbox-size);
+  block-size: var(--token-form-checkbox-size);
+}
+
+[data-scope='rating-group'][data-part='item'] [data-part='item-indicator'] svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+/* The star SVG inherits its token-driven `color` from the [data-part='item']
+   rule above; `currentcolor` keeps the fill in lockstep with that token. */
+[data-scope='rating-group'][data-part='item'] [data-part='item-indicator'] [data-bg] {
+  opacity: 0.25;
+
+  /* stylelint-disable-next-line scale-unlimited/declaration-strict-value */
+  fill: currentcolor;
+}
+
+[data-scope='rating-group'][data-part='item'] [data-part='item-indicator'] [data-fg] {
+  clip-path: inset(0 100% 0 0); /* hidden by default — revealed when highlighted */
+
+  /* stylelint-disable-next-line scale-unlimited/declaration-strict-value */
+  fill: currentcolor;
+  transition: clip-path var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='rating-group'][data-part='item'] [data-part='item-indicator'] [data-fg] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce']
+  [data-scope='rating-group'][data-part='item']
+  [data-part='item-indicator']
+  [data-fg] {
+  transition: none;
+}
+
+/* Fully visible when highlighted */
+[data-scope='rating-group'][data-part='item']
+  [data-part='item-indicator'][data-highlighted]
+  [data-fg] {
+  clip-path: inset(0 0% 0 0);
+}

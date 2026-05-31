@@ -1,0 +1,108 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
+ * per-selector, so comma-grouped resets fail). */
+
+/* foreground-action (#1060ff) only meets 4.5:1 on pure white; on grey canvas
+ * surfaces it falls to ~4.45:1 and axe flags it. foreground-strong (#0c0c0e)
+ * passes on every surface while the underline preserves the link affordance. */
+[data-scope='hover-card'][data-part='trigger'] {
+  cursor: pointer;
+  color: var(--token-color-foreground-strong);
+  text-decoration: underline;
+}
+
+[data-scope='hover-card'][data-part='trigger']:hover {
+  color: var(--token-color-foreground-strong);
+}
+
+[data-scope='hover-card'][data-part='trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='hover-card'][data-part='content'] {
+  --arrow-background: var(--token-color-surface-primary);
+
+  transform-origin: var(--transform-origin);
+
+  inline-size: 20rem;
+  padding-block: var(--token-tooltip-padding-vertical);
+  padding-inline: var(--token-tooltip-padding-horizontal);
+  border: 1px solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background-color: var(--token-color-surface-primary);
+  outline: none;
+  box-shadow: var(--token-elevation-overlay-box-shadow);
+}
+
+[data-scope='hover-card'][data-part='content'][data-state='open'] {
+  animation: hovercard-scale-fade-in 150ms ease-out;
+}
+
+[data-scope='hover-card'][data-part='content'][data-state='closed'] {
+  animation: hovercard-scale-fade-out 100ms ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='hover-card'][data-part='content'][data-state='open'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='hover-card'][data-part='content'][data-state='open'] {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='hover-card'][data-part='content'][data-state='closed'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='hover-card'][data-part='content'][data-state='closed'] {
+  animation: none;
+}
+
+[data-scope='hover-card'][data-part='arrow'] {
+  --arrow-background: var(--token-color-surface-primary);
+}
+
+[data-scope='hover-card'][data-part='arrow-tip'] {
+  border-block-start: 1px solid var(--token-color-border-faint);
+  border-inline-start: 1px solid var(--token-color-border-faint);
+}
+
+@keyframes hovercard-scale-fade-in {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes hovercard-scale-fade-out {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  to {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+}

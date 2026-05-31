@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { Dialog } from './Dialog';
+import { assertOverlayKeyboardCycle } from '../test-helpers';
 
 const meta: Meta<typeof Dialog> = {
   title: 'Components/Overlays/Dialog',
@@ -13,6 +13,7 @@ const meta: Meta<typeof Dialog> = {
   },
   argTypes: {
     open: { control: 'boolean' },
+    modal: { control: 'boolean' },
   },
 };
 
@@ -22,12 +23,20 @@ type Story = StoryObj<typeof Dialog>;
 
 export const Default: Story = {};
 
+export const WithDescription: Story = {
+  args: {
+    title: 'Delete Note',
+    description: 'This action cannot be undone. The note will be permanently removed.',
+    triggerLabel: 'Delete',
+  },
+};
+
 export const WithChildren: Story = {
   args: {
     title: 'Settings',
     description: 'Update your preferences below.',
     triggerLabel: 'Open Settings',
-    children: <p style={{ marginBlock: '1rem' }}>Settings content goes here.</p>,
+    children: <p>Settings content goes here.</p>,
   },
 };
 
@@ -35,47 +44,23 @@ export const WithChildren: Story = {
  * Tier B overlay play test.
  *
  * The dialog content renders in a Portal OUTSIDE the story canvas, so after
- * opening we query via document.body (not within(canvasElement)).
+ * opening we query via within(document.body) — NOT within(canvasElement).
  *
  * Flow:
- *   1. Trigger is in the canvas — focus it, press Enter to open.
- *   2. Assert panel is in document.body with role="dialog".
- *   3. Assert focus moved into the panel (Ark auto-focuses the content).
+ *   1. Trigger is in the canvas — assert keyboard-reachable, focus directly,
+ *      press Enter (userEvent.tab() skips clip-hidden elements by heuristic,
+ *      but the trigger here is a plain button, so tab would work too; we focus
+ *      directly for determinism).
+ *   2. Assert panel appears in document.body with role="dialog" and data-state="open".
+ *   3. Assert focus has moved into the panel (Ark auto-focuses the content or
+ *      the first focusable child inside).
  *   4. Press Escape — panel closes, focus returns to the trigger.
  */
 export const KeyboardOpenClose: Story = {
   play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
-    const trigger = canvas.getByRole('button', { name: /open dialog/i });
-
-    await step('trigger is keyboard-reachable', async () => {
-      await expect(trigger).not.toHaveAttribute('tabindex', '-1');
-      trigger.focus();
-      await expect(trigger).toHaveFocus();
-    });
-
-    await step('Enter opens the dialog', async () => {
-      await userEvent.keyboard('{Enter}');
-      // Panel is portalled — query from document.body. findByRole retries, so it
-      // waits out the enter animation rather than racing it (toBeVisible would
-      // false-fail while the content is still at opacity:0 mid-animation).
-      const panel = await within(document.body).findByRole('dialog');
-      await expect(panel).toHaveAttribute('data-state', 'open');
-    });
-
-    await step('focus moves into the dialog panel', async () => {
-      const panel = within(document.body).getByRole('dialog');
-      await expect(panel).toContainElement(document.activeElement as HTMLElement);
-    });
-
-    await step('Escape closes the dialog', async () => {
-      await userEvent.keyboard('{Escape}');
-      // The exit animation unmounts the panel; waitFor retries until it's gone.
-      await waitFor(() => expect(within(document.body).queryByRole('dialog')).toBeNull());
-    });
-
-    await step('focus returns to the trigger after close', async () => {
-      await expect(trigger).toHaveFocus();
+    await assertOverlayKeyboardCycle(canvasElement, step, {
+      triggerName: /open dialog/i,
+      noun: 'dialog',
     });
   },
 };

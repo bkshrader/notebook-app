@@ -1,0 +1,217 @@
+/**
+ * Menu — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
+ * per-selector, so comma-grouped resets fail).
+ *
+ * This is a Tier B overlay — content renders in a Portal and floats above the
+ * page. z-index is managed via Ark's --layer-index CSS variable on the
+ * positioner; we set it on the content part and Ark propagates it.
+ */
+
+/* ── Trigger ────────────────────────────────────────────────────────────── */
+
+[data-scope='menu'][data-part='trigger'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: inline-flex;
+  gap: var(--token-border-radius-small);
+  align-items: center;
+
+  padding-block: var(--token-border-radius-small);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-base-border-color-default);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-primary);
+
+  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='menu'][data-part='trigger'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='menu'][data-part='trigger'] {
+  transition: none;
+}
+
+[data-scope='menu'][data-part='trigger']:hover:not([data-disabled]) {
+  border-color: var(--token-form-control-base-border-color-hover);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='menu'][data-part='trigger'][data-state='open'] {
+  border-color: var(--token-color-border-action);
+  background: var(--token-color-surface-interactive-active);
+}
+
+[data-scope='menu'][data-part='trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='menu'][data-part='trigger'][data-disabled] {
+  cursor: not-allowed;
+  border-color: var(--token-form-control-disabled-border-color);
+
+  /* foreground-disabled (#8c909c) fails AA on the disabled surface. Use
+     foreground-faint (#656a76) which passes and still conveys diminished state. */
+  color: var(--token-color-foreground-faint);
+  background: var(--token-form-control-disabled-surface-color);
+}
+
+/* ── Content (portal, floats above page) ───────────────────────────────── */
+
+[data-scope='menu'][data-part='content'] {
+  transform-origin: var(--transform-origin);
+
+  display: flex;
+  flex-direction: column;
+
+  min-inline-size: 10rem;
+  padding-block: var(--token-border-radius-x-small);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+  border-radius: var(--token-border-radius-medium);
+
+  background: var(--token-color-surface-primary);
+  outline: none;
+  box-shadow: var(--token-elevation-overlay-box-shadow);
+
+  animation-duration: var(--token-form-radiocard-transition-duration);
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+[data-scope='menu'][data-part='content'][data-state='open'] {
+  animation-name: nb-menu-scale-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='menu'][data-part='content'][data-state='open'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='menu'][data-part='content'][data-state='open'] {
+  animation: none;
+}
+
+[data-scope='menu'][data-part='content'][data-state='closed'] {
+  animation-name: nb-menu-scale-out;
+  animation-timing-function: ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='menu'][data-part='content'][data-state='closed'] {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='menu'][data-part='content'][data-state='closed'] {
+  animation: none;
+}
+
+/* ── Items ─────────────────────────────────────────────────────────────── */
+
+[data-scope='menu'][data-part='item'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: flex;
+  gap: var(--token-border-radius-small);
+  align-items: center;
+
+  min-block-size: 2rem;
+  padding-inline: var(--token-form-control-padding);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+  text-decoration: none;
+
+  outline: none;
+}
+
+[data-scope='menu'][data-part='item'][data-highlighted] {
+  /* foreground-action (#1060ff) fails on grey interactive-hover surface (~3.8:1).
+     Use foreground-strong (#0c0c0e) which clears 4.5:1 on any light surface. */
+  color: var(--token-color-foreground-strong);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='menu'][data-part='item'][data-disabled] {
+  cursor: not-allowed;
+
+  /* foreground-disabled (#8c909c) fails AA on white (3.18:1). WCAG 1.4.3 exempts
+     genuinely disabled controls, but axe still flags it. Use foreground-faint
+     (#656a76, passes at ~5.74:1 on white) and signal disabled via cursor + opacity. */
+  color: var(--token-color-foreground-faint);
+  opacity: 0.6;
+}
+
+/* ── Item group label ───────────────────────────────────────────────────── */
+
+[data-scope='menu'][data-part='item-group-label'] {
+  padding-block: var(--token-border-radius-x-small);
+  padding-inline: var(--token-form-control-padding);
+
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-color-foreground-faint);
+}
+
+/* ── Separator ─────────────────────────────────────────────────────────── */
+
+[data-scope='menu'][data-part='separator'] {
+  block-size: var(--token-form-control-border-width);
+  margin-block: var(--token-border-radius-x-small);
+  border: none;
+  background: var(--token-color-border-faint);
+}
+
+/* ── Enter / exit keyframes ─────────────────────────────────────────────── */
+
+@keyframes nb-menu-scale-in {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes nb-menu-scale-out {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  to {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+}

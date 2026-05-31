@@ -1,0 +1,95 @@
+/* Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * motion suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
+ * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
+ * per-selector, so comma-grouped resets fail). */
+
+[data-scope='toggle-group'][data-part='root'] {
+  display: inline-flex;
+  gap: var(--token-border-radius-x-small);
+
+  padding: var(--token-border-radius-x-small);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-medium);
+
+  background-color: var(--token-color-surface-faint);
+}
+
+[data-scope='toggle-group'][data-part='root'][data-orientation='vertical'] {
+  flex-direction: column;
+}
+
+[data-scope='toggle-group'][data-part='root'][data-disabled] {
+  border-color: var(--token-form-control-disabled-border-color);
+  background-color: var(--token-color-surface-interactive-disabled);
+}
+
+[data-scope='toggle-group'][data-part='item'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid transparent;
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background-color: transparent;
+
+  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='toggle-group'][data-part='item'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='toggle-group'][data-part='item'] {
+  transition: none;
+}
+
+[data-scope='toggle-group'][data-part='item']:hover:not([data-disabled]) {
+  /* foreground-action-hover (#1060ff) fails on grey surfaces — use foreground-strong */
+  color: var(--token-color-foreground-strong);
+  background-color: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='toggle-group'][data-part='item'][data-state='on'] {
+  border-color: var(--token-color-border-action);
+  color: var(--token-color-foreground-action-active);
+  background-color: var(--token-color-surface-interactive-active);
+}
+
+[data-scope='toggle-group'][data-part='item'][data-state='on']:hover:not([data-disabled]) {
+  color: var(--token-color-foreground-action-active);
+  background-color: var(--token-color-surface-action);
+}
+
+[data-scope='toggle-group'][data-part='item'][data-disabled] {
+  /* foreground-disabled (#8c909c) fails WCAG AA on white (3.18:1) — use foreground-faint */
+  cursor: not-allowed;
+
+  border-color: transparent;
+
+  color: var(--token-color-foreground-faint);
+
+  opacity: 0.6;
+  background-color: transparent;
+}
+
+[data-scope='toggle-group'][data-part='item'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}

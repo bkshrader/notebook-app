@@ -1,0 +1,297 @@
+/**
+ * Combobox — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`.
+ *
+ * State comes from Ark's data-attributes (data-state="open|closed",
+ * data-highlighted, data-disabled, data-focus-visible, data-invalid).
+ * Focus ring is applied ONLY on keyboard focus ([data-focus-visible]).
+ *
+ * Motion: transitions are suppressed under reduced-motion — both the OS
+ * `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute on <html>. Each animated
+ * selector gets its own reduced-motion reset (per the stylelint a11y rule).
+ *
+ * Logical properties (inline-size, block-size, padding-inline, etc.) are
+ * used throughout per stylelint-plugin-logical-css.
+ *
+ * The content panel renders in a Portal — its z-index uses the Ark-provided
+ * --layer-index CSS variable so stacking is correct in nested overlay contexts.
+ */
+
+/* ── Root ─────────────────────────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='root'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+
+  inline-size: 100%;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+/* ── Label ────────────────────────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='label'] {
+  user-select: none;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+}
+
+[data-scope='combobox'][data-part='label'][data-disabled] {
+  color: var(--token-color-foreground-disabled);
+}
+
+[data-scope='combobox'][data-part='label'][data-invalid] {
+  color: var(--token-form-error-color);
+}
+
+/* ── Control (wraps input + buttons) ─────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='control'] {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-base-border-color-default);
+  border-radius: var(--token-form-control-border-radius);
+
+  background: var(--token-form-control-base-surface-color-default);
+
+  transition:
+    border-color var(--token-form-radiocard-transition-duration) ease,
+    box-shadow var(--token-form-radiocard-transition-duration) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='combobox'][data-part='control'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='combobox'][data-part='control'] {
+  transition: none;
+}
+
+[data-scope='combobox'][data-part='control']:hover {
+  border-color: var(--token-form-control-base-border-color-hover);
+  background: var(--token-form-control-base-surface-color-hover);
+}
+
+[data-scope='combobox'][data-part='control'][data-focus] {
+  border-color: var(--token-color-border-action);
+}
+
+[data-scope='combobox'][data-part='control'][data-disabled] {
+  border-color: var(--token-form-control-disabled-border-color);
+  background: var(--token-form-control-disabled-surface-color);
+}
+
+[data-scope='combobox'][data-part='control'][data-invalid] {
+  border-color: var(--token-form-control-invalid-border-color-default);
+}
+
+[data-scope='combobox'][data-part='control'][data-invalid]:hover {
+  border-color: var(--token-form-control-invalid-border-color-hover);
+}
+
+/* ── Input ────────────────────────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='input'] {
+  flex: 1;
+
+  min-inline-size: 0;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: none;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background: transparent;
+  outline: none;
+}
+
+[data-scope='combobox'][data-part='input']::placeholder {
+  color: var(--token-form-control-base-foreground-placeholder-color);
+}
+
+[data-scope='combobox'][data-part='input'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-form-control-disabled-foreground-color);
+}
+
+/* Keyboard focus ring lives on the control wrapper, driven by data-focus. The
+   input itself has no visible focus indicator — the control border carries it.
+   But if the input ever receives [data-focus-visible] directly, we pair the
+   outline: none with a box-shadow so the a11y/no-outline-none rule is met. */
+[data-scope='combobox'][data-part='input'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── Trigger (toggle button) ──────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='trigger'] {
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-inline: var(--token-form-control-padding);
+  border: none;
+
+  color: var(--token-color-foreground-faint);
+
+  background: transparent;
+}
+
+[data-scope='combobox'][data-part='trigger']:hover {
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='combobox'][data-part='trigger'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-color-foreground-disabled);
+}
+
+[data-scope='combobox'][data-part='trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── Clear trigger ────────────────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='clear-trigger'] {
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-inline: var(--token-form-control-padding);
+  border: none;
+
+  color: var(--token-color-foreground-faint);
+
+  background: transparent;
+}
+
+[data-scope='combobox'][data-part='clear-trigger']:hover {
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='combobox'][data-part='clear-trigger'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── Positioner + Content (portal panel) ─────────────────────────────────── */
+
+[data-scope='combobox'][data-part='positioner'] {
+  z-index: var(--z-index, 1000);
+}
+
+[data-scope='combobox'][data-part='content'] {
+  overflow-block: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+
+  min-inline-size: var(--reference-width);
+  max-block-size: min(18rem, var(--available-height, 18rem));
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+  border-radius: var(--token-border-radius-medium);
+
+  background: var(--token-color-surface-primary);
+  outline: none;
+  box-shadow: var(--token-elevation-overlay-box-shadow);
+}
+
+[data-scope='combobox'][data-part='content'][data-state='closed'] {
+  display: none;
+}
+
+/* ── Item ─────────────────────────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='item'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: flex;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+  justify-content: space-between;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-radius: var(--token-border-radius-small);
+
+  color: var(--token-color-foreground-primary);
+
+  outline: none;
+}
+
+[data-scope='combobox'][data-part='item'][data-highlighted] {
+  color: var(--token-color-foreground-action-hover);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='combobox'][data-part='item'][data-state='checked'] {
+  color: var(--token-color-foreground-action);
+}
+
+[data-scope='combobox'][data-part='item'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-color-foreground-disabled);
+}
+
+[data-scope='combobox'][data-part='item'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ── Item text ────────────────────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='item-text'] {
+  overflow: hidden;
+  flex: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Item indicator (checkmark) ──────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='item-indicator'] {
+  flex-shrink: 0;
+  color: var(--token-color-foreground-action);
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='empty'] {
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-faint);
+}
