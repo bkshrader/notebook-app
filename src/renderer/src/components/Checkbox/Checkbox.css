@@ -1,0 +1,135 @@
+/**
+ * Checkbox — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property — checkbox-specific
+ * geometry uses `--token-form-checkbox-*` and `--token-form-control-*` tokens.
+ * No raw literals, no `--token-color-palette-*`.
+ *
+ * State comes from Ark's data-attributes (data-state="checked|unchecked|indeterminate",
+ * data-disabled, data-focus-visible). The focus ring is applied ONLY on
+ * keyboard focus (data-focus-visible), never on every focus.
+ *
+ * Motion: any transition is suppressed under reduced-motion — both the OS
+ * `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute on <html>.
+ * Each animated selector gets its own reduced-motion reset so the stylelint
+ * a11y rule (which matches per-selector) is satisfied.
+ */
+
+[data-scope='checkbox'][data-part='root'] {
+  cursor: pointer;
+
+  display: inline-flex;
+  gap: var(--token-form-checkbox-border-radius);
+  align-items: center;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='checkbox'][data-part='root'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-color-foreground-disabled);
+}
+
+[data-scope='checkbox'][data-part='label'] {
+  user-select: none;
+}
+
+[data-scope='checkbox'][data-part='control'] {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--token-form-checkbox-size);
+  block-size: var(--token-form-checkbox-size);
+  border-color: var(--token-form-control-base-border-color-default);
+  border-style: solid;
+  border-width: var(--token-form-checkbox-border-width);
+  border-radius: var(--token-form-checkbox-border-radius);
+
+  background-color: var(--token-form-control-base-surface-color-default);
+
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='checkbox'][data-part='control'] {
+    transition: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='checkbox'][data-part='control'] {
+  transition: none;
+}
+
+[data-scope='checkbox'][data-part='control'][data-state='checked'] {
+  border-color: var(--token-form-control-checked-border-color-default);
+  background-color: var(--token-form-control-checked-surface-color-default);
+}
+
+[data-scope='checkbox'][data-part='control'][data-state='indeterminate'] {
+  border-color: var(--token-form-control-checked-border-color-default);
+  background-color: var(--token-form-control-checked-surface-color-default);
+}
+
+[data-scope='checkbox'][data-part='control'][data-hover]:not([data-disabled]) {
+  border-color: var(--token-form-control-base-border-color-hover);
+  background-color: var(--token-form-control-base-surface-color-hover);
+}
+
+[data-scope='checkbox'][data-part='control'][data-state='checked'][data-hover]:not(
+    [data-disabled]
+  ) {
+  border-color: var(--token-form-control-checked-border-color-hover);
+  background-color: var(--token-form-control-checked-surface-color-hover);
+}
+
+[data-scope='checkbox'][data-part='control'][data-disabled] {
+  border-color: var(--token-form-control-disabled-border-color);
+  background-color: var(--token-form-control-disabled-surface-color);
+}
+
+/* Keyboard focus only — never decorate mouse focus. */
+[data-scope='checkbox'][data-part='control'][data-focus-visible] {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='checkbox'][data-part='indicator'] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--token-form-checkbox-background-image-size);
+  block-size: var(--token-form-checkbox-background-image-size);
+
+  background-image: var(--token-form-checkbox-background-image-data-url);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: var(--token-form-checkbox-background-image-size);
+}
+
+[data-scope='checkbox'][data-part='indicator'][data-state='unchecked'] {
+  display: none;
+}
+
+[data-scope='checkbox'][data-part='indicator'][data-state='indeterminate'] {
+  background-image: var(--token-form-checkbox-background-image-data-url-indeterminate);
+}
+
+[data-scope='checkbox'][data-part='control'][data-disabled]
+  [data-scope='checkbox'][data-part='indicator'] {
+  background-image: var(--token-form-checkbox-background-image-data-url-disabled);
+}
+
+[data-scope='checkbox'][data-part='control'][data-disabled]
+  [data-scope='checkbox'][data-part='indicator'][data-state='indeterminate'] {
+  background-image: var(--token-form-checkbox-background-image-data-url-indeterminate-disabled);
+}
