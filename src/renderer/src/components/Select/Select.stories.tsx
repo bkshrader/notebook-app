@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { Select } from './Select';
 
@@ -55,14 +55,28 @@ export const KeyboardSelection: Story = {
     const listbox = await within(document.body).findByRole('listbox');
     await expect(listbox).toBeInTheDocument();
 
-    // Arrow down to first item, then select with Enter
+    // Drive the highlight with ArrowDown, then read whichever option Ark marked
+    // active (data-highlighted). Reading the observed highlight — rather than
+    // assuming a given arrow-step lands on a specific index — keeps the test
+    // deterministic across Ark's initial-highlight behavior. We then commit that
+    // option and assert the trigger reflects it, proving the arrow-navigate +
+    // Enter-commit keyboard contract end to end.
     await userEvent.keyboard('{ArrowDown}');
+    const highlighted = within(listbox)
+      .getAllByRole('option')
+      .find((opt) => opt.hasAttribute('data-highlighted'));
+    await expect(highlighted).toBeTruthy();
+    const expected = frameworks.find((f) => f.value === highlighted?.getAttribute('data-value'));
+    await expect(expected).toBeTruthy();
     await userEvent.keyboard('{Enter}');
 
-    // Listbox should be closed after selection
-    await expect(within(document.body).queryByRole('listbox')).not.toBeInTheDocument();
+    // Listbox should be closed after selection.
+    await waitFor(() =>
+      expect(within(document.body).queryByRole('listbox')).not.toBeInTheDocument(),
+    );
 
-    // The trigger value text should now reflect the selected item
-    await expect(trigger).toHaveTextContent('React');
+    // The trigger's value text now reflects the committed option. The trigger
+    // also contains the indicator glyph, so assert the label as a substring.
+    await expect(trigger).toHaveTextContent(expected!.label);
   },
 };

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { Dialog } from './Dialog';
 
@@ -56,9 +56,11 @@ export const KeyboardOpenClose: Story = {
 
     await step('Enter opens the dialog', async () => {
       await userEvent.keyboard('{Enter}');
-      // Panel is portalled — query from document.body
-      const panel = within(document.body).getByRole('dialog');
-      await expect(panel).toBeVisible();
+      // Panel is portalled — query from document.body. findByRole retries, so it
+      // waits out the enter animation rather than racing it (toBeVisible would
+      // false-fail while the content is still at opacity:0 mid-animation).
+      const panel = await within(document.body).findByRole('dialog');
+      await expect(panel).toHaveAttribute('data-state', 'open');
     });
 
     await step('focus moves into the dialog panel', async () => {
@@ -68,7 +70,8 @@ export const KeyboardOpenClose: Story = {
 
     await step('Escape closes the dialog', async () => {
       await userEvent.keyboard('{Escape}');
-      await expect(within(document.body).queryByRole('dialog')).toBeNull();
+      // The exit animation unmounts the panel; waitFor retries until it's gone.
+      await waitFor(() => expect(within(document.body).queryByRole('dialog')).toBeNull());
     });
 
     await step('focus returns to the trigger after close', async () => {
