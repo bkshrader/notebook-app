@@ -55,5 +55,8 @@ export default {
       },
     ],
     'csstools/use-nesting': 'always',
+
+    // Dark mode is handled centrally in the token layer
+    'a11y/media-prefers-color-scheme': null,
   },
 };
