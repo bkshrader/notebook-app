@@ -123,6 +123,9 @@ importers:
       stylelint-config-clean-order:
         specifier: ^10.0.0
         version: 10.0.0(stylelint-order@8.1.1(stylelint@17.12.0(typescript@6.0.3)))(stylelint@17.12.0(typescript@6.0.3))
+      stylelint-config-modern:
+        specifier: ^1.0.0
+        version: 1.0.0(stylelint@17.12.0(typescript@6.0.3))
       stylelint-config-standard:
         specifier: ^40.0.0
         version: 40.0.0(stylelint@17.12.0(typescript@6.0.3))
@@ -135,6 +138,9 @@ importers:
       stylelint-plugin-logical-css:
         specifier: ^2.1.0
         version: 2.1.0(stylelint@17.12.0(typescript@6.0.3))
+      stylelint-use-nesting:
+        specifier: ^6.0.2
+        version: 6.0.2(stylelint@17.12.0(typescript@6.0.3))
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -4955,6 +4961,12 @@ packages:
       stylelint: '>=16'
       stylelint-order: '>=6'
 
+  stylelint-config-modern@1.0.0:
+    resolution: {integrity: sha512-VANS74C6vgiLPhFqzN25gLtLCpV6SszMJ4ZsGI8kvcrdFJez8/s3Utfyv7CHpBRxggeC+mLOe1Ma+VYs1Ppbdw==}
+    engines: {node: '>=20.19.0'}
+    peerDependencies:
+      stylelint: ^17.10.0
+
   stylelint-config-recommended@18.0.0:
     resolution: {integrity: sha512-mxgT2XY6YZ3HWWe3Di8umG6aBmWmHTblTgu/f10rqFXnyWxjKWwNdjSWkgkwCtxIKnqjSJzvFmPT5yabVIRxZg==}
     engines: {node: '>=20.19.0'}
@@ -4983,6 +4995,12 @@ packages:
     resolution: {integrity: sha512-625OT+p5y2kkGBaRV7uTYscuH0m1UueMXh0WcidrXgwF2DOnKov+un9tvuyNG+SUC07W0ibcn+fZvQs/keskww==}
     peerDependencies:
       stylelint: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
+
+  stylelint-use-nesting@6.0.2:
+    resolution: {integrity: sha512-1YeOfI7pMucTO0GKAiBOz12EaNN5qzbbboAli/jDC47nTfNsOVd9c4WmTshQnnaMDRF8ZZ0ovGzBjw0WUE4tvg==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      stylelint: '>= 16.9.0'
 
   stylelint@17.12.0:
     resolution: {integrity: sha512-KIlzWXMHUvgfPUR0R7TK3H80yCIi0uoivUwf+6Az4yrHJD1Q3c1qIkh/H5Z0i/K3QXgtq/UMEkWyBUSUwnpnOg==}
@@ -11287,6 +11305,10 @@ snapshots:
       stylelint: 17.12.0(typescript@6.0.3)
       stylelint-order: 8.1.1(stylelint@17.12.0(typescript@6.0.3))
 
+  stylelint-config-modern@1.0.0(stylelint@17.12.0(typescript@6.0.3)):
+    dependencies:
+      stylelint: 17.12.0(typescript@6.0.3)
+
   stylelint-config-recommended@18.0.0(stylelint@17.12.0(typescript@6.0.3)):
     dependencies:
       stylelint: 17.12.0(typescript@6.0.3)
@@ -11308,6 +11330,11 @@ snapshots:
 
   stylelint-plugin-logical-css@2.1.0(stylelint@17.12.0(typescript@6.0.3)):
     dependencies:
+      stylelint: 17.12.0(typescript@6.0.3)
+
+  stylelint-use-nesting@6.0.2(stylelint@17.12.0(typescript@6.0.3)):
+    dependencies:
+      postcss-selector-parser: 7.1.1
       stylelint: 17.12.0(typescript@6.0.3)
 
   stylelint@17.12.0(typescript@6.0.3):

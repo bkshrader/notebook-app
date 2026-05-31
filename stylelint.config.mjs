@@ -1,3 +1,6 @@
+import a11y from '@double-great/stylelint-a11y';
+import declarationStrictValue from 'stylelint-declaration-strict-value';
+import useNesting from 'stylelint-use-nesting';
 /**
  * Stylelint configuration (flat ESM, matching eslint.config.mjs).
  *
@@ -15,13 +18,15 @@ export default {
   // ordering in via a shareable config (it peer-depends on the plugin).
   extends: [
     'stylelint-config-standard',
+    'stylelint-config-modern',
     'stylelint-config-clean-order',
     // logical-css ships a `recommended` config; we extend it but soften
     // severity to `warning` below until real component CSS exists and is
     // logical-property-clean, at which point these flip to errors.
     'stylelint-plugin-logical-css/configs/recommended',
+    '@double-great/stylelint-a11y/strict',
   ],
-  plugins: ['stylelint-declaration-strict-value', '@double-great/stylelint-a11y'],
+  plugins: [declarationStrictValue, a11y, useNesting],
   ignoreFiles: [
     '**/node_modules/**',
     'out/**',
@@ -49,24 +54,6 @@ export default {
         disableFix: true,
       },
     ],
-
-    // Accessibility (WCAG 2.1 AA floor): never strip focus outlines
-    // without a replacement, and respect prefers-reduced-motion.
-    'a11y/no-outline-none': true,
-    'a11y/media-prefers-reduced-motion': true,
-
-    // Soften the logical-css `recommended` rules to warnings for the
-    // initial rollout — they inform without blocking until the codebase
-    // has real CSS to bring into compliance. Flip to `error` (drop these
-    // overrides) once it's clean.
-    'logical-css/require-logical-properties': [true, { severity: 'warning' }],
-    'logical-css/require-logical-keywords': [
-      true,
-      {
-        ignore: ['caption-side', 'offset-anchor', 'offset-position'],
-        severity: 'warning',
-      },
-    ],
-    'logical-css/require-logical-units': [true, { severity: 'warning' }],
+    'csstools/use-nesting': 'always',
   },
 };
