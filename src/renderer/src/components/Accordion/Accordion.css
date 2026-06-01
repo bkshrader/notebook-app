@@ -1,21 +1,39 @@
 /**
- * Accordion — token-styled Ark UI primitive.
+ * Accordion — token-styled Ark UI primitive, built to the Helios Accordion
+ * specification (https://helios.hashicorp.design/components/accordion).
  *
  * Styling targets Ark's `data-scope`/`data-part` attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
- * value resolves to a Helios `--token-*` custom property. No raw literals,
- * no `--token-color-palette-*`.
+ * value resolves to a Helios `--token-*` custom property; the only bare values
+ * are the per-size SPACING px values, which Helios itself hardcodes (they are
+ * not design tokens) — replicated here as local `--accordion-*` properties.
  *
- * State comes from Ark's data-attributes:
+ * Architecture (mirrors Helios):
+ *   - The size scale lives in one place: `[data-size]` sets `--accordion-*`
+ *     custom properties (padding, gaps, icon size) consumed by every part.
+ *   - `[data-type='card']` renders elevated rounded surfaces separated by a
+ *     group gap; `[data-type='flush']` renders bottom-divider rows.
+ *
+ * State comes from Ark's data-attributes (verified against the Ark styling
+ * guide — do NOT assume attributes Ark doesn't document):
  *   data-state="open|closed"  (on Item, ItemContent, ItemIndicator, ItemTrigger)
- *   data-disabled             (on Item, ItemTrigger, ItemContent, ItemIndicator)
- *   data-focus-visible        (applied by Ark on keyboard focus)
+ *   data-disabled             (on Item, ItemContent, ItemIndicator — NOT the
+ *                              trigger; the trigger is a native <button> that
+ *                              carries the native `disabled` attribute instead)
+ *   data-focus                (Ark does NOT expose data-focus-visible; keyboard
+ *                              focus styling uses the native :focus-visible)
+ * Plus our own:
+ *   data-static               (non-interactive item; chevron hidden)
+ *   data-contains-interactive (only the chevron toggles)
+ *
+ * Deviations from Helios (deliberate, per project decisions):
+ *   - The open item is NOT recolored to the action color; only the chevron
+ *     rotates. Label stays foreground-primary, chevron stays foreground-faint.
+ *   - `titleTag` defaults to a heading (set in the component), not `div`.
  *
  * Motion: the indicator rotation and content reveal animations are suppressed
  * under reduced-motion — both the OS `prefers-reduced-motion` media query AND
  * the Storybook toolbar's `[data-reduced-motion='reduce']` attribute on <html>.
- * Each animated selector gets its own reduced-motion reset so the stylelint
- * a11y rule (which matches per-selector) is satisfied.
  *
  * The `--height` CSS variable is injected by Ark on the ItemContent element and
  * enables the height-based expand/collapse keyframe animation.
@@ -47,154 +65,336 @@
   }
 }
 
-/* ─── Root ───────────────────────────────────────────────────────────────────── */
+/* ─── Root (group) ─────────────────────────────────────────────────────────── */
 
 [data-scope='accordion'][data-part='root'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
-
-  font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-family: var(--token-typography-font-stack-text);
   color: var(--token-color-foreground-primary);
+
+  /* Card items are separated by a group gap (per size); flush items are not. */
+  &[data-type='card'][data-size='small'] {
+    gap: 4px;
+  }
+
+  &[data-type='card'][data-size='medium'] {
+    gap: 8px;
+  }
+
+  &[data-type='card'][data-size='large'] {
+    gap: 12px;
+  }
 }
 
-/* ─── Item ───────────────────────────────────────────────────────────────────── */
+/* ─── Size scale ───────────────────────────────────────────────────────────────
+   Helios hardcodes these spacing/icon px values per size (not design tokens);
+   replicated as local custom properties consumed by the parts below. */
+
+[data-scope='accordion'][data-part='item'][data-size='small'] {
+  --accordion-toggle-padding: 8px;
+  --accordion-toggle-padding-left: 8px;
+  --accordion-content-padding-top: 4px;
+  --accordion-content-padding-right: 8px;
+  --accordion-content-padding-bottom: 8px;
+  --accordion-content-padding-left: 12px;
+  --accordion-item-gap: 8px;
+  --accordion-icon-size: 16px;
+  --accordion-label-font-size: var(--token-typography-body-100-font-size);
+  --accordion-label-line-height: var(--token-typography-body-100-line-height);
+  --accordion-content-font-size: var(--token-typography-body-100-font-size);
+  --accordion-content-line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-scope='accordion'][data-part='item'][data-size='medium'] {
+  --accordion-toggle-padding: 12px;
+  --accordion-toggle-padding-left: 8px;
+  --accordion-content-padding-top: 4px;
+  --accordion-content-padding-right: 12px;
+  --accordion-content-padding-bottom: 12px;
+  --accordion-content-padding-left: 12px;
+  --accordion-item-gap: 12px;
+  --accordion-icon-size: 20px;
+  --accordion-label-font-size: var(--token-typography-body-200-font-size);
+  --accordion-label-line-height: var(--token-typography-body-200-line-height);
+  --accordion-content-font-size: var(--token-typography-body-200-font-size);
+  --accordion-content-line-height: var(--token-typography-body-200-line-height);
+}
+
+[data-scope='accordion'][data-part='item'][data-size='large'] {
+  --accordion-toggle-padding: 16px;
+  --accordion-toggle-padding-left: 12px;
+  --accordion-content-padding-top: 4px;
+  --accordion-content-padding-right: 16px;
+  --accordion-content-padding-bottom: 16px;
+  --accordion-content-padding-left: 16px;
+  --accordion-item-gap: 12px;
+  --accordion-icon-size: 24px;
+  --accordion-label-font-size: var(--token-typography-body-300-font-size);
+  --accordion-label-line-height: var(--token-typography-body-300-line-height);
+  --accordion-content-font-size: var(--token-typography-body-200-font-size);
+  --accordion-content-line-height: var(--token-typography-body-200-line-height);
+}
+
+/* ─── Item — variant containers ────────────────────────────────────────────── */
 
 [data-scope='accordion'][data-part='item'] {
-  border-block-end: 1px solid var(--token-color-border-faint);
+  /* Card: elevated rounded surface. */
+  &[data-type='card'] {
+    border-radius: var(--token-border-radius-medium);
+    background: var(--token-color-surface-primary);
+    box-shadow: var(--token-surface-mid-box-shadow);
+
+    /* Hover raises the elevation — NOT the toggle background (Helios behavior).
+       Only for genuinely interactive cards (not static / contains-interactive). */
+    &:hover:not([data-static], [data-contains-interactive]),
+    &:focus-within:not([data-static], [data-contains-interactive]) {
+      box-shadow: var(--token-surface-high-box-shadow);
+    }
+
+    /* Static or contains-interactive cards sit flat. */
+    &[data-static],
+    &[data-contains-interactive] {
+      box-shadow: var(--token-surface-base-box-shadow);
+    }
+
+    /* Disabled card (extension beyond Helios; Helios has no Accordion disabled
+       state). Follows the Helios general disabled convention used by buttons:
+       drop to surface-faint, remove elevation. data-disabled lives on the Item
+       (Ark puts it there, plus the native `disabled` on the trigger button) —
+       so the override must hang off the item, not the trigger. */
+    &[data-disabled] {
+      background: var(--token-color-surface-faint);
+      box-shadow: none;
+    }
+  }
+
+  /* Flush: bottom divider only. The focus ring is inset 3px here (Helios). */
+  &[data-type='flush'] {
+    --accordion-focus-ring-offset: 3px;
+
+    border-block-end: 1px solid var(--token-color-border-primary);
+  }
 }
 
-[data-scope='accordion'][data-part='item']:first-child {
-  border-block-start: 1px solid var(--token-color-border-faint);
+/* ─── Item heading (wraps the toggle) ──────────────────────────────────────── */
+
+[data-scope='accordion'][data-part='item-heading'] {
+  margin: 0;
+
+  /* The heading is purely structural; the toggle owns all visual styling. */
+  font: inherit;
 }
 
-/* ─── Item Trigger ───────────────────────────────────────────────────────────── */
+/* ─── Item Trigger (the clickable row) ─────────────────────────────────────── */
 
 [data-scope='accordion'][data-part='item-trigger'] {
   cursor: pointer;
 
-  display: flex;
+  position: relative;
+
+  display: block flex;
+  gap: var(--accordion-item-gap);
   align-items: center;
-  justify-content: space-between;
 
   inline-size: 100%;
-  padding-block: var(--token-tabs-tab-padding-vertical);
-  padding-inline: var(--token-tabs-tab-padding-horizontal-medium);
+  padding-block: var(--accordion-toggle-padding);
+  padding-inline: var(--accordion-toggle-padding-left) var(--accordion-toggle-padding);
   border: none;
 
-  font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  font-weight: var(--token-typography-font-weight-semibold);
-  line-height: var(--token-typography-body-200-line-height);
+  font-family: var(--token-typography-font-stack-text);
   color: var(--token-color-foreground-primary);
   text-align: start;
 
   background: transparent;
+
+  /* Static rows are not interactive. */
+  &[data-static] {
+    cursor: default;
+  }
+
+  /* Disabled: Ark sets the NATIVE `disabled` attribute on the trigger button
+     (not data-disabled), so match :disabled. Dim the label via the descendant
+     toggle-content; the chevron is dimmed off the item's data-disabled below. */
+  &:disabled {
+    cursor: not-allowed;
+    color: var(--token-color-foreground-disabled);
+
+    [data-part='toggle-content'] {
+      color: var(--token-color-foreground-disabled);
+    }
+  }
 }
 
-[data-scope='accordion'][data-part='item-trigger']:hover {
-  color: var(--token-color-foreground-action-hover);
-  background: var(--token-color-surface-interactive-hover);
+/* Flush hover/active tint the toggle background (Helios scopes this to flush
+   only — card hover changes elevation instead). Keyboard parity: focus-visible
+   gets the same affordance as hover. */
+[data-scope='accordion'][data-part='item'][data-type='flush']:not([data-static]) {
+  [data-part='item-trigger']:hover,
+  [data-part='item-trigger']:focus-visible {
+    background: var(--token-color-surface-interactive-hover);
+  }
+
+  [data-part='item-trigger']:active {
+    background: var(--token-color-surface-interactive-active);
+  }
 }
 
-[data-scope='accordion'][data-part='item-trigger'][data-state='open'] {
-  color: var(--token-color-foreground-action);
+/* Keyboard focus only — never decorate mouse focus. Helios draws the ring on a
+   ::before inset by a size/variant offset (card 0, flush 3px), radius 5px. */
+[data-scope='accordion'][data-part='item-trigger']::before {
+  pointer-events: none;
+  content: '';
+
+  position: absolute;
+  z-index: -1;
+  inset: var(--accordion-focus-ring-offset, 0);
+
+  border-radius: 5px;
 }
 
-[data-scope='accordion'][data-part='item-trigger'][data-disabled] {
-  cursor: not-allowed;
-  color: var(--token-color-foreground-disabled);
-}
-
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='accordion'][data-part='item-trigger'][data-focus-visible] {
-  outline: none;
+/* Ark does NOT expose data-focus-visible (its trigger attrs are data-controls,
+   data-orientation, data-state, data-focus — no focus-visible). Use the native
+   :focus-visible pseudo so the keyboard focus ring actually renders. */
+[data-scope='accordion'][data-part='item-trigger']:focus-visible::before {
   box-shadow: var(--token-focus-ring-action-box-shadow);
 }
 
-/* ─── Item Indicator (chevron) ───────────────────────────────────────────────── */
+/* Contains-interactive: the chevron itself is the toggle button, styled as a
+   bordered icon button (Helios). The surrounding row is static. */
+[data-scope='accordion'][data-part='item-toggle-button'] {
+  cursor: pointer;
 
-[data-scope='accordion'][data-part='item-indicator'] {
-  display: inline-flex;
+  display: block flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
 
-  color: var(--token-color-foreground-faint);
+  inline-size: var(--accordion-icon-size);
+  block-size: var(--accordion-icon-size);
+  padding: 0;
+  border: 1px solid var(--token-color-border-strong);
+  border-radius: var(--token-border-radius-small);
 
-  transition: rotate var(--token-tabs-indicator-transition-duration)
-    var(--token-tabs-indicator-transition-function);
+  color: var(--token-color-foreground-primary);
+
+  background-color: var(--token-color-surface-faint);
+  box-shadow: var(--token-elevation-low-box-shadow);
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--token-color-surface-primary);
+  }
+
+  &:active {
+    background-color: var(--token-color-surface-interactive-active);
+    box-shadow: none;
+  }
+
+  /* Native :focus-visible — Ark exposes no data-focus-visible attribute. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='accordion'][data-part='item-indicator'] {
+/* ─── Toggle content (the label) ───────────────────────────────────────────── */
+
+[data-scope='accordion'][data-part='toggle-content'] {
+  flex: 1 1 0%;
+  font-size: var(--accordion-label-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--accordion-label-line-height);
+}
+
+/* ─── Item Indicator (chevron) ─────────────────────────────────────────────── */
+
+[data-scope='accordion'][data-part='item-indicator'] {
+  display: inline flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--accordion-icon-size);
+  block-size: var(--accordion-icon-size);
+
+  color: var(--token-color-foreground-faint);
+
+  transition: rotate var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  /* Rotation only — no open-state recolor (deliberate deviation from Helios). */
+  &[data-state='open'] {
+    rotate: -180deg;
+  }
+
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
 }
 
-[data-reduced-motion='reduce'] [data-scope='accordion'][data-part='item-indicator'] {
-  transition: none;
+/* Static items hide the chevron (Helios). */
+[data-scope='accordion'][data-part='item'][data-static]
+  [data-scope='accordion'][data-part='item-indicator'] {
+  visibility: hidden;
 }
 
-[data-scope='accordion'][data-part='item-indicator'][data-state='open'] {
-  rotate: 180deg;
-  color: var(--token-color-foreground-action);
-}
-
-[data-scope='accordion'][data-part='item-indicator'][data-disabled] {
-  color: var(--token-color-foreground-disabled);
-}
-
-/* ─── Item Content ───────────────────────────────────────────────────────────── */
+/* ─── Item Content ─────────────────────────────────────────────────────────── */
 
 [data-scope='accordion'][data-part='item-content'] {
   overflow: hidden;
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='accordion'][data-part='item-content'][data-state='open'] {
-  animation-name: accordion-expand;
-  animation-duration: var(--token-tabs-indicator-transition-duration);
-  animation-timing-function: var(--token-tabs-indicator-transition-function);
-}
+  &[data-state='open'] {
+    animation-name: accordion-expand;
+    animation-duration: var(--token-form-toggle-transition-duration);
+    animation-timing-function: var(--token-form-toggle-transition-timing-function);
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='accordion'][data-part='item-content'][data-state='open'] {
-    animation-name: none;
+    [data-reduced-motion='reduce'] & {
+      animation-name: none;
+    }
+
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation-name: none;
+    }
+  }
+
+  &[data-state='closed'] {
+    animation-name: accordion-collapse;
+    animation-duration: var(--token-form-toggle-transition-duration);
+    animation-timing-function: var(--token-form-toggle-transition-timing-function);
+
+    [data-reduced-motion='reduce'] & {
+      animation-name: none;
+    }
+
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation-name: none;
+    }
   }
 }
 
-[data-reduced-motion='reduce']
-  [data-scope='accordion'][data-part='item-content'][data-state='open'] {
-  animation-name: none;
-}
-
-[data-scope='accordion'][data-part='item-content'][data-state='closed'] {
-  animation-name: accordion-collapse;
-  animation-duration: var(--token-tabs-indicator-transition-duration);
-  animation-timing-function: var(--token-tabs-indicator-transition-function);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='accordion'][data-part='item-content'][data-state='closed'] {
-    animation-name: none;
-  }
-}
-
-[data-reduced-motion='reduce']
-  [data-scope='accordion'][data-part='item-content'][data-state='closed'] {
-  animation-name: none;
-}
-
-/* ─── Item Body (inner padding wrapper) ──────────────────────────────────────── */
+/* ─── Item Body (inner padding wrapper) ────────────────────────────────────── */
 
 [data-scope='accordion'][data-part='item-body'] {
-  padding-block-end: var(--token-tabs-tab-padding-vertical);
-  padding-inline: var(--token-tabs-tab-padding-horizontal-medium);
+  padding-block: var(--accordion-content-padding-top) var(--accordion-content-padding-bottom);
+  padding-inline: var(--accordion-content-padding-left) var(--accordion-content-padding-right);
 
-  font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--accordion-content-font-size);
+  line-height: var(--accordion-content-line-height);
   color: var(--token-color-foreground-primary);
 }

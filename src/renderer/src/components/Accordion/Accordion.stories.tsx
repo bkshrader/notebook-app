@@ -1,8 +1,20 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
 
 import { Accordion } from './Accordion';
 
+/**
+ * Visual / documentation stories for the Accordion.
+ *
+ * These are intentionally play-free: each renders the component in a distinct
+ * visual state and serves as a render (smoke) test — it passes if the component
+ * renders, fails if it errors. Interaction/assertion tests live alongside in
+ * `Accordion.spec.stories.tsx` (the `*.spec.stories.tsx` convention) so that a
+ * `play` function mutating state never disturbs these pristine doc views.
+ *
+ * Visual regression across Helios token modes is the job of a visual-testing
+ * tool (e.g. Chromatic `chromatic.modes`), not hand-written computed-style
+ * assertions here — see docs/research/storybook-testing.md.
+ */
 const defaultItems = [
   {
     value: 'what',
@@ -26,8 +38,13 @@ const meta: Meta<typeof Accordion> = {
   component: Accordion,
   args: {
     items: defaultItems,
+    type: 'card',
+    size: 'medium',
   },
   argTypes: {
+    type: { control: 'radio', options: ['card', 'flush'] },
+    size: { control: 'radio', options: ['small', 'medium', 'large'] },
+    titleTag: { control: 'select', options: ['div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'] },
     collapsible: { control: 'boolean' },
     multiple: { control: 'boolean' },
   },
@@ -37,24 +54,39 @@ export default meta;
 
 type Story = StoryObj<typeof Accordion>;
 
-export const Default: Story = {};
+/** Card is the Helios default & recommended variant: elevated rounded surfaces. */
+export const Card: Story = {};
 
-export const DefaultOpen: Story = {
-  args: { defaultValue: ['what'] },
+/** Flush variant: bottom-divider rows for space-constrained contexts. */
+export const Flush: Story = {
+  args: { type: 'flush' },
 };
 
-export const Multiple: Story = {
-  args: { multiple: true, defaultValue: ['what', 'how'] },
+export const SizeSmall: Story = {
+  args: { size: 'small', defaultValue: ['what'] },
 };
 
+export const SizeMedium: Story = {
+  args: { size: 'medium', defaultValue: ['what'] },
+};
+
+export const SizeLarge: Story = {
+  args: { size: 'large', defaultValue: ['what'] },
+};
+
+/** Several items open at once — the default (Helios allows multiple open). */
+export const MultipleOpen: Story = {
+  args: { defaultValue: ['what', 'how'] },
+};
+
+/**
+ * Disabled item (extension beyond Helios). Ark applies the native `disabled`
+ * attribute to the trigger button, which is exposed to assistive technology.
+ */
 export const WithDisabledItem: Story = {
   args: {
     items: [
-      {
-        value: 'enabled',
-        title: 'Available section',
-        content: 'This section can be opened.',
-      },
+      { value: 'enabled', title: 'Available section', content: 'This section can be opened.' },
       {
         value: 'disabled',
         title: 'Unavailable section',
@@ -71,92 +103,47 @@ export const WithDisabledItem: Story = {
 };
 
 /**
- * Drives the primary keyboard interaction for an accordion panel.
- *
- * APG pattern for accordion:
- *   - Each trigger is a native `<button>` managed by Ark/Zag.
- *   - Enter/Space on a focused trigger toggles the panel open/closed.
- *   - `aria-expanded` is set on the button; `data-state` mirrors it for styling.
- *
- * The play test:
- *   1. Confirms the trigger is keyboard-reachable (not tabindex="-1").
- *   2. Drives focus directly (userEvent.tab() skips if Ark clips the trigger).
- *   3. Presses Enter to open, asserts aria-expanded + data-state.
- *   4. Presses Enter again to close (collapsible=true is set via args).
- *   5. Backstop: after opening, asserts the trigger background resolves to a
- *      real (non-empty, non-transparent) computed color value.
+ * Static item: non-interactive, chevron hidden. Renders the title as a plain
+ * heading rather than an inert button (Helios `@isStatic`).
  */
-export const KeyboardExpand: Story = {
-  args: { collapsible: true, defaultValue: [] },
-  play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
-
-    // The first trigger button — its accessible name is the item title text.
-    const trigger = canvas.getByRole('button', { name: 'What is this app?' });
-
-    await step('starts collapsed', async () => {
-      await expect(trigger).toHaveAttribute('aria-expanded', 'false');
-      const item = canvasElement.querySelector<HTMLElement>(
-        '[data-scope="accordion"][data-part="item"][data-state="closed"]',
-      );
-      await expect(item).not.toBeNull();
-    });
-
-    await step('trigger is keyboard-reachable', async () => {
-      await expect(trigger).not.toHaveAttribute('tabindex', '-1');
-      trigger.focus();
-      await expect(trigger).toHaveFocus();
-    });
-
-    await step('Enter opens the panel', async () => {
-      await userEvent.keyboard('{Enter}');
-      await expect(trigger).toHaveAttribute('aria-expanded', 'true');
-
-      // data-state on the Item element mirrors the open/closed state.
-      const openItem = canvasElement.querySelector<HTMLElement>(
-        '[data-scope="accordion"][data-part="item"][data-state="open"]',
-      );
-      await expect(openItem).not.toBeNull();
-    });
-
-    await step('trigger background resolves to a real token value', async () => {
-      const bg = getComputedStyle(trigger).color;
-      await expect(bg).not.toBe('');
-      await expect(bg).not.toBe('rgba(0, 0, 0, 0)');
-    });
-
-    await step('Enter closes the panel (collapsible)', async () => {
-      await userEvent.keyboard('{Enter}');
-      await expect(trigger).toHaveAttribute('aria-expanded', 'false');
-    });
+export const Static: Story = {
+  args: {
+    items: [
+      {
+        value: 'static',
+        title: 'Always-visible heading',
+        content: 'A static item cannot be collapsed and shows no chevron.',
+        isStatic: true,
+      },
+      { value: 'normal', title: 'A normal toggle', content: 'This one still expands.' },
+    ],
   },
 };
 
 /**
- * A disabled item trigger must not be operable by keyboard.
- * Ark applies `disabled` to the button, removing it from the natural tab order
- * and preventing activation.
+ * Contains-interactive: only the chevron toggles, so the header row can host its
+ * own links/buttons (Helios `@containsInteractive`).
  */
-export const DisabledItemNotOperable: Story = {
+export const ContainsInteractive: Story = {
   args: {
     items: [
       {
-        value: 'locked',
-        title: 'Locked section',
-        content: 'Cannot be opened.',
-        disabled: true,
+        value: 'ci',
+        title: (
+          <span>
+            Section with a <a href="https://example.com">link</a> in the header
+          </span>
+        ),
+        content: 'Only the chevron expands this section; the link is independently clickable.',
+        containsInteractive: true,
+        toggleLabel: 'Toggle section',
       },
     ],
   },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const trigger = canvas.getByRole('button', { name: 'Locked section' });
-
-    await expect(trigger).toBeDisabled();
-    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
-
-    // Attempting to activate a disabled trigger must not change its state.
-    await userEvent.click(trigger, { pointerEventsCheck: 0 });
-    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
-  },
 };
+
+// NOTE: there is intentionally no `titleTag` visual story. `titleTag` only
+// changes the wrapping heading ELEMENT (e.g. h2 vs h3) for the document outline
+// (WCAG 1.3.1); the heading is `font: inherit`, so it has NO visual effect and a
+// visual story would look identical to `Card`. Its behavior is verified in
+// Accordion.spec.stories.tsx → HeadingTagApplied.
