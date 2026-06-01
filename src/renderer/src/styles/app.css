@@ -2,12 +2,184 @@
  * Renderer global stylesheet.
  *
  * Imports the design-token surface first so every subsequent rule and
- * every component module can reference --token-* / --notebook-* values.
+ * every component module can reference --token-* values.
  * No component-level styles live here — those belong with their
  * component sources.
  */
 @import './tokens.css';
 
-body {
-  font-size: 16px;
+:root {
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-regular);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  color-scheme: light dark;
+  background-color: var(--token-color-page-primary);
+
+  [data-color-mode='light'] {
+    color-scheme: light;
+  }
+
+  [data-color-mode='dark'] {
+    color-scheme: dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :not([data-color-mode='light']) {
+      color-scheme: dark;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Headings
+ * ------------------------------------------------------------------ */
+h1 {
+  font-family: var(--token-typography-display-500-font-family);
+  font-size: var(--token-typography-display-500-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-display-500-line-height);
+  color: var(--token-color-foreground-strong);
+}
+
+h2 {
+  font-family: var(--token-typography-display-400-font-family);
+  font-size: var(--token-typography-display-400-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-display-400-line-height);
+  color: var(--token-color-foreground-strong);
+}
+
+h3 {
+  font-family: var(--token-typography-display-300-font-family);
+  font-size: var(--token-typography-display-300-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-display-300-line-height);
+  color: var(--token-color-foreground-strong);
+  letter-spacing: var(--token-typography-display-300-letter-spacing);
+}
+
+h4 {
+  font-family: var(--token-typography-display-200-font-family);
+  font-size: var(--token-typography-display-200-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-display-200-line-height);
+  color: var(--token-color-foreground-strong);
+  letter-spacing: var(--token-typography-display-200-letter-spacing);
+}
+
+h5,
+h6 {
+  font-family: var(--token-typography-display-100-font-family);
+  font-size: var(--token-typography-display-100-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-display-100-line-height);
+  color: var(--token-color-foreground-strong);
+}
+
+/* ------------------------------------------------------------------ *
+ * Body text
+ * ------------------------------------------------------------------ */
+p {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-regular);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+/* ------------------------------------------------------------------ *
+ * Code and pre
+ * ------------------------------------------------------------------ */
+code,
+kbd,
+samp {
+  font-family: var(--token-typography-font-stack-code);
+  font-size: var(--token-typography-code-200-font-size);
+  line-height: var(--token-typography-code-200-line-height);
+}
+
+pre {
+  overflow-inline: auto;
+
+  padding-block: 12px;
+  padding-inline: 16px;
+  border: 1px solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-font-stack-code);
+  font-size: var(--token-typography-code-200-font-size);
+  line-height: var(--token-typography-code-200-line-height);
+
+  background-color: var(--token-color-surface-faint);
+}
+
+/* ------------------------------------------------------------------ *
+ * Interactive elements
+ * ------------------------------------------------------------------ */
+a {
+  color: var(--token-color-foreground-action);
+  text-decoration: underline;
+
+  &:hover,
+  &:focus {
+    color: var(--token-color-foreground-action-hover);
+  }
+
+  &:active {
+    color: var(--token-color-foreground-action-active);
+  }
+
+  &:visited {
+    color: var(--token-color-foreground-action-visited);
+  }
+
+  &:focus-visible {
+    border-radius: var(--token-border-radius-x-small);
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Structural separators
+ * ------------------------------------------------------------------ */
+hr {
+  border: none;
+  border-block-start: 1px solid var(--token-color-border-primary);
+}
+
+/* ------------------------------------------------------------------ *
+ * Selection
+ * ------------------------------------------------------------------ */
+::selection {
+  color: var(--token-color-foreground-primary);
+  background-color: var(--token-color-surface-action);
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+[data-reduced-motion='reduce'] {
+  *,
+  ::before,
+  ::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
