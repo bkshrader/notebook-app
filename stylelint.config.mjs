@@ -54,7 +54,9 @@ export default {
         disableFix: true,
       },
     ],
+
     'csstools/use-nesting': 'always',
+    'import-notation': 'string',
 
     // Dark mode is handled centrally in the token layer
     'a11y/media-prefers-color-scheme': null,

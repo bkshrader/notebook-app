@@ -6,7 +6,7 @@
  * No component-level styles live here — those belong with their
  * component sources.
  */
-@import url('./tokens.css');
+@import './tokens.css';
 
 body {
   font-size: 16px;
