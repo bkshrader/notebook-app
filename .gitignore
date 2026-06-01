@@ -13,3 +13,6 @@ storybook-static
 
 # Claude Code session runtime artifacts (e.g. scheduled-tasks locks)
 .claude/*.lock
+
+# Playwright MCP browsing artifacts (snapshots, traces)
+.playwright-mcp/
