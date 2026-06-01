@@ -1,16 +1,17 @@
 import type { Preview } from '@storybook/react-vite';
 
 import '../src/renderer/src/styles/app.css';
+import { withThemeByDataAttribute } from '@storybook/addon-themes';
 
 const preview: Preview = {
   parameters: {
+    backgrounds: { disable: true },
     controls: {
       matchers: {
         color: /(background|color)$/i,
         date: /Date$/i,
       },
     },
-
     a11y: {
       // WCAG 2.1 AA is non-negotiable per CLAUDE.md — fail tests on violations,
       // not just surface them in the UI.
@@ -39,6 +40,15 @@ const preview: Preview = {
     },
   },
   decorators: [
+    withThemeByDataAttribute({
+      themes: {
+        light: 'light',
+        dark: 'dark',
+        system: 'system',
+      },
+      defaultTheme: 'system',
+      attributeName: 'data-color-mode',
+    }),
     (Story, context) => {
       if (typeof document !== 'undefined') {
         const reducedMotion = context.globals.reducedMotion as string | undefined;
