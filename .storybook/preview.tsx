@@ -26,6 +26,18 @@ const preview: Preview = {
     },
   },
   globalTypes: {
+    colorContrast: {
+      name: 'Contrast',
+      description: 'High-contrast mode (data-color-contrast)',
+      defaultValue: 'default',
+      toolbar: {
+        icon: 'contrast',
+        items: [
+          { value: 'default', title: 'Contrast: default' },
+          { value: 'more', title: 'Contrast: high' },
+        ],
+      },
+    },
     reducedMotion: {
       name: 'Reduced motion',
       description: 'Honor prefers-reduced-motion',
@@ -49,6 +61,17 @@ const preview: Preview = {
       defaultTheme: 'system',
       attributeName: 'data-color-mode',
     }),
+    (Story, context) => {
+      if (typeof document !== 'undefined') {
+        const colorContrast = context.globals.colorContrast as string | undefined;
+        if (colorContrast === 'more') {
+          document.documentElement.dataset.colorContrast = 'more';
+        } else {
+          delete document.documentElement.dataset.colorContrast;
+        }
+      }
+      return <Story />;
+    },
     (Story, context) => {
       if (typeof document !== 'undefined') {
         const reducedMotion = context.globals.reducedMotion as string | undefined;

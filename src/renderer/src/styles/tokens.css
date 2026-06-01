@@ -49,16 +49,6 @@
   --token-color-boundary-gradient-primary-stop: #f2474c;
   --token-color-boundary-surface: #351114;
 
-  /* Consul */
-  --token-color-consul-border: #830833;
-  --token-color-consul-brand: #e03875;
-  --token-color-consul-foreground: #ed3b7c;
-  --token-color-consul-gradient-faint-start: #350b1c;
-  --token-color-consul-gradient-faint-stop: #1e0c14;
-  --token-color-consul-gradient-primary-start: #ff99be;
-  --token-color-consul-gradient-primary-stop: #ed3b7c;
-  --token-color-consul-surface: #350b1c;
-
   /* Focus */
   --token-color-focus-action-external: #5990ff;
   --token-color-focus-action-internal: #389aff;
@@ -174,16 +164,6 @@
     --token-color-boundary-gradient-primary-stop: #f2474c;
     --token-color-boundary-surface: #351114;
 
-    /* Consul */
-    --token-color-consul-border: #830833;
-    --token-color-consul-brand: #e03875;
-    --token-color-consul-foreground: #ed3b7c;
-    --token-color-consul-gradient-faint-start: #350b1c;
-    --token-color-consul-gradient-faint-stop: #1e0c14;
-    --token-color-consul-gradient-primary-start: #ff99be;
-    --token-color-consul-gradient-primary-stop: #ed3b7c;
-    --token-color-consul-surface: #350b1c;
-
     /* Focus */
     --token-color-focus-action-external: #5990ff;
     --token-color-focus-action-internal: #389aff;
@@ -275,6 +255,129 @@
     --token-color-surface-strong: #1e222a;
     --token-color-surface-success: #042a15;
     --token-color-surface-warning: #2e1b06;
+  }
+}
+/* stylelint-enable custom-property-empty-line-before, color-no-hex */
+
+/* ------------------------------------------------------------------ *
+ * High contrast (light base)
+ *
+ * Applied when the user requests high contrast and light mode is
+ * active (either explicitly via data-color-mode='light', or as the
+ * default when no dark override is set).
+ *
+ * Two activation paths — manual and OS-preference — mirror the
+ * dark-mode pattern above.  High-contrast is a second axis encoded
+ * in data-color-contrast='more', independent of data-color-mode.
+ *
+ * All values are verified WCAG contrast ratios against --token-color-surface-primary (#ffffff):
+ *   foreground tokens ≥ 7:1 (AAA), border/focus tokens ≥ 3:1.
+ *
+ * Note: the Helios *-high-contrast token variants are intentionally
+ * NOT used here — their meaning is "text on a filled colored surface"
+ * (e.g. primary button labels), not a WCAG contrast mode.
+ * ------------------------------------------------------------------ */
+/* stylelint-disable custom-property-empty-line-before, color-no-hex */
+:root[data-color-contrast='more']:not([data-color-mode='dark']) {
+  /* Foreground — only tokens that fail 7:1 on --token-color-surface-primary (#ffffff) need overrides */
+  --token-color-foreground-faint: #4a4f5c;
+  --token-color-foreground-action: #0046d1;
+  --token-color-foreground-action-hover: #0039b8;
+  --token-color-foreground-highlight: #7a00d4;
+  --token-color-foreground-success: #005c17;
+  --token-color-foreground-warning: #7a3b00;
+  --token-color-foreground-critical: #b5000a;
+
+  /* Border — replace alpha-based values with solid equivalents;
+     boost semantic borders from near-white to hue-matched mid-tones */
+  --token-color-border-faint: #8c909c;
+  --token-color-border-primary: #8c909c;
+  --token-color-border-strong: #3b3d45;
+  --token-color-border-action: #0046d1;
+  --token-color-border-critical: #f9381e;
+  --token-color-border-success: #008a22;
+  --token-color-border-warning: #bb5a00;
+  --token-color-border-highlight: #b457ff;
+
+  /* Focus rings */
+  --token-color-focus-action-external: #1060ff;
+  --token-color-focus-action-internal: #0046d1;
+  --token-color-focus-critical-external: #e52228;
+}
+
+@media (prefers-contrast: more) {
+  :root:not([data-color-mode='dark']) {
+    --token-color-foreground-faint: #4a4f5c;
+    --token-color-foreground-action: #0046d1;
+    --token-color-foreground-action-hover: #0039b8;
+    --token-color-foreground-highlight: #7a00d4;
+    --token-color-foreground-success: #005c17;
+    --token-color-foreground-warning: #7a3b00;
+    --token-color-foreground-critical: #b5000a;
+
+    --token-color-border-faint: #8c909c;
+    --token-color-border-primary: #8c909c;
+    --token-color-border-strong: #3b3d45;
+    --token-color-border-action: #0046d1;
+    --token-color-border-critical: #f9381e;
+    --token-color-border-success: #008a22;
+    --token-color-border-warning: #bb5a00;
+    --token-color-border-highlight: #b457ff;
+
+    --token-color-focus-action-external: #1060ff;
+    --token-color-focus-action-internal: #0046d1;
+    --token-color-focus-critical-external: #e52228;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * High contrast (dark base)
+ *
+ * Applied when both dark mode and high contrast are active.
+ * Selectors use two *different* attributes on the same element
+ * ([data-color-mode='dark'][data-color-contrast='more']) — valid CSS.
+ *
+ * All values verified ≥ 7:1 (foreground) / ≥ 3:1 (border/focus)
+ * against --token-color-surface-primary (#0d0e12).
+ * ------------------------------------------------------------------ */
+:root[data-color-mode='dark'][data-color-contrast='more'] {
+  /* Foreground — only tokens that fail 7:1 on --token-color-surface-primary (#0d0e12) need overrides */
+  --token-color-foreground-highlight: #cc88ff;
+  --token-color-foreground-success: #00c157;
+  --token-color-foreground-critical: #ff7a62;
+
+  /* Border — replace near-invisible alpha values with solid equivalents */
+  --token-color-border-faint: #616875;
+  --token-color-border-primary: #616875;
+  --token-color-border-strong: #b2b6bd;
+  --token-color-border-action: #389aff;
+  --token-color-border-critical: #ff5841;
+  --token-color-border-success: #00ae4e;
+  --token-color-border-warning: #fda219;
+  --token-color-border-highlight: #c070ff;
+
+  /* Focus rings */
+  --token-color-focus-action-external: #6bc1ff;
+  --token-color-focus-critical-external: #ff8c7c;
+}
+
+@media (prefers-color-scheme: dark) and (prefers-contrast: more) {
+  :root:not([data-color-mode='light']) {
+    --token-color-foreground-highlight: #cc88ff;
+    --token-color-foreground-success: #00c157;
+    --token-color-foreground-critical: #ff7a62;
+
+    --token-color-border-faint: #616875;
+    --token-color-border-primary: #616875;
+    --token-color-border-strong: #b2b6bd;
+    --token-color-border-action: #389aff;
+    --token-color-border-critical: #ff5841;
+    --token-color-border-success: #00ae4e;
+    --token-color-border-warning: #fda219;
+    --token-color-border-highlight: #c070ff;
+
+    --token-color-focus-action-external: #6bc1ff;
+    --token-color-focus-critical-external: #ff8c7c;
   }
 }
 /* stylelint-enable custom-property-empty-line-before, color-no-hex */
