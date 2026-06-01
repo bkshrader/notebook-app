@@ -82,6 +82,27 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm typecheck
 
+  contrast:
+    name: contrast
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - run: corepack enable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      # WCAG AA/AAA contrast gate on the SEMANTIC color-token substrate, across
+      # all four color-mode × contrast combinations. Verifies the token layer
+      # once so every component inherits correct contrast (see
+      # scripts/contrast-matrix.mjs). Currently RED until the high-contrast
+      # `foreground-action*` / `focus-critical` pairings reach AAA (7:1).
+      - run: pnpm contrast:matrix
+
   build:
     name: build
     runs-on: ubuntu-latest

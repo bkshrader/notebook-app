@@ -1,6 +1,8 @@
 node_modules/
 out/
 dist/
+coverage/
+.nyc_output/
 *.log
 .DS_Store
 .vscode/
@@ -17,3 +19,4 @@ public/design-tokens.source.json
 .claude/*.lock
 # Claude Code scratch artifacts (token allowlist, transient logs)
 .claude/artifacts/
+.playwright-mcp/

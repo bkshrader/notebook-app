@@ -26,6 +26,17 @@ const nodeModulesRoot = path.dirname(
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
   test: {
+    // Real per-function coverage (Istanbul-format `coverage/coverage-final.json`)
+    // so `fallow audit` computes accurate CRAP scores from what the Storybook
+    // interaction tests actually exercise, instead of its static 0%/40%/85%
+    // estimate. The V8 provider emits the Istanbul JSON fallow auto-detects.
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'json'],
+      reportsDirectory: path.join(dirname, 'coverage'),
+      include: ['src/renderer/src/components/**/*.{ts,tsx}'],
+      exclude: ['**/*.stories.tsx', '**/index.ts'],
+    },
     projects: [
       {
         extends: true,
