@@ -1,0 +1,30 @@
+/**
+ * Design tokens entry point.
+ *
+ * Imports the Helios Design System "products" build — CSS custom
+ * properties declared on :root, prefixed --token-*. This is the
+ * runtime source of truth for every color, spacing, typography,
+ * elevation, and focus-ring value the app renders.
+ *
+ * See:
+ *   docs/features/accessibility/adrs/design-system-helios.md
+ *   docs/research/helios-design-system.md
+ *   DESIGN.md
+ *
+ * Convention: component CSS references the SEMANTIC tokens
+ * (--token-color-foreground-*, --token-color-border-*, etc.), never
+ * the raw palette (--token-color-palette-*). Stylelint's
+ * declaration-strict-value rule enforces this for color-bearing
+ * properties.
+ *
+ * App-specific tokens that Helios does not cover go in a sibling
+ * notebook-tokens.css under a --notebook-* prefix; it will be
+ * @imported below when the first such token lands. See the Helios ADR
+ * for the convention.
+ *
+ * The helpers/ stylesheets (colors.css, typography.css, elevation.css,
+ * focus-ring.css) are intentionally NOT imported. They expose .hds-*
+ * utility classes for HTML-only consumers; React component CSS
+ * references the --token-* variables directly.
+ */
+@import url('@hashicorp/design-system-tokens/dist/products/css/tokens.css');

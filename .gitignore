@@ -8,6 +8,8 @@ dist/
 
 *storybook.log
 storybook-static
+# storybook-design-token build artifact (regenerated on each storybook build)
+public/design-tokens.source.json
 
 *.local.*
 
