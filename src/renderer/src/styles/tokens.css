@@ -270,7 +270,7 @@
  * dark-mode pattern above.  High-contrast is a second axis encoded
  * in data-color-contrast='more', independent of data-color-mode.
  *
- * All values are verified WCAG contrast ratios against --token-color-surface-primary (#ffffff):
+ * All values are verified WCAG contrast ratios against --token-color-page-primary (#ffffff):
  *   foreground tokens ≥ 7:1 (AAA), border/focus tokens ≥ 3:1.
  *
  * Note: the Helios *-high-contrast token variants are intentionally
@@ -279,14 +279,20 @@
  * ------------------------------------------------------------------ */
 /* stylelint-disable custom-property-empty-line-before, color-no-hex */
 :root[data-color-contrast='more']:not([data-color-mode='dark']) {
-  /* Foreground — only tokens that fail 7:1 on --token-color-surface-primary (#ffffff) need overrides */
+  /* Foreground — only tokens that fail 7:1 on --token-color-page-primary (#ffffff) need overrides */
   --token-color-foreground-faint: #4a4f5c;
-  --token-color-foreground-action: #0046d1;
-  --token-color-foreground-action-hover: #0039b8;
+  --token-color-foreground-action: #0039b8;
+  --token-color-foreground-action-hover: #002d98;
   --token-color-foreground-highlight: #7a00d4;
   --token-color-foreground-success: #005c17;
   --token-color-foreground-warning: #7a3b00;
   --token-color-foreground-critical: #b5000a;
+
+  /* -on-surface foreground — verified ≥ 7:1 against their respective tinted surface backgrounds */
+  --token-color-foreground-highlight-on-surface: #7800c0;
+  --token-color-foreground-success-on-surface: #005918;
+  --token-color-foreground-warning-on-surface: #743600;
+  --token-color-foreground-critical-on-surface: #960005;
 
   /* Border — replace alpha-based values with solid equivalents;
      boost semantic borders from near-white to hue-matched mid-tones */
@@ -308,12 +314,17 @@
 @media (prefers-contrast: more) {
   :root:not([data-color-mode='dark']) {
     --token-color-foreground-faint: #4a4f5c;
-    --token-color-foreground-action: #0046d1;
-    --token-color-foreground-action-hover: #0039b8;
+    --token-color-foreground-action: #0039b8;
+    --token-color-foreground-action-hover: #002d98;
     --token-color-foreground-highlight: #7a00d4;
     --token-color-foreground-success: #005c17;
     --token-color-foreground-warning: #7a3b00;
     --token-color-foreground-critical: #b5000a;
+
+    --token-color-foreground-highlight-on-surface: #7800c0;
+    --token-color-foreground-success-on-surface: #005918;
+    --token-color-foreground-warning-on-surface: #743600;
+    --token-color-foreground-critical-on-surface: #960005;
 
     --token-color-border-faint: #8c909c;
     --token-color-border-primary: #8c909c;
@@ -338,13 +349,20 @@
  * ([data-color-mode='dark'][data-color-contrast='more']) — valid CSS.
  *
  * All values verified ≥ 7:1 (foreground) / ≥ 3:1 (border/focus)
- * against --token-color-surface-primary (#0d0e12).
+ * against --token-color-page-primary (#0d0e12).
  * ------------------------------------------------------------------ */
 :root[data-color-mode='dark'][data-color-contrast='more'] {
-  /* Foreground — only tokens that fail 7:1 on --token-color-surface-primary (#0d0e12) need overrides */
+  /* Foreground — only tokens that fail 7:1 on --token-color-page-primary (#0d0e12) need overrides */
+  --token-color-foreground-action: #6bc1ff;
+  --token-color-foreground-action-hover: #6bc1ff;
   --token-color-foreground-highlight: #cc88ff;
   --token-color-foreground-success: #00c157;
   --token-color-foreground-critical: #ff7a62;
+
+  /* -on-surface foreground — verified ≥ 7:1 against their respective tinted surface backgrounds */
+  --token-color-foreground-highlight-on-surface: #d099ff;
+  --token-color-foreground-success-on-surface: #00d45c;
+  --token-color-foreground-critical-on-surface: #ff8c7c;
 
   /* Border — replace near-invisible alpha values with solid equivalents */
   --token-color-border-faint: #616875;
@@ -363,9 +381,15 @@
 
 @media (prefers-color-scheme: dark) and (prefers-contrast: more) {
   :root:not([data-color-mode='light']) {
+    --token-color-foreground-action: #6bc1ff;
+    --token-color-foreground-action-hover: #6bc1ff;
     --token-color-foreground-highlight: #cc88ff;
     --token-color-foreground-success: #00c157;
     --token-color-foreground-critical: #ff7a62;
+
+    --token-color-foreground-highlight-on-surface: #d099ff;
+    --token-color-foreground-success-on-surface: #00d45c;
+    --token-color-foreground-critical-on-surface: #ff8c7c;
 
     --token-color-border-faint: #616875;
     --token-color-border-primary: #616875;
