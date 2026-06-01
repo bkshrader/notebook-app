@@ -21,7 +21,7 @@
  */
 
 [data-scope='rating-group'][data-part='root'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
   gap: var(--token-form-toggle-border-width);
 
@@ -29,10 +29,10 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='rating-group'][data-part='root'][data-disabled] {
-  color: var(--token-color-foreground-disabled);
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
 }
 
 [data-scope='rating-group'][data-part='label'] {
@@ -42,26 +42,26 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-form-label-color);
-}
 
-[data-scope='rating-group'][data-part='label'][data-disabled] {
-  color: var(--token-color-foreground-disabled);
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
 }
 
 [data-scope='rating-group'][data-part='control'] {
-  display: inline-flex;
+  display: inline flex;
   gap: var(--token-border-radius-x-small);
   align-items: center;
-}
 
-[data-scope='rating-group'][data-part='control'][data-disabled] {
-  cursor: not-allowed;
+  &[data-disabled] {
+    cursor: not-allowed;
+  }
 }
 
 [data-scope='rating-group'][data-part='item'] {
   cursor: pointer;
 
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
@@ -71,29 +71,27 @@
   color: var(--token-color-foreground-faint);
 
   transition: color var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='rating-group'][data-part='item'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='rating-group'][data-part='item'] {
-  transition: none;
-}
+  &[data-highlighted] {
+    color: var(--token-color-foreground-warning);
+  }
 
-[data-scope='rating-group'][data-part='item'][data-highlighted] {
-  color: var(--token-color-foreground-warning);
-}
+  &[data-checked] {
+    color: var(--token-color-foreground-warning);
+  }
 
-[data-scope='rating-group'][data-part='item'][data-checked] {
-  color: var(--token-color-foreground-warning);
-}
+  &[data-disabled] {
+    cursor: not-allowed;
+    color: var(--token-color-foreground-disabled);
+  }
 
-[data-scope='rating-group'][data-part='item'][data-disabled] {
-  cursor: not-allowed;
-  color: var(--token-color-foreground-disabled);
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* Keyboard focus only — never decorate mouse focus. */
@@ -106,16 +104,16 @@
 /* Item indicator: two overlapping SVG stars (bg unfilled, fg filled + clipped) */
 [data-scope='rating-group'][data-part='item'] [data-part='item-indicator'] {
   position: relative;
-  display: inline-flex;
+  display: inline flex;
   inline-size: var(--token-form-checkbox-size);
   block-size: var(--token-form-checkbox-size);
-}
 
-[data-scope='rating-group'][data-part='item'] [data-part='item-indicator'] svg {
-  position: absolute;
-  inset: 0;
-  inline-size: 100%;
-  block-size: 100%;
+  svg {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+  }
 }
 
 /* The star SVG inherits its token-driven `color` from the [data-part='item']
@@ -133,10 +131,8 @@
   /* stylelint-disable-next-line scale-unlimited/declaration-strict-value */
   fill: currentcolor;
   transition: clip-path var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='rating-group'][data-part='item'] [data-part='item-indicator'] [data-fg] {
+  @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
 }

@@ -25,9 +25,12 @@
   block-size: 100%;
 }
 
+/* stylelint-disable a11y/no-display-none -- hides the native scrollbar in
+   favor of the custom Ark scrollbar; not an a11y element. */
 [data-scope='scroll-area'][data-part='viewport']::-webkit-scrollbar {
   display: none;
 }
+/* stylelint-enable a11y/no-display-none */
 
 [data-scope='scroll-area'][data-part='viewport']:focus-visible {
   outline: none;
@@ -53,7 +56,7 @@
 
   position: relative;
 
-  display: flex;
+  display: block flex;
 
   border-radius: var(--token-border-radius-small);
 
@@ -82,11 +85,14 @@
 }
 
 /* Hide vertical scrollbar when content does not overflow vertically. */
+/* stylelint-disable a11y/no-display-none -- decorative scrollbar track
+   hidden when there is no vertical overflow to scroll. */
 [data-scope='scroll-area'][data-part='scrollbar'][data-orientation='vertical']:not(
     [data-overflow-y]
   ) {
   display: none;
 }
+/* stylelint-enable a11y/no-display-none */
 
 /* Horizontal track sizing */
 [data-scope='scroll-area'][data-part='scrollbar'][data-orientation='horizontal'] {
@@ -94,11 +100,14 @@
 }
 
 /* Hide horizontal scrollbar when content does not overflow horizontally. */
+/* stylelint-disable a11y/no-display-none -- decorative scrollbar track
+   hidden when there is no horizontal overflow to scroll. */
 [data-scope='scroll-area'][data-part='scrollbar'][data-orientation='horizontal']:not(
     [data-overflow-x]
   ) {
   display: none;
 }
+/* stylelint-enable a11y/no-display-none */
 
 /* Reduced motion: disable the opacity transition on the scrollbar track. */
 @media (prefers-reduced-motion: reduce) {
@@ -117,11 +126,11 @@
   inline-size: 100%;
   border-radius: inherit;
   background-color: var(--token-color-foreground-faint);
-}
 
-[data-scope='scroll-area'][data-part='thumb'][data-hover],
-[data-scope='scroll-area'][data-part='thumb'][data-dragging] {
-  background-color: var(--token-color-foreground-primary);
+  &[data-hover],
+  &[data-dragging] {
+    background-color: var(--token-color-foreground-primary);
+  }
 }
 
 /* ── Corner (shown when both scrollbars are visible) ────────────────────── */

@@ -16,12 +16,12 @@
  */
 
 [data-scope='splitter'][data-part='root'] {
-  display: flex;
+  display: block flex;
   inline-size: 100%;
-}
 
-[data-scope='splitter'][data-part='root'][data-orientation='vertical'] {
-  flex-direction: column;
+  &[data-orientation='vertical'] {
+    flex-direction: column;
+  }
 }
 
 [data-scope='splitter'][data-part='panel'] {
@@ -40,7 +40,7 @@
 
   position: relative;
 
-  display: grid;
+  display: block grid;
   flex-shrink: 0;
   place-items: center;
 
@@ -52,35 +52,33 @@
 
   transition: background-color var(--token-form-toggle-transition-duration)
     var(--token-form-toggle-transition-timing-function);
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='splitter'][data-part='resize-trigger'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='splitter'][data-part='resize-trigger'] {
-  transition: none;
-}
+  &[data-orientation='horizontal'] {
+    cursor: col-resize;
+    min-inline-size: var(--token-border-radius-x-small);
+  }
 
-[data-scope='splitter'][data-part='resize-trigger'][data-orientation='horizontal'] {
-  cursor: col-resize;
-  min-inline-size: var(--token-border-radius-x-small);
-}
+  &[data-orientation='vertical'] {
+    cursor: row-resize;
+    min-block-size: var(--token-border-radius-x-small);
+  }
 
-[data-scope='splitter'][data-part='resize-trigger'][data-orientation='vertical'] {
-  cursor: row-resize;
-  min-block-size: var(--token-border-radius-x-small);
-}
+  &[data-dragging] {
+    background: var(--token-color-surface-interactive-active);
+  }
 
-[data-scope='splitter'][data-part='resize-trigger'][data-dragging] {
-  background: var(--token-color-surface-interactive-active);
-}
+  &[data-disabled] {
+    cursor: default;
+    background: var(--token-color-surface-interactive-disabled);
+  }
 
-[data-scope='splitter'][data-part='resize-trigger'][data-disabled] {
-  cursor: default;
-  background: var(--token-color-surface-interactive-disabled);
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* Keyboard focus only — never decorate mouse focus. */
@@ -102,39 +100,34 @@
 
   transition: background-color var(--token-form-toggle-transition-duration)
     var(--token-form-toggle-transition-timing-function);
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='splitter'][data-part='resize-trigger-indicator'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='splitter'][data-part='resize-trigger-indicator'] {
-  transition: none;
-}
+  &[data-orientation='horizontal'] {
+    inline-size: var(--token-border-radius-small);
+    block-size: var(--token-tabs-tab-height-medium);
+  }
 
-[data-scope='splitter'][data-part='resize-trigger-indicator'][data-orientation='horizontal'] {
-  inline-size: var(--token-border-radius-small);
-  block-size: var(--token-tabs-tab-height-medium);
-}
+  &[data-orientation='vertical'] {
+    inline-size: var(--token-tabs-tab-height-medium);
+    block-size: var(--token-border-radius-small);
+  }
 
-[data-scope='splitter'][data-part='resize-trigger-indicator'][data-orientation='vertical'] {
-  inline-size: var(--token-tabs-tab-height-medium);
-  block-size: var(--token-border-radius-small);
-}
+  [data-scope='splitter'][data-part='resize-trigger'][data-dragging] & {
+    background: var(--token-color-border-action);
+  }
 
-[data-scope='splitter'][data-part='resize-trigger'][data-dragging]
-  [data-scope='splitter'][data-part='resize-trigger-indicator'] {
-  background: var(--token-color-border-action);
-}
+  [data-scope='splitter'][data-part='resize-trigger'][data-focus-visible] & {
+    background: var(--token-color-border-action);
+  }
 
-[data-scope='splitter'][data-part='resize-trigger'][data-focus-visible]
-  [data-scope='splitter'][data-part='resize-trigger-indicator'] {
-  background: var(--token-color-border-action);
-}
+  [data-scope='splitter'][data-part='resize-trigger'][data-disabled] & {
+    background: var(--token-color-border-faint);
+  }
 
-[data-scope='splitter'][data-part='resize-trigger'][data-disabled]
-  [data-scope='splitter'][data-part='resize-trigger-indicator'] {
-  background: var(--token-color-border-faint);
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }

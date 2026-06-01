@@ -18,7 +18,7 @@
  */
 
 [data-scope='number-input'][data-part='root'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
   gap: var(--token-form-control-padding);
 
@@ -26,10 +26,10 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='number-input'][data-part='root'][data-disabled] {
-  color: var(--token-color-foreground-disabled);
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
 }
 
 [data-scope='number-input'][data-part='label'] {
@@ -37,19 +37,19 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-form-label-color);
-}
 
-[data-scope='number-input'][data-part='label'][data-disabled] {
-  color: var(--token-form-control-disabled-foreground-color);
-}
+  &[data-disabled] {
+    color: var(--token-form-control-disabled-foreground-color);
+  }
 
-[data-scope='number-input'][data-part='label'][data-invalid] {
-  color: var(--token-color-foreground-critical);
+  &[data-invalid] {
+    color: var(--token-color-foreground-critical);
+  }
 }
 
 [data-scope='number-input'][data-part='control'] {
   overflow: hidden;
-  display: flex;
+  display: block flex;
   flex-direction: row;
 
   border: var(--token-form-control-border-width) solid
@@ -59,29 +59,27 @@
   background-color: var(--token-form-control-base-surface-color-default);
 
   transition: border-color var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='number-input'][data-part='control'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='number-input'][data-part='control'] {
-  transition: none;
-}
+  &[data-focus] {
+    border-color: var(--token-color-border-action);
+  }
 
-[data-scope='number-input'][data-part='control'][data-focus] {
-  border-color: var(--token-color-border-action);
-}
+  &[data-invalid] {
+    border-color: var(--token-color-border-critical);
+  }
 
-[data-scope='number-input'][data-part='control'][data-invalid] {
-  border-color: var(--token-color-border-critical);
-}
+  &[data-disabled] {
+    border-color: var(--token-form-control-disabled-border-color);
+    background-color: var(--token-form-control-disabled-surface-color);
+  }
 
-[data-scope='number-input'][data-part='control'][data-disabled] {
-  border-color: var(--token-form-control-disabled-border-color);
-  background-color: var(--token-form-control-disabled-surface-color);
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 [data-scope='number-input'][data-part='input'] {
@@ -98,22 +96,22 @@
 
   background-color: transparent;
   outline: none;
-}
 
-[data-scope='number-input'][data-part='input'][data-disabled] {
-  color: var(--token-form-control-disabled-foreground-color);
-}
+  &[data-disabled] {
+    color: var(--token-form-control-disabled-foreground-color);
+  }
 
-[data-scope='number-input'][data-part='input'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 }
 
 [data-scope='number-input'][data-part='increment-trigger'],
 [data-scope='number-input'][data-part='decrement-trigger'] {
   cursor: pointer;
 
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
@@ -131,7 +129,9 @@
 }
 
 [data-scope='number-input'][data-part='increment-trigger']:hover:not([data-disabled]),
-[data-scope='number-input'][data-part='decrement-trigger']:hover:not([data-disabled]) {
+[data-scope='number-input'][data-part='decrement-trigger']:hover:not([data-disabled]),
+[data-scope='number-input'][data-part='increment-trigger']:focus:not([data-disabled]),
+[data-scope='number-input'][data-part='decrement-trigger']:focus:not([data-disabled]) {
   background-color: var(--token-color-surface-interactive-hover);
 }
 

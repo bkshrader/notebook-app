@@ -14,15 +14,16 @@
   cursor: pointer;
   color: var(--token-color-foreground-strong);
   text-decoration: underline;
-}
 
-[data-scope='hover-card'][data-part='trigger']:hover {
-  color: var(--token-color-foreground-strong);
-}
+  &:hover,
+  &:focus {
+    color: var(--token-color-foreground-strong);
+  }
 
-[data-scope='hover-card'][data-part='trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 }
 
 [data-scope='hover-card'][data-part='content'] {
@@ -44,14 +45,22 @@
   background-color: var(--token-color-surface-primary);
   outline: none;
   box-shadow: var(--token-elevation-overlay-box-shadow);
-}
 
-[data-scope='hover-card'][data-part='content'][data-state='open'] {
-  animation: hovercard-scale-fade-in 150ms ease-out;
-}
+  &[data-state='open'] {
+    animation: hovercard-scale-fade-in 150ms ease-out;
 
-[data-scope='hover-card'][data-part='content'][data-state='closed'] {
-  animation: hovercard-scale-fade-out 100ms ease-in;
+  @media screen and (prefers-reduced-motion: reduce) {
+      animation: none
+  }
+  }
+
+  &[data-state='closed'] {
+    animation: hovercard-scale-fade-out 100ms ease-in;
+
+  @media screen and (prefers-reduced-motion: reduce) {
+      animation: none
+  }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

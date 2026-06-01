@@ -8,7 +8,7 @@
  * per-selector, so comma-grouped resets fail). */
 
 [data-scope='toggle-group'][data-part='root'] {
-  display: inline-flex;
+  display: inline flex;
   gap: var(--token-border-radius-x-small);
 
   padding: var(--token-border-radius-x-small);
@@ -16,21 +16,21 @@
   border-radius: var(--token-border-radius-medium);
 
   background-color: var(--token-color-surface-faint);
-}
 
-[data-scope='toggle-group'][data-part='root'][data-orientation='vertical'] {
-  flex-direction: column;
-}
+  &[data-orientation='vertical'] {
+    flex-direction: column;
+  }
 
-[data-scope='toggle-group'][data-part='root'][data-disabled] {
-  border-color: var(--token-form-control-disabled-border-color);
-  background-color: var(--token-color-surface-interactive-disabled);
+  &[data-disabled] {
+    border-color: var(--token-form-control-disabled-border-color);
+    background-color: var(--token-color-surface-interactive-disabled);
+  }
 }
 
 [data-scope='toggle-group'][data-part='item'] {
   cursor: pointer;
 
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
@@ -48,48 +48,48 @@
   background-color: transparent;
 
   transition: background-color var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='toggle-group'][data-part='item'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='toggle-group'][data-part='item'] {
-  transition: none;
-}
+  &:hover:not([data-disabled]),
+  &:focus:not([data-disabled]) {
+    /* foreground-action-hover (#1060ff) fails on grey surfaces — use foreground-strong */
+    color: var(--token-color-foreground-strong);
+    background-color: var(--token-color-surface-interactive-hover);
+  }
 
-[data-scope='toggle-group'][data-part='item']:hover:not([data-disabled]) {
-  /* foreground-action-hover (#1060ff) fails on grey surfaces — use foreground-strong */
-  color: var(--token-color-foreground-strong);
-  background-color: var(--token-color-surface-interactive-hover);
-}
+  &[data-state='on'] {
+    border-color: var(--token-color-border-action);
+    color: var(--token-color-foreground-action-active);
+    background-color: var(--token-color-surface-interactive-active);
+  }
 
-[data-scope='toggle-group'][data-part='item'][data-state='on'] {
-  border-color: var(--token-color-border-action);
-  color: var(--token-color-foreground-action-active);
-  background-color: var(--token-color-surface-interactive-active);
-}
+  &[data-state='on']:hover:not([data-disabled]),
+  &[data-state='on']:focus:not([data-disabled]) {
+    color: var(--token-color-foreground-action-active);
+    background-color: var(--token-color-surface-action);
+  }
 
-[data-scope='toggle-group'][data-part='item'][data-state='on']:hover:not([data-disabled]) {
-  color: var(--token-color-foreground-action-active);
-  background-color: var(--token-color-surface-action);
-}
+  &[data-disabled] {
+    /* foreground-disabled (#8c909c) fails WCAG AA on white (3.18:1) — use foreground-faint */
+    cursor: not-allowed;
 
-[data-scope='toggle-group'][data-part='item'][data-disabled] {
-  /* foreground-disabled (#8c909c) fails WCAG AA on white (3.18:1) — use foreground-faint */
-  cursor: not-allowed;
+    border-color: transparent;
 
-  border-color: transparent;
+    color: var(--token-color-foreground-faint);
 
-  color: var(--token-color-foreground-faint);
+    opacity: 0.6;
+    background-color: transparent;
+  }
 
-  opacity: 0.6;
-  background-color: transparent;
-}
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 
-[data-scope='toggle-group'][data-part='item'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }

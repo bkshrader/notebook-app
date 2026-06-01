@@ -21,7 +21,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: inline-flex;
+  display: inline flex;
   gap: var(--token-border-radius-small);
   align-items: center;
 
@@ -40,41 +40,40 @@
   background: var(--token-color-surface-primary);
 
   transition: background-color var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='menu'][data-part='trigger'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='menu'][data-part='trigger'] {
-  transition: none;
-}
+  &:hover:not([data-disabled]),
+  &:focus:not([data-disabled]) {
+    border-color: var(--token-form-control-base-border-color-hover);
+    background: var(--token-color-surface-interactive-hover);
+  }
 
-[data-scope='menu'][data-part='trigger']:hover:not([data-disabled]) {
-  border-color: var(--token-form-control-base-border-color-hover);
-  background: var(--token-color-surface-interactive-hover);
-}
+  &[data-state='open'] {
+    border-color: var(--token-color-border-action);
+    background: var(--token-color-surface-interactive-active);
+  }
 
-[data-scope='menu'][data-part='trigger'][data-state='open'] {
-  border-color: var(--token-color-border-action);
-  background: var(--token-color-surface-interactive-active);
-}
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 
-[data-scope='menu'][data-part='trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
-}
+  &[data-disabled] {
+    cursor: not-allowed;
+    border-color: var(--token-form-control-disabled-border-color);
 
-[data-scope='menu'][data-part='trigger'][data-disabled] {
-  cursor: not-allowed;
-  border-color: var(--token-form-control-disabled-border-color);
-
-  /* foreground-disabled (#8c909c) fails AA on the disabled surface. Use
+    /* foreground-disabled (#8c909c) fails AA on the disabled surface. Use
      foreground-faint (#656a76) which passes and still conveys diminished state. */
-  color: var(--token-color-foreground-faint);
-  background: var(--token-form-control-disabled-surface-color);
+    color: var(--token-color-foreground-faint);
+    background: var(--token-form-control-disabled-surface-color);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* ── Content (portal, floats above page) ───────────────────────────────── */
@@ -82,7 +81,7 @@
 [data-scope='menu'][data-part='content'] {
   transform-origin: var(--transform-origin);
 
-  display: flex;
+  display: block flex;
   flex-direction: column;
 
   min-inline-size: 10rem;
@@ -97,10 +96,14 @@
   animation-duration: var(--token-form-radiocard-transition-duration);
   animation-timing-function: ease-out;
   animation-fill-mode: both;
-}
 
-[data-scope='menu'][data-part='content'][data-state='open'] {
-  animation-name: nb-menu-scale-in;
+  &[data-state='open'] {
+    animation-name: nb-menu-scale-in;
+
+  @media screen and (prefers-reduced-motion: reduce) {
+      animation: none
+  }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -116,16 +119,14 @@
 [data-scope='menu'][data-part='content'][data-state='closed'] {
   animation-name: nb-menu-scale-out;
   animation-timing-function: ease-in;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='menu'][data-part='content'][data-state='closed'] {
+  [data-reduced-motion='reduce'] & {
     animation: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='menu'][data-part='content'][data-state='closed'] {
-  animation: none;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 
 /* ── Items ─────────────────────────────────────────────────────────────── */
@@ -134,7 +135,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: flex;
+  display: block flex;
   gap: var(--token-border-radius-small);
   align-items: center;
 
@@ -149,23 +150,23 @@
   text-decoration: none;
 
   outline: none;
-}
 
-[data-scope='menu'][data-part='item'][data-highlighted] {
-  /* foreground-action (#1060ff) fails on grey interactive-hover surface (~3.8:1).
+  &[data-highlighted] {
+    /* foreground-action (#1060ff) fails on grey interactive-hover surface (~3.8:1).
      Use foreground-strong (#0c0c0e) which clears 4.5:1 on any light surface. */
-  color: var(--token-color-foreground-strong);
-  background: var(--token-color-surface-interactive-hover);
-}
+    color: var(--token-color-foreground-strong);
+    background: var(--token-color-surface-interactive-hover);
+  }
 
-[data-scope='menu'][data-part='item'][data-disabled] {
-  cursor: not-allowed;
+  &[data-disabled] {
+    cursor: not-allowed;
 
-  /* foreground-disabled (#8c909c) fails AA on white (3.18:1). WCAG 1.4.3 exempts
+    /* foreground-disabled (#8c909c) fails AA on white (3.18:1). WCAG 1.4.3 exempts
      genuinely disabled controls, but axe still flags it. Use foreground-faint
      (#656a76, passes at ~5.74:1 on white) and signal disabled via cursor + opacity. */
-  color: var(--token-color-foreground-faint);
-  opacity: 0.6;
+    color: var(--token-color-foreground-faint);
+    opacity: 0.6;
+  }
 }
 
 /* ── Item group label ───────────────────────────────────────────────────── */

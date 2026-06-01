@@ -35,10 +35,14 @@
 
   background: var(--token-tooltip-color-surface-primary);
   box-shadow: var(--token-elevation-overlay-box-shadow);
-}
 
-[data-scope='tooltip'][data-part='content'][data-state='open'] {
-  animation: tooltip-scale-fade-in 150ms var(--token-tooltip-transition-function);
+  &[data-state='open'] {
+    animation: tooltip-scale-fade-in 150ms var(--token-tooltip-transition-function);
+
+  @media screen and (prefers-reduced-motion: reduce) {
+      animation: none
+  }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -53,16 +57,14 @@
 
 [data-scope='tooltip'][data-part='content'][data-state='closed'] {
   animation: tooltip-scale-fade-out 100ms var(--token-tooltip-transition-function);
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='tooltip'][data-part='content'][data-state='closed'] {
+  [data-reduced-motion='reduce'] & {
     animation: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='tooltip'][data-part='content'][data-state='closed'] {
-  animation: none;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 
 /* Arrow body — inherits --arrow-background set on the content part */

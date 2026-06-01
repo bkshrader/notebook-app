@@ -9,7 +9,7 @@
  * per-selector). Logical properties used throughout. */
 
 [data-scope='fieldset'][data-part='root'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
   gap: 0.75rem;
 
@@ -30,13 +30,13 @@
   font-weight: var(--token-typography-font-weight-semibold);
   line-height: var(--token-typography-body-300-line-height);
   color: var(--token-form-legend-color);
-}
 
-[data-scope='fieldset'][data-part='legend'][data-disabled] {
-  /* foreground-disabled (#8c909c) fails axe AA on white; use foreground-faint
+  &[data-disabled] {
+    /* foreground-disabled (#8c909c) fails axe AA on white; use foreground-faint
    * (#656a76, 5.74:1) which passes. Disabled state is conveyed via cursor +
    * the native fieldset disabled attribute, not just color. */
-  color: var(--token-color-foreground-faint);
+    color: var(--token-color-foreground-faint);
+  }
 }
 
 [data-scope='fieldset'][data-part='helper-text'] {
@@ -44,10 +44,10 @@
   font-size: var(--token-typography-body-100-font-size);
   line-height: var(--token-typography-body-100-line-height);
   color: var(--token-form-helper-text-color);
-}
 
-[data-scope='fieldset'][data-part='helper-text'][data-disabled] {
-  color: var(--token-color-foreground-faint);
+  &[data-disabled] {
+    color: var(--token-color-foreground-faint);
+  }
 }
 
 [data-scope='fieldset'][data-part='error-text'] {
@@ -55,8 +55,8 @@
   font-size: var(--token-typography-body-100-font-size);
   line-height: var(--token-typography-body-100-line-height);
   color: var(--token-form-error-color);
-}
 
-[data-scope='fieldset'][data-part='error-text'][data-disabled] {
-  color: var(--token-color-foreground-faint);
+  &[data-disabled] {
+    color: var(--token-color-foreground-faint);
+  }
 }

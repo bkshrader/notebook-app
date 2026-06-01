@@ -25,7 +25,7 @@
 /* ── Root ─────────────────────────────────────────────────────────────────── */
 
 [data-scope='combobox'][data-part='root'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
   gap: var(--token-form-control-padding);
 
@@ -46,14 +46,14 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-form-label-color);
-}
 
-[data-scope='combobox'][data-part='label'][data-disabled] {
-  color: var(--token-color-foreground-disabled);
-}
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
 
-[data-scope='combobox'][data-part='label'][data-invalid] {
-  color: var(--token-form-error-color);
+  &[data-invalid] {
+    color: var(--token-form-error-color);
+  }
 }
 
 /* ── Control (wraps input + buttons) ─────────────────────────────────────── */
@@ -61,7 +61,7 @@
 [data-scope='combobox'][data-part='control'] {
   position: relative;
 
-  display: flex;
+  display: block flex;
   align-items: center;
 
   border: var(--token-form-control-border-width) solid
@@ -73,38 +73,38 @@
   transition:
     border-color var(--token-form-radiocard-transition-duration) ease,
     box-shadow var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='combobox'][data-part='control'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='combobox'][data-part='control'] {
-  transition: none;
-}
+  &:hover,
+  &:focus {
+    border-color: var(--token-form-control-base-border-color-hover);
+    background: var(--token-form-control-base-surface-color-hover);
+  }
 
-[data-scope='combobox'][data-part='control']:hover {
-  border-color: var(--token-form-control-base-border-color-hover);
-  background: var(--token-form-control-base-surface-color-hover);
-}
+  &[data-focus] {
+    border-color: var(--token-color-border-action);
+  }
 
-[data-scope='combobox'][data-part='control'][data-focus] {
-  border-color: var(--token-color-border-action);
-}
+  &[data-disabled] {
+    border-color: var(--token-form-control-disabled-border-color);
+    background: var(--token-form-control-disabled-surface-color);
+  }
 
-[data-scope='combobox'][data-part='control'][data-disabled] {
-  border-color: var(--token-form-control-disabled-border-color);
-  background: var(--token-form-control-disabled-surface-color);
-}
+  &[data-invalid] {
+    border-color: var(--token-form-control-invalid-border-color-default);
+  }
 
-[data-scope='combobox'][data-part='control'][data-invalid] {
-  border-color: var(--token-form-control-invalid-border-color-default);
-}
+  &[data-invalid]:hover,
+  &[data-invalid]:focus {
+    border-color: var(--token-form-control-invalid-border-color-hover);
+  }
 
-[data-scope='combobox'][data-part='control'][data-invalid]:hover {
-  border-color: var(--token-form-control-invalid-border-color-hover);
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* ── Input ────────────────────────────────────────────────────────────────── */
@@ -149,7 +149,7 @@
 [data-scope='combobox'][data-part='trigger'] {
   cursor: pointer;
 
-  display: flex;
+  display: block flex;
   align-items: center;
   justify-content: center;
 
@@ -159,20 +159,21 @@
   color: var(--token-color-foreground-faint);
 
   background: transparent;
-}
 
-[data-scope='combobox'][data-part='trigger']:hover {
-  color: var(--token-color-foreground-primary);
-}
+  &:hover,
+  &:focus {
+    color: var(--token-color-foreground-primary);
+  }
 
-[data-scope='combobox'][data-part='trigger'][data-disabled] {
-  cursor: not-allowed;
-  color: var(--token-color-foreground-disabled);
-}
+  &[data-disabled] {
+    cursor: not-allowed;
+    color: var(--token-color-foreground-disabled);
+  }
 
-[data-scope='combobox'][data-part='trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 }
 
 /* ── Clear trigger ────────────────────────────────────────────────────────── */
@@ -180,7 +181,7 @@
 [data-scope='combobox'][data-part='clear-trigger'] {
   cursor: pointer;
 
-  display: flex;
+  display: block flex;
   align-items: center;
   justify-content: center;
 
@@ -190,15 +191,16 @@
   color: var(--token-color-foreground-faint);
 
   background: transparent;
-}
 
-[data-scope='combobox'][data-part='clear-trigger']:hover {
-  color: var(--token-color-foreground-primary);
-}
+  &:hover,
+  &:focus {
+    color: var(--token-color-foreground-primary);
+  }
 
-[data-scope='combobox'][data-part='clear-trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 }
 
 /* ── Positioner + Content (portal panel) ─────────────────────────────────── */
@@ -210,7 +212,7 @@
 [data-scope='combobox'][data-part='content'] {
   overflow-block: auto;
   overscroll-behavior: contain;
-  display: flex;
+  display: block flex;
   flex-direction: column;
 
   min-inline-size: var(--reference-width);
@@ -223,10 +225,13 @@
   background: var(--token-color-surface-primary);
   outline: none;
   box-shadow: var(--token-elevation-overlay-box-shadow);
-}
 
-[data-scope='combobox'][data-part='content'][data-state='closed'] {
-  display: none;
+  /* stylelint-disable a11y/no-display-none -- Ark removes the closed
+     listbox from the a11y tree via its state machine. */
+  &[data-state='closed'] {
+    display: none;
+  }
+  /* stylelint-enable a11y/no-display-none */
 }
 
 /* ── Item ─────────────────────────────────────────────────────────────────── */
@@ -235,7 +240,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: flex;
+  display: block flex;
   gap: var(--token-form-control-padding);
   align-items: center;
   justify-content: space-between;
@@ -247,25 +252,25 @@
   color: var(--token-color-foreground-primary);
 
   outline: none;
-}
 
-[data-scope='combobox'][data-part='item'][data-highlighted] {
-  color: var(--token-color-foreground-action-hover);
-  background: var(--token-color-surface-interactive-hover);
-}
+  &[data-highlighted] {
+    color: var(--token-color-foreground-action-hover);
+    background: var(--token-color-surface-interactive-hover);
+  }
 
-[data-scope='combobox'][data-part='item'][data-state='checked'] {
-  color: var(--token-color-foreground-action);
-}
+  &[data-state='checked'] {
+    color: var(--token-color-foreground-action);
+  }
 
-[data-scope='combobox'][data-part='item'][data-disabled] {
-  cursor: not-allowed;
-  color: var(--token-color-foreground-disabled);
-}
+  &[data-disabled] {
+    cursor: not-allowed;
+    color: var(--token-color-foreground-disabled);
+  }
 
-[data-scope='combobox'][data-part='item'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 }
 
 /* ── Item text ────────────────────────────────────────────────────────────── */

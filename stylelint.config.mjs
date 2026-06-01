@@ -60,5 +60,9 @@ export default {
 
     // Dark mode is handled centrally in the token layer
     'a11y/media-prefers-color-scheme': null,
+
+    // 6-char hex is more readable and consistent; stylelint-config-standard
+    // defaults this to 'short' but we prefer long form throughout.
+    'color-hex-length': 'long',
   },
 };

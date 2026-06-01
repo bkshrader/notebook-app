@@ -34,7 +34,7 @@
 /* ── Tree (the scrollable list element) ─────────────────────────────────── */
 
 [data-scope='tree-view'][data-part='tree'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
 }
 
@@ -44,7 +44,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: flex;
+  display: block flex;
   align-items: center;
 
   padding-inline-start: calc(
@@ -52,37 +52,38 @@
   );
 
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='tree-view'][data-part='branch-control']:hover {
-  background: var(--token-color-surface-interactive-hover);
-}
+  &:hover,
+  &:focus {
+    background: var(--token-color-surface-interactive-hover);
+  }
 
-[data-scope='tree-view'][data-part='branch-control'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 }
 
 /* ── Branch indicator (the expand/collapse chevron) ─────────────────────── */
 
 [data-scope='tree-view'][data-part='branch-indicator'] {
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
   margin-inline-end: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
 
   color: var(--token-color-foreground-faint);
-}
 
-[data-scope='tree-view'][data-part='branch-indicator'][data-state='open'] {
-  transform: rotate(90deg);
+  &[data-state='open'] {
+    transform: rotate(90deg);
+  }
 }
 
 /* ── Branch text (the key label for a branch node) ──────────────────────── */
 
 [data-scope='tree-view'][data-part='branch-text'] {
-  display: flex;
+  display: block flex;
   align-items: baseline;
   color: var(--token-color-foreground-primary);
 }
@@ -110,7 +111,7 @@
 [data-scope='tree-view'][data-part='item'] {
   position: relative;
 
-  display: flex;
+  display: block flex;
   align-items: center;
 
   padding-inline-start: calc(
@@ -119,21 +120,22 @@
   );
 
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='tree-view'][data-part='item']:hover {
-  background: var(--token-color-surface-interactive-hover);
-}
+  &:hover,
+  &:focus {
+    background: var(--token-color-surface-interactive-hover);
+  }
 
-[data-scope='tree-view'][data-part='item'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 }
 
 /* ── Item text ───────────────────────────────────────────────────────────── */
 
 [data-scope='tree-view'][data-part='item-text'] {
-  display: flex;
+  display: block flex;
   align-items: baseline;
 }
 

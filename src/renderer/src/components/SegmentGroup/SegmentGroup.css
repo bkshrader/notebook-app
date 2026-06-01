@@ -25,7 +25,7 @@
   isolation: isolate;
   position: relative;
 
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
 
   padding-block: var(--token-form-control-padding);
@@ -39,10 +39,10 @@
 
   background: var(--token-color-surface-faint);
   box-shadow: var(--token-elevation-inset-box-shadow);
-}
 
-[data-scope='segment-group'][data-part='root'][data-disabled] {
-  color: var(--token-color-foreground-disabled);
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
 }
 
 /* ── Label ────────────────────────────────────────────────────────────────── */
@@ -80,16 +80,14 @@
   transition-timing-function: var(--token-tabs-indicator-transition-function);
   transition-duration: var(--token-form-radiocard-transition-duration);
   transition-property: inline-size, block-size, inset-inline-start, inset-block-start;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='segment-group'][data-part='indicator'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='segment-group'][data-part='indicator'] {
-  transition: none;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* ── Item (each selectable segment) ──────────────────────────────────────── */
@@ -100,7 +98,7 @@
 
   position: relative;
 
-  display: flex;
+  display: block flex;
   align-items: center;
   justify-content: center;
 
@@ -109,16 +107,16 @@
   border-radius: var(--token-border-radius-small);
 
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='segment-group'][data-part='item'][data-disabled] {
-  cursor: not-allowed;
-  color: var(--token-color-foreground-disabled);
-}
+  &[data-disabled] {
+    cursor: not-allowed;
+    color: var(--token-color-foreground-disabled);
+  }
 
-[data-scope='segment-group'][data-part='item'][data-state='checked'] {
-  font-size: var(--token-typography-body-200-font-size);
-  color: var(--token-color-foreground-action);
+  &[data-state='checked'] {
+    font-size: var(--token-typography-body-200-font-size);
+    color: var(--token-color-foreground-action);
+  }
 }
 
 /* Keyboard focus ring on the item (which wraps the hidden input). */
@@ -136,6 +134,9 @@
 
 /* ── ItemControl (the hidden presentational radio indicator — not shown) ───── */
 
+/* stylelint-disable a11y/no-display-none -- presentational radio indicator;
+   selection state is conveyed on item-text, not this element. */
 [data-scope='segment-group'][data-part='item-control'] {
   display: none;
 }
+/* stylelint-enable a11y/no-display-none */

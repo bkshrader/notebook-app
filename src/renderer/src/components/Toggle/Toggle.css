@@ -24,7 +24,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: inline-flex;
+  display: inline flex;
   gap: var(--token-form-toggle-background-image-size);
   align-items: center;
   justify-content: center;
@@ -44,37 +44,37 @@
 
   transition: background-color var(--token-form-toggle-transition-duration)
     var(--token-form-toggle-transition-timing-function);
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='toggle'][data-part='root'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='toggle'][data-part='root'] {
-  transition: none;
-}
+  &[data-state='on'] {
+    border-color: var(--token-color-border-action);
+    color: var(--token-color-foreground-action);
+    background-color: var(--token-color-surface-action);
+  }
 
-[data-scope='toggle'][data-part='root'][data-state='on'] {
-  border-color: var(--token-color-border-action);
-  color: var(--token-color-foreground-action);
-  background-color: var(--token-color-surface-action);
-}
+  &:not([data-disabled]):hover,
+  &:not([data-disabled]):focus {
+    background-color: var(--token-color-surface-interactive-hover);
+  }
 
-[data-scope='toggle'][data-part='root']:not([data-disabled]):hover {
-  background-color: var(--token-color-surface-interactive-hover);
-}
+  &[data-state='on']:not([data-disabled]):hover,
+  &[data-state='on']:not([data-disabled]):focus {
+    background-color: var(--token-color-surface-interactive-active);
+  }
 
-[data-scope='toggle'][data-part='root'][data-state='on']:not([data-disabled]):hover {
-  background-color: var(--token-color-surface-interactive-active);
-}
+  &[data-disabled] {
+    cursor: not-allowed;
+    border-color: var(--token-color-border-faint);
+    color: var(--token-color-foreground-disabled);
+    background-color: var(--token-color-surface-interactive-disabled);
+  }
 
-[data-scope='toggle'][data-part='root'][data-disabled] {
-  cursor: not-allowed;
-  border-color: var(--token-color-border-faint);
-  color: var(--token-color-foreground-disabled);
-  background-color: var(--token-color-surface-interactive-disabled);
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* Keyboard focus only — never decorate mouse focus. */

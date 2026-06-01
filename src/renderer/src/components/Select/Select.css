@@ -19,7 +19,7 @@
  */
 
 [data-scope='select'][data-part='root'] {
-  display: inline-flex;
+  display: inline flex;
   flex-direction: column;
   gap: var(--token-form-toggle-border-width);
 }
@@ -31,14 +31,14 @@
   font-size: var(--token-typography-body-100-font-size);
   line-height: var(--token-typography-body-100-line-height);
   color: var(--token-form-label-color);
-}
 
-[data-scope='select'][data-part='label'][data-disabled] {
-  color: var(--token-form-control-disabled-foreground-color);
+  &[data-disabled] {
+    color: var(--token-form-control-disabled-foreground-color);
+  }
 }
 
 [data-scope='select'][data-part='control'] {
-  display: flex;
+  display: block flex;
   align-items: center;
   inline-size: 100%;
 }
@@ -46,7 +46,7 @@
 [data-scope='select'][data-part='trigger'] {
   cursor: pointer;
 
-  display: inline-flex;
+  display: inline flex;
   gap: var(--token-form-control-padding);
   align-items: center;
   justify-content: space-between;
@@ -71,16 +71,14 @@
       var(--token-form-toggle-transition-timing-function),
     box-shadow var(--token-form-toggle-transition-duration)
       var(--token-form-toggle-transition-timing-function);
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='select'][data-part='trigger'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='select'][data-part='trigger'] {
-  transition: none;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* Keyboard focus only — never decorate mouse focus. */
@@ -89,7 +87,8 @@
   box-shadow: var(--token-focus-ring-action-box-shadow);
 }
 
-[data-scope='select'][data-part='trigger']:hover {
+[data-scope='select'][data-part='trigger']:hover,
+[data-scope='select'][data-part='trigger']:focus {
   border-color: var(--token-form-control-base-border-color-hover);
   background-color: var(--token-form-control-base-surface-color-hover);
 }
@@ -103,10 +102,11 @@
 
 [data-scope='select'][data-part='trigger'][data-invalid] {
   border-color: var(--token-form-control-invalid-border-color-default);
-}
 
-[data-scope='select'][data-part='trigger'][data-invalid]:hover {
-  border-color: var(--token-form-control-invalid-border-color-hover);
+  &:hover,
+  &:focus {
+    border-color: var(--token-form-control-invalid-border-color-hover);
+  }
 }
 
 [data-scope='select'][data-part='value-text'][data-placeholder-shown] {
@@ -121,7 +121,7 @@
 /* Portalled content panel */
 [data-scope='select'][data-part='content'] {
   overflow-block: auto;
-  display: flex;
+  display: block flex;
   flex-direction: column;
 
   min-inline-size: var(--reference-width);
@@ -136,7 +136,7 @@
 }
 
 [data-scope='select'][data-part='item-group'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
 }
 
@@ -144,7 +144,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: flex;
+  display: block flex;
   align-items: center;
   justify-content: space-between;
 
@@ -156,25 +156,25 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='select'][data-part='item'][data-highlighted] {
-  color: var(--token-color-foreground-primary);
-  background-color: var(--token-color-surface-interactive-hover);
-}
+  &[data-highlighted] {
+    color: var(--token-color-foreground-primary);
+    background-color: var(--token-color-surface-interactive-hover);
+  }
 
-[data-scope='select'][data-part='item'][data-state='checked'] {
-  color: var(--token-color-foreground-action);
-}
+  &[data-state='checked'] {
+    color: var(--token-color-foreground-action);
+  }
 
-[data-scope='select'][data-part='item'][data-highlighted][data-state='checked'] {
-  color: var(--token-color-foreground-action-hover);
-  background-color: var(--token-color-surface-interactive-active);
-}
+  &[data-highlighted][data-state='checked'] {
+    color: var(--token-color-foreground-action-hover);
+    background-color: var(--token-color-surface-interactive-active);
+  }
 
-[data-scope='select'][data-part='item'][data-disabled] {
-  cursor: not-allowed;
-  color: var(--token-form-control-disabled-foreground-color);
+  &[data-disabled] {
+    cursor: not-allowed;
+    color: var(--token-form-control-disabled-foreground-color);
+  }
 }
 
 [data-scope='select'][data-part='item-text'] {

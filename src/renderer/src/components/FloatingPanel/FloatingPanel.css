@@ -20,11 +20,11 @@
   color: var(--token-color-foreground-action);
 
   background: var(--token-color-surface-primary);
-}
 
-[data-scope='floating-panel'][data-part='trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 }
 
 /* Positioner — establishes the stacking context for the floating panel */
@@ -36,7 +36,7 @@
 
 /* Content — the panel surface itself */
 [data-scope='floating-panel'][data-part='content'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
 
   inline-size: var(--width, 20rem);
@@ -50,11 +50,15 @@
    * focus context is conveyed by focus moving to the first interactive child. */
   outline: none;
   box-shadow: var(--token-elevation-overlay-box-shadow);
-}
 
-[data-scope='floating-panel'][data-part='content'][data-state='open'] {
-  animation: floating-panel-in var(--token-tabs-indicator-transition-duration)
-    var(--token-tabs-indicator-transition-function);
+  &[data-state='open'] {
+    animation: floating-panel-in var(--token-tabs-indicator-transition-duration)
+      var(--token-tabs-indicator-transition-function);
+
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -71,17 +75,14 @@
 [data-scope='floating-panel'][data-part='content'][data-state='closed'] {
   animation: floating-panel-out var(--token-tabs-indicator-transition-duration)
     var(--token-tabs-indicator-transition-function);
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='floating-panel'][data-part='content'][data-state='closed'] {
+  [data-reduced-motion='reduce'] & {
     animation: none;
   }
-}
 
-[data-reduced-motion='reduce']
-  [data-scope='floating-panel'][data-part='content'][data-state='closed'] {
-  animation: none;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 
 /* Topmost / behind stacking helpers */
@@ -97,7 +98,7 @@
 [data-scope='floating-panel'][data-part='header'] {
   cursor: grab;
 
-  display: flex;
+  display: block flex;
   align-items: center;
   justify-content: space-between;
 
@@ -108,10 +109,10 @@
   border-start-end-radius: var(--token-border-radius-medium);
 
   background: var(--token-color-surface-faint);
-}
 
-[data-scope='floating-panel'][data-part='header'][data-dragging] {
-  cursor: grabbing;
+  &[data-dragging] {
+    cursor: grabbing;
+  }
 }
 
 /* Title */
@@ -125,7 +126,7 @@
 
 /* Control — the row of stage/close trigger buttons */
 [data-scope='floating-panel'][data-part='control'] {
-  display: flex;
+  display: block flex;
   gap: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
   align-items: center;
 }
@@ -133,7 +134,7 @@
 /* Stage triggers (minimize/maximize/restore) and close trigger */
 [data-scope='floating-panel'][data-part='stage-trigger'],
 [data-scope='floating-panel'][data-part='close-trigger'] {
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
@@ -170,34 +171,37 @@
   color: var(--token-color-foreground-primary);
 }
 
-/* Body is hidden when the panel is minimized */
+/* Body is hidden when the panel is minimized; it is intentionally removed
+   from the a11y tree until the panel is restored. */
+/* stylelint-disable a11y/no-display-none */
 [data-scope='floating-panel'][data-part='body'][data-minimized] {
   display: none;
 }
+/* stylelint-enable a11y/no-display-none */
 
 /* Resize triggers — the grab handles along each edge/corner */
 [data-scope='floating-panel'][data-part='resize-trigger'] {
   position: absolute;
-}
 
-[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='n'],
-[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='s'] {
-  max-inline-size: 90%;
-  block-size: 6px;
-}
+  &[data-axis='n'],
+  &[data-axis='s'] {
+    max-inline-size: 90%;
+    block-size: 6px;
+  }
 
-[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='e'],
-[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='w'] {
-  inline-size: 6px;
-  max-block-size: 90%;
-}
+  &[data-axis='e'],
+  &[data-axis='w'] {
+    inline-size: 6px;
+    max-block-size: 90%;
+  }
 
-[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='ne'],
-[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='nw'],
-[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='se'],
-[data-scope='floating-panel'][data-part='resize-trigger'][data-axis='sw'] {
-  inline-size: 10px;
-  block-size: 10px;
+  &[data-axis='ne'],
+  &[data-axis='nw'],
+  &[data-axis='se'],
+  &[data-axis='sw'] {
+    inline-size: 10px;
+    block-size: 10px;
+  }
 }
 
 /* Keyframe animations for enter/exit */

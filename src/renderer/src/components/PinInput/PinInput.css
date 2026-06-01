@@ -16,7 +16,7 @@
  */
 
 [data-scope='pin-input'][data-part='root'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
   gap: var(--token-form-control-padding);
 
@@ -24,10 +24,10 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='pin-input'][data-part='root'][data-disabled] {
-  color: var(--token-color-foreground-disabled);
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
 }
 
 [data-scope='pin-input'][data-part='label'] {
@@ -36,14 +36,14 @@
   font-weight: var(--token-typography-font-weight-medium);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-form-label-color);
-}
 
-[data-scope='pin-input'][data-part='label'][data-disabled] {
-  color: var(--token-color-foreground-disabled);
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
 }
 
 [data-scope='pin-input'][data-part='control'] {
-  display: inline-flex;
+  display: inline flex;
   gap: var(--token-form-control-padding);
 }
 
@@ -63,11 +63,12 @@
 
   background: var(--token-form-control-base-surface-color-default);
   outline: none;
-}
 
-[data-scope='pin-input'][data-part='input']:hover:not([data-disabled], [data-invalid]) {
-  border-color: var(--token-form-control-base-border-color-hover);
-  background: var(--token-form-control-base-surface-color-hover);
+  &:hover:not([data-disabled], [data-invalid]),
+  &:focus:not([data-disabled], [data-invalid]) {
+    border-color: var(--token-form-control-base-border-color-hover);
+    background: var(--token-form-control-base-surface-color-hover);
+  }
 }
 
 /* Keyboard focus only — never decorate mouse focus. */
@@ -86,16 +87,17 @@
 
 [data-scope='pin-input'][data-part='input'][data-invalid] {
   border-color: var(--token-form-control-invalid-border-color-default);
-}
 
-[data-scope='pin-input'][data-part='input'][data-invalid]:hover:not([data-disabled]) {
-  border-color: var(--token-form-control-invalid-border-color-hover);
-}
+  &:hover:not([data-disabled]),
+  &:focus:not([data-disabled]) {
+    border-color: var(--token-form-control-invalid-border-color-hover);
+  }
 
-[data-scope='pin-input'][data-part='input'][data-invalid][data-focus-visible] {
-  border-color: var(--token-form-control-invalid-border-color-default);
-  outline: none;
-  box-shadow: var(--token-focus-ring-critical-box-shadow);
+  &[data-focus-visible] {
+    border-color: var(--token-form-control-invalid-border-color-default);
+    outline: none;
+    box-shadow: var(--token-focus-ring-critical-box-shadow);
+  }
 }
 
 [data-scope='pin-input'][data-part='input'][data-complete] {

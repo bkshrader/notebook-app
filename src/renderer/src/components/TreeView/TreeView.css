@@ -10,7 +10,7 @@
 /* ── Root ─────────────────────────────────────────────────────────────────── */
 
 [data-scope='tree-view'][data-part='root'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
   gap: var(--token-app-side-nav-body-list-item-spacing-vertical);
 
@@ -35,7 +35,7 @@
 /* ── Tree (the <ul> role="tree") ──────────────────────────────────────────── */
 
 [data-scope='tree-view'][data-part='tree'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
 
   margin: 0;
@@ -56,7 +56,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: flex;
+  display: block flex;
   gap: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
   align-items: center;
 
@@ -77,30 +77,31 @@
   text-align: start;
 
   background: transparent;
-}
 
-[data-scope='tree-view'][data-part='branch-control']:hover {
-  background: var(--token-app-side-nav-color-surface-interactive-hover);
-}
+  &:hover,
+  &:focus {
+    background: var(--token-app-side-nav-color-surface-interactive-hover);
+  }
 
-[data-scope='tree-view'][data-part='branch-control'][data-selected] {
-  color: var(--token-app-side-nav-color-foreground-strong);
-  background: var(--token-app-side-nav-color-surface-interactive-active);
-}
+  &[data-selected] {
+    color: var(--token-app-side-nav-color-foreground-strong);
+    background: var(--token-app-side-nav-color-surface-interactive-active);
+  }
 
-[data-scope='tree-view'][data-part='branch-control'][data-disabled] {
-  cursor: not-allowed;
+  &[data-disabled] {
+    cursor: not-allowed;
 
-  /* foreground-disabled (#8c909c) fails WCAG 2.1 AA on white (3.18:1).
+    /* foreground-disabled (#8c909c) fails WCAG 2.1 AA on white (3.18:1).
    * Use foreground-faint (#656a76, 5.74:1) for the text color; convey
    * disabled state via cursor and reduced opacity. */
-  color: var(--token-color-foreground-faint);
-  opacity: 0.6;
-}
+    color: var(--token-color-foreground-faint);
+    opacity: 0.6;
+  }
 
-[data-scope='tree-view'][data-part='branch-control'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 }
 
 /* ── BranchIndicator (the expand/collapse chevron) ───────────────────────── */
@@ -108,34 +109,32 @@
 [data-scope='tree-view'][data-part='branch-indicator'] {
   transform-origin: center;
 
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
   color: var(--token-app-side-nav-color-foreground-faint);
 
   transition: transform var(--token-form-radiocard-transition-duration) ease;
-}
 
-[data-scope='tree-view'][data-part='branch-indicator'][data-state='open'] {
-  transform: rotate(90deg);
-}
+  &[data-state='open'] {
+    transform: rotate(90deg);
+  }
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='tree-view'][data-part='branch-indicator'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='tree-view'][data-part='branch-indicator'] {
-  transition: none;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* ── BranchText ───────────────────────────────────────────────────────────── */
 
 [data-scope='tree-view'][data-part='branch-text'] {
   overflow: hidden;
-  display: inline-flex;
+  display: inline flex;
   flex: 1;
   gap: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
   align-items: center;
@@ -149,14 +148,22 @@
 [data-scope='tree-view'][data-part='branch-content'] {
   position: relative;
   overflow: hidden;
-}
 
-[data-scope='tree-view'][data-part='branch-content'][data-state='open'] {
-  animation: tree-view-slide-down var(--token-form-radiocard-transition-duration) ease-out;
-}
+  &[data-state='open'] {
+    animation: tree-view-slide-down var(--token-form-radiocard-transition-duration) ease-out;
 
-[data-scope='tree-view'][data-part='branch-content'][data-state='closed'] {
-  animation: tree-view-slide-up var(--token-form-radiocard-transition-duration) ease-out;
+  @media screen and (prefers-reduced-motion: reduce) {
+      animation: none
+  }
+  }
+
+  &[data-state='closed'] {
+    animation: tree-view-slide-up var(--token-form-radiocard-transition-duration) ease-out;
+
+  @media screen and (prefers-reduced-motion: reduce) {
+      animation: none
+  }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -205,7 +212,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: flex;
+  display: block flex;
   gap: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
   align-items: center;
 
@@ -222,37 +229,38 @@
   list-style: none;
 
   background: transparent;
-}
 
-[data-scope='tree-view'][data-part='item']:hover {
-  background: var(--token-app-side-nav-color-surface-interactive-hover);
-}
+  &:hover,
+  &:focus {
+    background: var(--token-app-side-nav-color-surface-interactive-hover);
+  }
 
-[data-scope='tree-view'][data-part='item'][data-selected] {
-  color: var(--token-app-side-nav-color-foreground-strong);
-  background: var(--token-app-side-nav-color-surface-interactive-active);
-}
+  &[data-selected] {
+    color: var(--token-app-side-nav-color-foreground-strong);
+    background: var(--token-app-side-nav-color-surface-interactive-active);
+  }
 
-[data-scope='tree-view'][data-part='item'][data-disabled] {
-  cursor: not-allowed;
+  &[data-disabled] {
+    cursor: not-allowed;
 
-  /* foreground-disabled (#8c909c) fails WCAG 2.1 AA on white (3.18:1).
+    /* foreground-disabled (#8c909c) fails WCAG 2.1 AA on white (3.18:1).
    * Use foreground-faint (#656a76, 5.74:1) for the text color; convey
    * disabled state via cursor and reduced opacity. */
-  color: var(--token-color-foreground-faint);
-  opacity: 0.6;
-}
+    color: var(--token-color-foreground-faint);
+    opacity: 0.6;
+  }
 
-[data-scope='tree-view'][data-part='item'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 }
 
 /* ── ItemText ─────────────────────────────────────────────────────────────── */
 
 [data-scope='tree-view'][data-part='item-text'] {
   overflow: hidden;
-  display: inline-flex;
+  display: inline flex;
   flex: 1;
   gap: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
   align-items: center;

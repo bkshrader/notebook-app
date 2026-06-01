@@ -7,7 +7,7 @@
  * selector getting its OWN reduced-motion reset. */
 
 [data-scope='qr-code'][data-part='root'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
   gap: var(--token-form-control-padding);
   inline-size: fit-content;
@@ -23,7 +23,7 @@
 }
 
 [data-scope='qr-code'][data-part='download-trigger'] {
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
@@ -40,29 +40,28 @@
 
   transition: background-color var(--token-form-toggle-transition-duration)
     var(--token-form-toggle-transition-timing-function);
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='qr-code'][data-part='download-trigger'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='qr-code'][data-part='download-trigger'] {
-  transition: none;
-}
+  &:hover,
+  &:focus {
+    background: var(--token-color-surface-interactive-hover);
+  }
 
-[data-scope='qr-code'][data-part='download-trigger']:hover {
-  background: var(--token-color-surface-interactive-hover);
-}
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 
-[data-scope='qr-code'][data-part='download-trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
-}
+  &:disabled,
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+    background: var(--token-color-surface-interactive-disabled);
+  }
 
-[data-scope='qr-code'][data-part='download-trigger']:disabled,
-[data-scope='qr-code'][data-part='download-trigger'][data-disabled] {
-  color: var(--token-color-foreground-disabled);
-  background: var(--token-color-surface-interactive-disabled);
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }

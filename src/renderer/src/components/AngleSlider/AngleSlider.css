@@ -24,7 +24,7 @@
  */
 
 [data-scope='angle-slider'][data-part='root'] {
-  display: inline-flex;
+  display: inline flex;
   flex-direction: column;
   gap: var(--token-form-control-padding);
   align-items: center;
@@ -33,11 +33,11 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='angle-slider'][data-part='root'][data-disabled] {
-  cursor: not-allowed;
-  color: var(--token-color-foreground-faint);
+  &[data-disabled] {
+    cursor: not-allowed;
+    color: var(--token-color-foreground-faint);
+  }
 }
 
 [data-scope='angle-slider'][data-part='label'] {
@@ -47,10 +47,10 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-form-label-color);
-}
 
-[data-scope='angle-slider'][data-part='label'][data-disabled] {
-  color: var(--token-color-foreground-faint);
+  &[data-disabled] {
+    color: var(--token-color-foreground-faint);
+  }
 }
 
 /* Circular track container. Ark injects --angle (degrees) and --value on
@@ -58,7 +58,7 @@
 [data-scope='angle-slider'][data-part='control'] {
   position: relative;
 
-  display: flex;
+  display: block flex;
   align-items: center;
   justify-content: center;
 
@@ -70,11 +70,11 @@
 
   background: var(--token-color-surface-faint);
   box-shadow: var(--token-elevation-inset-box-shadow);
-}
 
-[data-scope='angle-slider'][data-part='control'][data-disabled] {
-  border-color: var(--token-form-control-disabled-border-color);
-  background: var(--token-form-control-disabled-surface-color);
+  &[data-disabled] {
+    border-color: var(--token-form-control-disabled-border-color);
+    background: var(--token-form-control-disabled-surface-color);
+  }
 }
 
 /* Thumb: a line extending from center, rotated by Ark's --angle variable.
@@ -94,16 +94,14 @@
 
   transition: background-color var(--token-form-toggle-transition-duration)
     var(--token-form-toggle-transition-timing-function);
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='angle-slider'][data-part='thumb'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='angle-slider'][data-part='thumb'] {
-  transition: none;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* Keyboard focus only — never decorate mouse focus. */
@@ -136,14 +134,14 @@
   border-radius: var(--token-border-radius-small);
 
   background: var(--token-color-border-faint);
-}
 
-[data-scope='angle-slider'][data-part='marker'][data-state='at-value'] {
-  background: var(--token-color-border-action);
-}
+  &[data-state='at-value'] {
+    background: var(--token-color-border-action);
+  }
 
-[data-scope='angle-slider'][data-part='marker'][data-state='under-value'] {
-  background: var(--token-color-border-strong);
+  &[data-state='under-value'] {
+    background: var(--token-color-border-strong);
+  }
 }
 
 /* Value text: numeric readout below the control. */
@@ -153,8 +151,8 @@
   font-weight: var(--token-typography-font-weight-medium);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='angle-slider'][data-part='value-text'][data-disabled] {
-  color: var(--token-color-foreground-faint);
+  &[data-disabled] {
+    color: var(--token-color-foreground-faint);
+  }
 }

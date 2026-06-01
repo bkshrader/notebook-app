@@ -18,7 +18,7 @@
 /* ── Root ──────────────────────────────────────────────────────────────── */
 
 [data-scope='tags-input'][data-part='root'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
   gap: var(--token-form-control-padding);
 
@@ -28,11 +28,11 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='tags-input'][data-part='root'][data-disabled] {
-  /* foreground-disabled fails AA; foreground-faint passes on white. */
-  color: var(--token-color-foreground-faint);
+  &[data-disabled] {
+    /* foreground-disabled fails AA; foreground-faint passes on white. */
+    color: var(--token-color-foreground-faint);
+  }
 }
 
 /* ── Label ─────────────────────────────────────────────────────────────── */
@@ -44,21 +44,21 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-form-label-color);
-}
 
-[data-scope='tags-input'][data-part='label'][data-disabled] {
-  /* foreground-disabled fails AA; foreground-faint passes on white. */
-  color: var(--token-color-foreground-faint);
-}
+  &[data-disabled] {
+    /* foreground-disabled fails AA; foreground-faint passes on white. */
+    color: var(--token-color-foreground-faint);
+  }
 
-[data-scope='tags-input'][data-part='label'][data-invalid] {
-  color: var(--token-form-error-color);
+  &[data-invalid] {
+    color: var(--token-form-error-color);
+  }
 }
 
 /* ── Control (the tag pill + input container) ──────────────────────────── */
 
 [data-scope='tags-input'][data-part='control'] {
-  display: flex;
+  display: block flex;
   flex-wrap: wrap;
   gap: var(--token-form-control-padding);
   align-items: center;
@@ -72,47 +72,45 @@
   background: var(--token-form-control-base-surface-color-default);
 
   transition: border-color var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='tags-input'][data-part='control'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='tags-input'][data-part='control'] {
-  transition: none;
-}
+  &[data-focus] {
+    border-color: var(--token-color-border-action);
+  }
 
-[data-scope='tags-input'][data-part='control'][data-focus] {
-  border-color: var(--token-color-border-action);
-}
+  &[data-focus][data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 
-[data-scope='tags-input'][data-part='control'][data-focus][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
-}
+  &[data-invalid] {
+    border-color: var(--token-form-control-invalid-border-color-default);
+  }
 
-[data-scope='tags-input'][data-part='control'][data-invalid] {
-  border-color: var(--token-form-control-invalid-border-color-default);
-}
+  &[data-disabled] {
+    border-color: var(--token-form-control-disabled-border-color);
+    background: var(--token-form-control-disabled-surface-color);
+  }
 
-[data-scope='tags-input'][data-part='control'][data-disabled] {
-  border-color: var(--token-form-control-disabled-border-color);
-  background: var(--token-form-control-disabled-surface-color);
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* ── Item (wrapper around preview + inline edit input) ─────────────────── */
 
 [data-scope='tags-input'][data-part='item'] {
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
 }
 
 /* ── ItemPreview (the visible pill) ────────────────────────────────────── */
 
 [data-scope='tags-input'][data-part='item-preview'] {
-  display: inline-flex;
+  display: inline flex;
   gap: var(--token-form-control-padding);
   align-items: center;
 
@@ -125,28 +123,26 @@
   background: var(--token-color-surface-interactive);
 
   transition: background-color var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='tags-input'][data-part='item-preview'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='tags-input'][data-part='item-preview'] {
-  transition: none;
-}
+  &[data-highlighted] {
+    color: var(--token-color-foreground-action);
+    background: var(--token-color-surface-interactive-active);
+  }
 
-[data-scope='tags-input'][data-part='item-preview'][data-highlighted] {
-  color: var(--token-color-foreground-action);
-  background: var(--token-color-surface-interactive-active);
-}
-
-[data-scope='tags-input'][data-part='item-preview'][data-disabled] {
-  /* foreground-disabled (#8c909c) fails 4.5:1 on surface-interactive-disabled.
+  &[data-disabled] {
+    /* foreground-disabled (#8c909c) fails 4.5:1 on surface-interactive-disabled.
      foreground-faint (#656a76) passes on white/near-white surfaces. */
-  color: var(--token-color-foreground-faint);
-  background: var(--token-color-surface-interactive-disabled);
+    color: var(--token-color-foreground-faint);
+    background: var(--token-color-surface-interactive-disabled);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* ── ItemText ──────────────────────────────────────────────────────────── */
@@ -155,12 +151,12 @@
   font-family: var(--token-typography-body-200-font-family);
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
-}
 
-[data-scope='tags-input'][data-part='item-text'][data-disabled] {
-  /* foreground-disabled (#8c909c) is 3.05:1 on surface-interactive-disabled — fails AA.
+  &[data-disabled] {
+    /* foreground-disabled (#8c909c) is 3.05:1 on surface-interactive-disabled — fails AA.
      foreground-faint (#656a76) passes ≥4.5:1 on white/near-white. */
-  color: var(--token-color-foreground-faint);
+    color: var(--token-color-foreground-faint);
+  }
 }
 
 /* ── ItemDeleteTrigger ─────────────────────────────────────────────────── */
@@ -168,7 +164,7 @@
 [data-scope='tags-input'][data-part='item-delete-trigger'] {
   cursor: pointer;
 
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
@@ -182,17 +178,17 @@
   color: inherit;
 
   background: transparent;
-}
 
-[data-scope='tags-input'][data-part='item-delete-trigger'][data-highlighted] {
-  color: var(--token-color-foreground-action);
-}
+  &[data-highlighted] {
+    color: var(--token-color-foreground-action);
+  }
 
-[data-scope='tags-input'][data-part='item-delete-trigger'][data-disabled] {
-  cursor: not-allowed;
+  &[data-disabled] {
+    cursor: not-allowed;
 
-  /* foreground-disabled fails AA on near-white; foreground-faint passes. */
-  color: var(--token-color-foreground-faint);
+    /* foreground-disabled fails AA on near-white; foreground-faint passes. */
+    color: var(--token-color-foreground-faint);
+  }
 }
 
 /* ── ItemInput (inline edit input, hidden until editing) ───────────────── */

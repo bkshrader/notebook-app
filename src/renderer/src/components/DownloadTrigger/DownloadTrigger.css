@@ -22,7 +22,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: inline-flex;
+  display: inline flex;
   gap: var(--token-form-control-padding);
   align-items: center;
   justify-content: center;
@@ -46,24 +46,22 @@
     background-color var(--token-form-radiocard-transition-duration) ease,
     border-color var(--token-form-radiocard-transition-duration) ease,
     color var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='download-trigger'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='download-trigger'] {
-  transition: none;
-}
+  &[data-disabled],
+  &:disabled {
+    cursor: not-allowed;
+    border-color: var(--token-color-border-faint);
+    color: var(--token-color-foreground-disabled);
+    background: var(--token-color-surface-interactive-disabled);
+  }
 
-[data-scope='download-trigger'][data-disabled],
-[data-scope='download-trigger']:disabled {
-  cursor: not-allowed;
-  border-color: var(--token-color-border-faint);
-  color: var(--token-color-foreground-disabled);
-  background: var(--token-color-surface-interactive-disabled);
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* Keyboard focus only — never decorate pointer focus. */
@@ -72,7 +70,8 @@
   box-shadow: var(--token-focus-ring-action-box-shadow);
 }
 
-[data-scope='download-trigger']:hover:not([data-disabled], :disabled) {
+[data-scope='download-trigger']:hover:not([data-disabled], :disabled),
+[data-scope='download-trigger']:focus:not([data-disabled], :disabled) {
   border-color: var(--token-color-foreground-action-hover);
   color: var(--token-color-foreground-action-hover);
   background: var(--token-color-surface-interactive-hover);

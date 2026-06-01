@@ -18,7 +18,7 @@
 
 /* Root nav landmark — flex row wrapping all controls. */
 [data-scope='pagination'][data-part='root'] {
-  display: flex;
+  display: block flex;
   flex-wrap: wrap;
   gap: var(--token-pagination-child-spacing-horizontal)
     var(--token-pagination-child-spacing-vertical);
@@ -31,7 +31,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
@@ -55,16 +55,14 @@
     background-color var(--token-form-radiocard-transition-duration) ease,
     border-color var(--token-form-radiocard-transition-duration) ease,
     color var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='pagination'][data-part='item'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='pagination'][data-part='item'] {
-  transition: none;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* ─── Prev trigger ──────────────────────────────────────────────────────── */
@@ -73,7 +71,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
@@ -97,16 +95,14 @@
     background-color var(--token-form-radiocard-transition-duration) ease,
     border-color var(--token-form-radiocard-transition-duration) ease,
     color var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='pagination'][data-part='prev-trigger'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='pagination'][data-part='prev-trigger'] {
-  transition: none;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* ─── Next trigger ──────────────────────────────────────────────────────── */
@@ -115,7 +111,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
@@ -139,16 +135,14 @@
     background-color var(--token-form-radiocard-transition-duration) ease,
     border-color var(--token-form-radiocard-transition-duration) ease,
     color var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='pagination'][data-part='next-trigger'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='pagination'][data-part='next-trigger'] {
-  transition: none;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* ─── First trigger ─────────────────────────────────────────────────────── */
@@ -157,7 +151,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
@@ -181,16 +175,14 @@
     background-color var(--token-form-radiocard-transition-duration) ease,
     border-color var(--token-form-radiocard-transition-duration) ease,
     color var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='pagination'][data-part='first-trigger'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='pagination'][data-part='first-trigger'] {
-  transition: none;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* ─── Last trigger ──────────────────────────────────────────────────────── */
@@ -199,7 +191,7 @@
   cursor: pointer;
   user-select: none;
 
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
@@ -223,45 +215,48 @@
     background-color var(--token-form-radiocard-transition-duration) ease,
     border-color var(--token-form-radiocard-transition-duration) ease,
     color var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='pagination'][data-part='last-trigger'] {
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
 }
 
-[data-reduced-motion='reduce'] [data-scope='pagination'][data-part='last-trigger'] {
-  transition: none;
-}
-
 /* ─── Hover (non-selected, non-disabled) ───────────────────────────────── */
 
-[data-scope='pagination'][data-part='item']:hover:not([data-selected], [data-disabled]) {
+[data-scope='pagination'][data-part='item']:hover:not([data-selected], [data-disabled]),
+[data-scope='pagination'][data-part='item']:focus:not([data-selected], [data-disabled]) {
   border-color: var(--token-color-border-strong);
   color: var(--token-color-foreground-strong);
   background: var(--token-color-surface-interactive-hover);
 }
 
-[data-scope='pagination'][data-part='prev-trigger']:hover:not([data-disabled]) {
+[data-scope='pagination'][data-part='prev-trigger']:hover:not([data-disabled]),
+[data-scope='pagination'][data-part='prev-trigger']:focus:not([data-disabled]) {
   border-color: var(--token-color-border-strong);
   color: var(--token-color-foreground-strong);
   background: var(--token-color-surface-interactive-hover);
 }
 
-[data-scope='pagination'][data-part='next-trigger']:hover:not([data-disabled]) {
+[data-scope='pagination'][data-part='next-trigger']:hover:not([data-disabled]),
+[data-scope='pagination'][data-part='next-trigger']:focus:not([data-disabled]) {
   border-color: var(--token-color-border-strong);
   color: var(--token-color-foreground-strong);
   background: var(--token-color-surface-interactive-hover);
 }
 
-[data-scope='pagination'][data-part='first-trigger']:hover:not([data-disabled]) {
+[data-scope='pagination'][data-part='first-trigger']:hover:not([data-disabled]),
+[data-scope='pagination'][data-part='first-trigger']:focus:not([data-disabled]) {
   border-color: var(--token-color-border-strong);
   color: var(--token-color-foreground-strong);
   background: var(--token-color-surface-interactive-hover);
 }
 
-[data-scope='pagination'][data-part='last-trigger']:hover:not([data-disabled]) {
+[data-scope='pagination'][data-part='last-trigger']:hover:not([data-disabled]),
+[data-scope='pagination'][data-part='last-trigger']:focus:not([data-disabled]) {
   border-color: var(--token-color-border-strong);
   color: var(--token-color-foreground-strong);
   background: var(--token-color-surface-interactive-hover);
@@ -346,7 +341,7 @@
 [data-scope='pagination'][data-part='ellipsis'] {
   user-select: none;
 
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 

@@ -22,7 +22,7 @@
 /* ── Root ─────────────────────────────────────────────────────────────────── */
 
 [data-scope='slider'][data-part='root'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
   gap: var(--token-form-control-padding);
 
@@ -32,12 +32,12 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='slider'][data-part='root'][data-disabled] {
-  /* foreground-faint (#656a76, 5.92:1 on white) passes AA; foreground-disabled
+  &[data-disabled] {
+    /* foreground-faint (#656a76, 5.92:1 on white) passes AA; foreground-disabled
    * (#8c909c, 3.18:1) is WCAG-exempt for disabled but axe still flags it. */
-  color: var(--token-color-foreground-faint);
+    color: var(--token-color-foreground-faint);
+  }
 }
 
 /* ── Header row (label + value text) ─────────────────────────────────────── */
@@ -45,7 +45,7 @@
 /* The header <div> uses data-scope/data-part so the selector stays in the
  * Ark attribute namespace; we can style it without a class name. */
 [data-scope='slider'][data-part='header'] {
-  display: flex;
+  display: block flex;
   align-items: baseline;
   justify-content: space-between;
 }
@@ -59,13 +59,13 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-form-label-color);
-}
 
-[data-scope='slider'][data-part='label'][data-disabled] {
-  /* foreground-faint (#656a76) clears 4.5:1 on white; foreground-disabled
+  &[data-disabled] {
+    /* foreground-faint (#656a76) clears 4.5:1 on white; foreground-disabled
    * (#8c909c) is WCAG-exempted for disabled controls but axe still flags it.
    * Convey disabled state via cursor/opacity on the control chrome instead. */
-  color: var(--token-color-foreground-faint);
+    color: var(--token-color-foreground-faint);
+  }
 }
 
 /* ── Value text ───────────────────────────────────────────────────────────── */
@@ -75,27 +75,27 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-color-foreground-faint);
-}
 
-[data-scope='slider'][data-part='value-text'][data-disabled] {
-  /* Keep foreground-faint — it passes 4.5:1 on white. foreground-disabled
+  &[data-disabled] {
+    /* Keep foreground-faint — it passes 4.5:1 on white. foreground-disabled
    * (#8c909c, 3.18:1) is WCAG-exempt for disabled UI but axe flags it. */
-  color: var(--token-color-foreground-faint);
+    color: var(--token-color-foreground-faint);
+  }
 }
 
 /* ── Control (the clickable area surrounding track + thumb) ───────────────── */
 
 [data-scope='slider'][data-part='control'] {
   position: relative;
-  display: flex;
+  display: block flex;
   align-items: center;
   block-size: var(--token-form-toggle-height);
-}
 
-[data-scope='slider'][data-part='control'][data-orientation='vertical'] {
-  flex-direction: column;
-  inline-size: var(--token-form-toggle-height);
-  block-size: 100%;
+  &[data-orientation='vertical'] {
+    flex-direction: column;
+    inline-size: var(--token-form-toggle-height);
+    block-size: 100%;
+  }
 }
 
 /* ── Track ────────────────────────────────────────────────────────────────── */
@@ -108,15 +108,15 @@
   border-radius: var(--token-border-radius-large);
 
   background: var(--token-form-control-base-border-color-default);
-}
 
-[data-scope='slider'][data-part='track'][data-orientation='vertical'] {
-  inline-size: var(--token-form-toggle-border-width);
-  block-size: 100%;
-}
+  &[data-orientation='vertical'] {
+    inline-size: var(--token-form-toggle-border-width);
+    block-size: 100%;
+  }
 
-[data-scope='slider'][data-part='track'][data-disabled] {
-  background: var(--token-form-control-disabled-border-color);
+  &[data-disabled] {
+    background: var(--token-form-control-disabled-border-color);
+  }
 }
 
 /* ── Range (filled portion of the track) ─────────────────────────────────── */
@@ -124,14 +124,14 @@
 [data-scope='slider'][data-part='range'] {
   block-size: 100%;
   background: var(--token-form-control-checked-surface-color-default);
-}
 
-[data-scope='slider'][data-part='range'][data-orientation='vertical'] {
-  inline-size: 100%;
-}
+  &[data-orientation='vertical'] {
+    inline-size: 100%;
+  }
 
-[data-scope='slider'][data-part='range'][data-disabled] {
-  background: var(--token-form-control-disabled-surface-color);
+  &[data-disabled] {
+    background: var(--token-form-control-disabled-surface-color);
+  }
 }
 
 /* ── Thumb ────────────────────────────────────────────────────────────────── */
@@ -141,7 +141,7 @@
 [data-scope='slider'][data-part='thumb'] {
   cursor: pointer;
 
-  display: flex;
+  display: block flex;
   align-items: center;
   justify-content: center;
 
@@ -155,12 +155,12 @@
   background: var(--token-color-surface-primary);
   outline: none;
   box-shadow: var(--token-elevation-low-box-shadow);
-}
 
-[data-scope='slider'][data-part='thumb'][data-disabled] {
-  cursor: not-allowed;
-  border-color: var(--token-form-control-disabled-border-color);
-  background: var(--token-form-control-disabled-surface-color);
+  &[data-disabled] {
+    cursor: not-allowed;
+    border-color: var(--token-form-control-disabled-border-color);
+    background: var(--token-form-control-disabled-surface-color);
+  }
 }
 
 /* Keyboard focus only — never decorate mouse focus. */

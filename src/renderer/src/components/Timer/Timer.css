@@ -17,7 +17,7 @@
  */
 
 [data-scope='timer'][data-part='root'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
   gap: var(--token-form-toggle-background-image-size);
 
@@ -26,13 +26,13 @@
 }
 
 [data-scope='timer'][data-part='area'] {
-  display: flex;
+  display: block flex;
   gap: var(--token-form-toggle-border-width);
   align-items: center;
 }
 
 [data-scope='timer'][data-part='item'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
   align-items: center;
 
@@ -74,14 +74,14 @@
 }
 
 [data-scope='timer'][data-part='control'] {
-  display: flex;
+  display: block flex;
   gap: var(--token-border-radius-medium);
 }
 
 [data-scope='timer'][data-part='action-trigger'] {
   cursor: pointer;
 
-  display: inline-flex;
+  display: inline flex;
   align-items: center;
   justify-content: center;
 
@@ -99,24 +99,23 @@
 
   transition: background-color var(--token-form-toggle-transition-duration)
     var(--token-form-toggle-transition-timing-function);
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='timer'][data-part='action-trigger'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='timer'][data-part='action-trigger'] {
-  transition: none;
-}
+  &:hover,
+  &:focus {
+    background: var(--token-color-surface-interactive-hover);
+  }
 
-[data-scope='timer'][data-part='action-trigger']:hover {
-  background: var(--token-color-surface-interactive-hover);
-}
+  &:active {
+    background: var(--token-color-surface-interactive-active);
+  }
 
-[data-scope='timer'][data-part='action-trigger']:active {
-  background: var(--token-color-surface-interactive-active);
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* Keyboard focus only — never decorate mouse focus. */

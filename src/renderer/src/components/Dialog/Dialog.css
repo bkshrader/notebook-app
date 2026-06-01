@@ -13,11 +13,15 @@
   inset: 0;
   opacity: 0.6;
   background: var(--token-color-surface-strong);
-}
 
-[data-scope='dialog'][data-part='backdrop'][data-state='open'] {
-  animation: dialog-backdrop-in var(--token-tabs-indicator-transition-duration)
-    var(--token-tabs-indicator-transition-function);
+  &[data-state='open'] {
+    animation: dialog-backdrop-in var(--token-tabs-indicator-transition-duration)
+      var(--token-tabs-indicator-transition-function);
+
+  @media screen and (prefers-reduced-motion: reduce) {
+      animation: none
+  }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -33,16 +37,14 @@
 [data-scope='dialog'][data-part='backdrop'][data-state='closed'] {
   animation: dialog-backdrop-out var(--token-tabs-indicator-transition-duration)
     var(--token-tabs-indicator-transition-function);
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='dialog'][data-part='backdrop'][data-state='closed'] {
+  [data-reduced-motion='reduce'] & {
     animation: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='dialog'][data-part='backdrop'][data-state='closed'] {
-  animation: none;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 
 /* Positioner — fixed full-viewport centering layer */
@@ -50,7 +52,7 @@
   position: fixed;
   inset: 0;
 
-  display: flex;
+  display: block flex;
   align-items: center;
   justify-content: center;
 }
@@ -59,7 +61,7 @@
 [data-scope='dialog'][data-part='content'] {
   position: relative;
 
-  display: flex;
+  display: block flex;
   flex-direction: column;
   gap: var(--token-form-radiocard-group-gap);
 
@@ -78,11 +80,15 @@
    * by the backdrop + focus moving to the first focusable child inside. */
   outline: none;
   box-shadow: var(--token-elevation-overlay-box-shadow);
-}
 
-[data-scope='dialog'][data-part='content'][data-state='open'] {
-  animation: dialog-content-in var(--token-tabs-indicator-transition-duration)
-    var(--token-tabs-indicator-transition-function);
+  &[data-state='open'] {
+    animation: dialog-content-in var(--token-tabs-indicator-transition-duration)
+      var(--token-tabs-indicator-transition-function);
+
+  @media screen and (prefers-reduced-motion: reduce) {
+      animation: none
+  }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -98,16 +104,14 @@
 [data-scope='dialog'][data-part='content'][data-state='closed'] {
   animation: dialog-content-out var(--token-tabs-indicator-transition-duration)
     var(--token-tabs-indicator-transition-function);
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='dialog'][data-part='content'][data-state='closed'] {
+  [data-reduced-motion='reduce'] & {
     animation: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='dialog'][data-part='content'][data-state='closed'] {
-  animation: none;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 
 /* Title */
@@ -140,11 +144,11 @@
   color: var(--token-color-foreground-action);
 
   background: var(--token-color-surface-primary);
-}
 
-[data-scope='dialog'][data-part='trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 }
 
 /* Close trigger button */
@@ -160,11 +164,11 @@
   color: var(--token-color-foreground-action);
 
   background: var(--token-color-surface-primary);
-}
 
-[data-scope='dialog'][data-part='close-trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+  &[data-focus-visible] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
 }
 
 /* Keyframe animations for enter/exit */

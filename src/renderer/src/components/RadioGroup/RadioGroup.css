@@ -18,7 +18,7 @@
  */
 
 [data-scope='radio-group'][data-part='root'] {
-  display: flex;
+  display: block flex;
   flex-direction: column;
   gap: var(--token-form-control-padding);
 
@@ -26,10 +26,10 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='radio-group'][data-part='root'][data-disabled] {
-  color: var(--token-color-foreground-disabled);
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
 }
 
 [data-scope='radio-group'][data-part='label'] {
@@ -38,28 +38,28 @@
   font-weight: var(--token-typography-font-weight-medium);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-form-label-color);
-}
 
-[data-scope='radio-group'][data-part='label'][data-disabled] {
-  color: var(--token-color-foreground-disabled);
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
 }
 
 /* Each radio option row */
 [data-scope='radio-group'][data-part='item'] {
   cursor: pointer;
-  display: inline-flex;
+  display: inline flex;
   gap: var(--token-form-control-padding);
   align-items: center;
-}
 
-[data-scope='radio-group'][data-part='item'][data-disabled] {
-  cursor: not-allowed;
-  color: var(--token-color-foreground-disabled);
+  &[data-disabled] {
+    cursor: not-allowed;
+    color: var(--token-color-foreground-disabled);
+  }
 }
 
 /* The circular control (visual-only, aria-hidden) */
 [data-scope='radio-group'][data-part='item-control'] {
-  display: inline-flex;
+  display: inline flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
@@ -76,36 +76,34 @@
   transition:
     border-color var(--token-form-radiocard-transition-duration) ease,
     background var(--token-form-radiocard-transition-duration) ease;
-}
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='radio-group'][data-part='item-control'] {
+  [data-reduced-motion='reduce'] & {
     transition: none;
   }
-}
 
-[data-reduced-motion='reduce'] [data-scope='radio-group'][data-part='item-control'] {
-  transition: none;
-}
+  &[data-state='checked'] {
+    border-color: var(--token-form-control-checked-border-color-default);
 
-[data-scope='radio-group'][data-part='item-control'][data-state='checked'] {
-  border-color: var(--token-form-control-checked-border-color-default);
+    background: var(--token-form-control-checked-surface-color-default);
+    background-image: var(--token-form-radio-background-image-data-url);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: var(--token-form-radio-background-image-size);
+  }
 
-  background: var(--token-form-control-checked-surface-color-default);
-  background-image: var(--token-form-radio-background-image-data-url);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: var(--token-form-radio-background-image-size);
-}
+  &[data-disabled] {
+    border-color: var(--token-form-control-disabled-border-color);
 
-[data-scope='radio-group'][data-part='item-control'][data-disabled] {
-  border-color: var(--token-form-control-disabled-border-color);
+    background: var(--token-form-control-disabled-surface-color);
+    background-image: var(--token-form-radio-background-image-data-url-disabled);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: var(--token-form-radio-background-image-size);
+  }
 
-  background: var(--token-form-control-disabled-surface-color);
-  background-image: var(--token-form-radio-background-image-data-url-disabled);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: var(--token-form-radio-background-image-size);
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 /* Keyboard focus only — never decorate mouse focus. */
@@ -117,8 +115,8 @@
 [data-scope='radio-group'][data-part='item-text'] {
   user-select: none;
   color: var(--token-color-foreground-primary);
-}
 
-[data-scope='radio-group'][data-part='item-text'][data-disabled] {
-  color: var(--token-color-foreground-disabled);
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
 }

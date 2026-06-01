@@ -1,7 +1,7 @@
 [data-scope='avatar'][data-part='root'] {
   user-select: none;
 
-  display: inline-flex;
+  display: inline flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
