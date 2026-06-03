@@ -1,0 +1,196 @@
+/**
+ * Table — token-styled, built on a real HTML <table> + the TanStack Table
+ * (headless) data layer.
+ *
+ * Helios is explicit (Accessibility tab, "For engineers"): do NOT change the
+ * table's `display` property — altering it strips the table semantics that
+ * assistive technology relies on. So the root stays `table` and every part is
+ * styled via its `data-scope`/`data-part` attribute (per the
+ * unstyled-primitives-ark ADR — no custom class names).
+ *
+ * Every color-bearing value resolves to a semantic Helios `--token-*` custom
+ * property (never `--token-color-palette-*`, never a raw literal). The sort
+ * button's focus ring is drawn ONLY on keyboard focus (`:focus-visible`), and
+ * its transition is suppressed under reduced motion via BOTH the
+ * `prefers-reduced-motion` media query and the `[data-reduced-motion='reduce']`
+ * attribute the Storybook toolbar sets.
+ */
+
+[data-scope='table'][data-part='root'] {
+  border-collapse: collapse;
+
+  inline-size: 100%;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  &[data-layout='fixed'] {
+    table-layout: fixed;
+  }
+}
+
+[data-scope='table'][data-part='caption'] {
+  margin-block-end: var(--token-border-radius-medium);
+  font-weight: var(--token-typography-font-weight-bold);
+  color: var(--token-color-foreground-strong);
+  text-align: start;
+
+  /* Visually-hidden but kept in the accessibility tree (WCAG 1.3.1). */
+  &[data-hidden] {
+    position: absolute;
+
+    overflow: hidden;
+
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+
+    white-space: nowrap;
+
+    clip-path: inset(50%);
+  }
+}
+
+/* Header + body cell shared box. Padding values are the Helios ground-truth
+   pixels (the live .hds-table CSS uses literals — Helios has no spacing-token
+   scale, and stylelint's strict-value rule governs only color properties). */
+[data-scope='table'][data-part='th'],
+[data-scope='table'][data-part='td'] {
+  padding-block: 14px 13px;
+  padding-inline: 16px;
+  border-block-end: 1px solid var(--token-color-border-faint);
+  text-align: start;
+
+  &[data-align='center'] {
+    text-align: center;
+  }
+
+  &[data-align='right'] {
+    text-align: end;
+  }
+}
+
+[data-scope='table'][data-part='th'] {
+  border-block-end-color: var(--token-color-border-primary);
+  font-weight: var(--token-typography-font-weight-semibold);
+  color: var(--token-color-foreground-strong);
+}
+
+/* Vertical alignment is set on the root and inherited by cells. */
+[data-scope='table'][data-part='root'][data-valign='top'] [data-part='td'],
+[data-scope='table'][data-part='root'][data-valign='top'] [data-part='th'] {
+  vertical-align: top;
+}
+
+[data-scope='table'][data-part='root'][data-valign='middle'] [data-part='td'],
+[data-scope='table'][data-part='root'][data-valign='middle'] [data-part='th'] {
+  vertical-align: middle;
+}
+
+[data-scope='table'][data-part='root'][data-valign='baseline'] [data-part='td'],
+[data-scope='table'][data-part='root'][data-valign='baseline'] [data-part='th'] {
+  vertical-align: baseline;
+}
+
+/* Density scales the body cells' vertical padding. Values are the Helios
+   ground-truth pixels: short 6/5, medium 14/13, tall 22/21 (top/bottom),
+   inline stays 16. */
+[data-scope='table'][data-part='root'][data-density='short'] [data-part='td'] {
+  padding-block: 6px 5px;
+}
+
+[data-scope='table'][data-part='root'][data-density='medium'] [data-part='td'] {
+  padding-block: 14px 13px;
+}
+
+[data-scope='table'][data-part='root'][data-density='tall'] [data-part='td'] {
+  padding-block: 22px 21px;
+}
+
+/* Zebra striping starts on the SECOND body row (Helios). */
+[data-scope='table'][data-part='root'][data-striped]
+  [data-part='tbody']
+  [data-part='row']:nth-child(2n) {
+  background-color: var(--token-color-surface-faint);
+}
+
+[data-scope='table'][data-part='row'][data-selected] {
+  background-color: var(--token-color-surface-interactive);
+}
+
+/* Selection cell shrinks to its checkbox. */
+[data-scope='table'][data-part='th'][data-selection],
+[data-scope='table'][data-part='td'][data-selection] {
+  inline-size: 1%;
+  white-space: nowrap;
+}
+
+[data-scope='table'][data-part='th-content'] {
+  display: inline flex;
+  gap: 8px; /* Helios .hds-table__th-content gap */
+  align-items: center;
+}
+
+/* The sortable-header trigger: a native button styled as the header label. */
+[data-scope='table'][data-part='sort-button'] {
+  cursor: pointer;
+
+  display: inline flex;
+  gap: var(--token-border-radius-x-small);
+  align-items: center;
+
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--token-border-radius-x-small);
+
+  font: inherit;
+  color: inherit;
+
+  background: transparent;
+
+  transition: color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  &:hover,
+  &:focus {
+    color: var(--token-color-foreground-action-hover);
+  }
+
+  /* Keyboard focus only — never decorate mouse focus. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* The asc/desc caret. Neutral when unsorted; tinted when active. */
+[data-scope='table'][data-part='sort-indicator'] {
+  inline-size: var(--token-border-radius-medium);
+  block-size: var(--token-border-radius-medium);
+  background-color: var(--token-color-foreground-faint);
+
+  /* A simple triangle via clip-path; direction flips for desc. */
+  clip-path: polygon(50% 25%, 85% 70%, 15% 70%);
+
+  &[data-direction='desc'] {
+    background-color: var(--token-color-foreground-action);
+    clip-path: polygon(15% 30%, 85% 30%, 50% 75%);
+  }
+
+  &[data-direction='asc'] {
+    background-color: var(--token-color-foreground-action);
+  }
+}

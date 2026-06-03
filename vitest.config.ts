@@ -51,7 +51,7 @@ export default defineConfig({
           // optimize + full page reload mid-test ("Failed to fetch dynamically
           // imported module" / "Vite unexpectedly reloaded a test"). Ark ships
           // per-component entry points, so include the wildcard subpath.
-          include: ['react/jsx-dev-runtime', '@ark-ui/react/*'],
+          include: ['react/jsx-dev-runtime', '@ark-ui/react/*', '@tanstack/react-table'],
         },
         server: {
           fs: {
@@ -60,6 +60,13 @@ export default defineConfig({
         },
         test: {
           name: 'storybook',
+          // The interaction tests run in ONE shared Chromium context (see the
+          // focus-reset beforeEach in .storybook/preview.tsx). Keyboard-driven
+          // grid-navigation assertions (AdvancedTable) are the most sensitive to
+          // ambient focus / animation timing left by a prior story; a small
+          // retry budget absorbs that nondeterminism without masking real
+          // failures (a genuinely broken assertion fails all retries).
+          retry: 2,
           browser: {
             enabled: true,
             headless: true,

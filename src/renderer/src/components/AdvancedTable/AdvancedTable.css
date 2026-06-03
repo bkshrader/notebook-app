@@ -1,0 +1,338 @@
+/**
+ * Advanced Table — token-styled, built on a real HTML <table role="grid"> + the
+ * TanStack Table (headless) data layer + a hand-rolled APG grid keyboard model.
+ *
+ * Helios is explicit (Accessibility tab, "For engineers"): do NOT change the
+ * table's `display` property. The root stays `table`; the scroll affordance
+ * lives on a wrapping container instead. Every part is styled via its
+ * `data-scope`/`data-part` attribute (no custom class names, per the
+ * unstyled-primitives-ark ADR), and every color resolves to a semantic Helios
+ * `--token-*` custom property (never `--token-color-palette-*`, never a raw
+ * literal). Focus rings draw ONLY on keyboard focus (`:focus-visible`), and
+ * transitions are suppressed under reduced motion via BOTH the
+ * `prefers-reduced-motion` media query and the `[data-reduced-motion='reduce']`
+ * attribute the Storybook toolbar sets.
+ */
+
+/* Scroll container — owns X/Y overflow and the sticky-header viewport. The
+   edge shadows that mark overflow are painted here as a scroll-linked
+   background (Helios "subtle shadow" affordance). */
+[data-scope='advanced-table'][data-part='scroll'] {
+  position: relative;
+
+  overflow: auto;
+
+  border: 1px solid var(--token-color-border-faint);
+  border-radius: var(--token-border-radius-medium);
+
+  /* Scroll-linked overflow shadows (Helios "subtle shadow" affordance): two
+     opaque cover layers (local) + two shadow layers (scroll) so the shadow
+     shows only where content is clipped. Colors are semantic tokens. */
+  background-image:
+    linear-gradient(to right, var(--token-color-surface-primary) 30%, transparent),
+    linear-gradient(to right, transparent, var(--token-color-surface-primary) 70%),
+    radial-gradient(farthest-side at 0 50%, var(--token-color-border-strong), transparent),
+    radial-gradient(farthest-side at 100% 50%, var(--token-color-border-strong), transparent);
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
+  background-position:
+    0 0,
+    100% 0,
+    0 0,
+    100% 0;
+  background-size:
+    40px 100%,
+    40px 100%,
+    14px 100%,
+    14px 100%;
+}
+
+[data-scope='advanced-table'][data-part='root'] {
+  border-collapse: collapse;
+
+  inline-size: 100%;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='advanced-table'][data-part='caption'] {
+  margin-block-end: var(--token-border-radius-medium);
+  font-weight: var(--token-typography-font-weight-bold);
+  color: var(--token-color-foreground-strong);
+  text-align: start;
+
+  &[data-hidden] {
+    position: absolute;
+
+    overflow: hidden;
+
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+
+    white-space: nowrap;
+
+    clip-path: inset(50%);
+  }
+}
+
+[data-scope='advanced-table'][data-part='visually-hidden'] {
+  position: absolute;
+
+  overflow: hidden;
+
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+
+  white-space: nowrap;
+
+  clip-path: inset(50%);
+}
+
+/* Sticky header: stays pinned to the top of the scroll container on Y overflow.
+   Helios fills the header with --token-color-surface-strong. */
+[data-scope='advanced-table'][data-part='thead'] {
+  position: sticky;
+  z-index: 1;
+  inset-block-start: 0;
+  background-color: var(--token-color-surface-strong);
+}
+
+[data-scope='advanced-table'][data-part='th'],
+[data-scope='advanced-table'][data-part='td'] {
+  position: relative;
+
+  /* Helios ground-truth cell padding (medium density): 14px top / 16px inline /
+     13px bottom. Helios tables use literal px (no spacing-token scale); strict-
+     value governs only color properties. */
+  padding-block: 14px 13px;
+  padding-inline: 16px;
+  border-block-end: 1px solid var(--token-color-border-faint);
+
+  text-align: start;
+
+  &[data-align='center'] {
+    text-align: center;
+  }
+
+  &[data-align='right'] {
+    text-align: end;
+  }
+}
+
+[data-scope='advanced-table'][data-part='th'] {
+  border-block-end-color: var(--token-color-border-primary);
+  font-weight: var(--token-typography-font-weight-semibold);
+  color: var(--token-color-foreground-strong);
+  white-space: nowrap;
+}
+
+/* Grid cell focused state (Helios: cells have a default + focused state for
+   keyboard navigation). Drawn only on keyboard focus. */
+[data-scope='advanced-table'][data-part='td']:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='advanced-table'][data-part='th-content'] {
+  display: inline flex;
+  gap: 8px; /* Helios .hds-table__th-content gap */
+  align-items: center;
+}
+
+[data-scope='advanced-table'][data-part='cell-content'] {
+  display: inline flow-root;
+}
+
+/* Sort button — native button styled as the header label. */
+[data-scope='advanced-table'][data-part='sort-button'] {
+  cursor: pointer;
+
+  display: inline flex;
+  gap: var(--token-border-radius-x-small);
+  align-items: center;
+
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--token-border-radius-x-small);
+
+  font: inherit;
+  color: inherit;
+
+  background: transparent;
+
+  transition: color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  &:hover,
+  &:focus {
+    color: var(--token-color-foreground-action-hover);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  &[data-sorted]::after {
+    content: '';
+    inline-size: var(--token-border-radius-small);
+    block-size: var(--token-border-radius-small);
+    background-color: var(--token-color-foreground-action);
+  }
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* Expand/collapse toggle for nested rows. */
+[data-scope='advanced-table'][data-part='expand-toggle'] {
+  cursor: pointer;
+
+  display: inline flex;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--token-border-radius-large);
+  block-size: var(--token-border-radius-large);
+  padding: 0;
+  border: 0;
+  border-radius: var(--token-border-radius-x-small);
+
+  background: transparent;
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+}
+
+/* Chevron rotates when expanded. */
+[data-scope='advanced-table'][data-part='expand-icon'] {
+  inline-size: var(--token-border-radius-small);
+  block-size: var(--token-border-radius-small);
+
+  background-color: var(--token-color-foreground-faint);
+  clip-path: polygon(30% 15%, 70% 50%, 30% 85%);
+
+  transition: transform var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  /* Reduced-motion resets first (lower specificity) so the descending-
+     specificity rule is satisfied before the [data-expanded] rotation. */
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  [data-part='expand-toggle'][data-expanded] & {
+    transform: rotate(90deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* Column context-menu trigger (Helios: renders when hasResizableColumns). */
+[data-scope='advanced-table'][data-part='context-trigger'] {
+  cursor: pointer;
+
+  display: inline flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+  border: 0;
+  border-radius: var(--token-border-radius-x-small);
+
+  font: inherit;
+  color: var(--token-color-foreground-faint);
+
+  background: transparent;
+
+  &:hover,
+  &:focus,
+  &[data-state='open'] {
+    color: var(--token-color-foreground-action);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+}
+
+[data-scope='advanced-table'][data-part='context-content'] {
+  display: block flex;
+  flex-direction: column;
+  gap: var(--token-border-radius-x-small);
+
+  min-inline-size: 10rem;
+  padding: var(--token-border-radius-x-small);
+  border: 1px solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-medium);
+
+  background-color: var(--token-color-surface-primary);
+  box-shadow: var(--token-surface-higher-box-shadow, 0 4px 12px var(--token-color-border-strong));
+}
+
+[data-scope='advanced-table'][data-part='context-item'] {
+  cursor: pointer;
+
+  padding-block: var(--token-border-radius-x-small);
+  padding-inline: var(--token-border-radius-small);
+  border-radius: var(--token-border-radius-x-small);
+
+  color: var(--token-color-foreground-primary);
+
+  &[data-highlighted] {
+    background-color: var(--token-color-surface-interactive-hover);
+  }
+}
+
+/* Resize border / reorder handle — interactive states (Helios). The border
+   becomes visible/active when its adjust sub-mode is engaged. */
+[data-scope='advanced-table'][data-part='resize-border'],
+[data-scope='advanced-table'][data-part='reorder-handle'] {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+
+  inline-size: var(--token-border-radius-x-small);
+
+  background-color: transparent;
+
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  &[data-active] {
+    background-color: var(--token-color-border-action);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}

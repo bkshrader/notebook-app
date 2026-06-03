@@ -13,6 +13,14 @@
  */
 
 export { Accordion, type AccordionProps, type AccordionItem } from './Accordion';
+export {
+  AdvancedTable,
+  type AdvancedTableProps,
+  type AdvancedTableColumn,
+  type AdvancedTableSort,
+  type AdvancedTableSortDirection,
+  type AdvancedTableAlign,
+} from './AdvancedTable';
 export { AngleSlider, type AngleSliderProps } from './AngleSlider';
 export { Avatar, type AvatarProps } from './Avatar';
 export { Checkbox, type CheckboxProps } from './Checkbox';
@@ -57,6 +65,16 @@ export { Swap, type SwapProps } from './Swap';
 export { Switch, type SwitchProps } from './Switch';
 export { Tabs, type TabsProps, type TabItem } from './Tabs';
 export { TagsInput, type TagsInputProps } from './TagsInput';
+export {
+  Table,
+  type TableProps,
+  type TableColumn,
+  type TableSort,
+  type TableSortDirection,
+  type TableAlign,
+  type TableDensity,
+  type TableVerticalAlign,
+} from './Table';
 export { Timer, type TimerProps } from './Timer';
 export { Toggle, type ToggleProps } from './Toggle';
 export { ToggleGroup, type ToggleGroupItemDef, type ToggleGroupProps } from './ToggleGroup';

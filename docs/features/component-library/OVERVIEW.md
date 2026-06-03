@@ -80,8 +80,16 @@ The test contract scales with the widget's interaction surface:
 - **Tier B — overlays** (dialog, drawer, popover, hover-card, tooltip, menu,
   navigation-menu, floating-panel, tour): keyboard-open, focus-trap entry, `Esc` close,
   focus restore — queried via `document.body`.
-- **Tier C — collection/data** (select, combobox, listbox, tree-view, tags-input): inline
-  static item fixtures via the v5 `createListCollection` API; keyboard selection/expansion.
+- **Tier C — collection/data** (select, combobox, listbox, tree-view, tags-input, table,
+  advanced-table): inline static item fixtures via the v5 `createListCollection` API (or, for
+  the tables, a typed `columns`/`data` config); keyboard selection/expansion. The two tables
+  have **no Ark primitive** — Ark ships no headless table — so per the
+  [unstyled-primitives-ark ADR](../accessibility/adrs/unstyled-primitives-ark.md) they pair a
+  real semantic `<table>` (Helios forbids changing its `display`) with
+  [TanStack Table](https://tanstack.com/table) (MIT) as the headless sort/expand/selection/
+  column-sizing data layer. `AdvancedTable` adds the full APG grid keyboard model
+  (`role="grid"`, roving-tabindex Navigation Mode + Enter/Escape Action Mode) and
+  resizable/reorderable columns via a per-column context menu (composed from Ark's `Menu`).
 - **Tier D — i18n / canvas / motion** (date-picker, date-input, color-picker, file-upload,
   carousel, marquee): date-\* consume [`@internationalized/date`](../../licenses/in-use.md);
   carousel/marquee must stop autoplay under reduced motion (asserted).
@@ -90,7 +98,9 @@ The test contract scales with the widget's interaction surface:
 
 ## Scope
 
-In scope: every interactive Ark primitive plus `field`, `fieldset`, and `highlight`.
+In scope: every interactive Ark primitive plus `field`, `fieldset`, and `highlight`, and the
+two data tables (`table`, `advanced-table`) which have no Ark primitive and instead pair a
+semantic `<table>` with TanStack Table (see Tier C above).
 
 **Deliberately excluded:**
 
