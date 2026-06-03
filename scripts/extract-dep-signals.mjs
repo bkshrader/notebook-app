@@ -75,6 +75,21 @@ import { pathToFileURL } from 'node:url';
 import semver from 'semver';
 import { parse as parseYaml } from 'yaml';
 
+// COMPLEXITY SUPPRESSIONS IN THIS FILE
+//
+// Several functions below carry `// fallow-ignore-next-line complexity`. fallow
+// flags them on CRAP (CC² · (1 − cov)³ + CC), not raw cyclomatic count — every
+// one is under fallow's CC threshold of 20. The CRAP is inflated because fallow
+// scores them as 0%-covered: this module is exercised by `extract-dep-signals.
+// test.mjs` (run via `pnpm test:unit` / `node --test`, ~99% line coverage), but
+// that coverage is emitted by a SEPARATE pipeline from the Storybook/vitest run
+// that produces the `coverage-final.json` the `audit:fallow:cov` gate feeds to
+// fallow. So fallow never sees this file's real coverage and falls back to its
+// static 0% estimate. To drop these suppressions, merge the `node --test`
+// coverage into fallow's coverage input (e.g. via c8 → Istanbul). Until then,
+// each suppression's own comment documents why the shape is idiomatic, not
+// incidental, complexity. See memory: fallow-forwardref-coverage-fp.
+
 // ---------------------------------------------------------------------------
 // Argument parsing
 // ---------------------------------------------------------------------------
@@ -248,9 +263,8 @@ const HUNK_HEADER = /^@@ /;
 // Ordered regex-dispatch over the line kinds we care about — each branch
 // is one match + struct construction. Cyclomatic count is just the
 // number of line kinds; extracting per-kind helpers would move the
-// dispatch up a level without reducing real complexity. Branch coverage
-// comes via extractDepChanges' tests, not direct unit tests of this
-// helper (hence the CRAP-only finding).
+// dispatch up a level without reducing real complexity. It is exercised
+// through extractDepChanges' tests (see the file-level coverage note).
 // fallow-ignore-next-line complexity
 function matchDiffLine(line) {
   const fileMatch = line.match(FILE_HEADER);

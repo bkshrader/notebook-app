@@ -126,14 +126,12 @@ function CodeBlockHeightToggle({
 // branching (header / line-numbers / capped scroll a11y / copy / height toggle);
 // the height-toggle state + measurement is already extracted to useHeightToggle,
 // the header/footer to CodeBlockHeader/CodeBlockHeightToggle, and the editor to
-// the shared CM6 hook. The body is fully exercised by the CodeBlock.spec story
-// tests (verified 5/5 functions, 16/16 statements covered in coverage-final.json),
-// so the elevated fallow CRAP is the known Windows coverage-path false positive:
-// the `forwardRef(function …)` render body's backslash coverage paths don't match
-// fallow's matcher, so it scores the function as 0%-covered (CRAP == CC² + CC).
-// Same precedent + justification as Table.tsx.
-// fallow-ignore-next-line complexity
-export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function CodeBlock(
+// the shared CM6 hook. The inner function is named `CodeBlockImpl` (not
+// `CodeBlock`) so it doesn't collide with the `const CodeBlock` binding — that
+// collision makes the coverage instrumenter mangle the name to `CodeBlock2`,
+// which fallow's name-keyed coverage matcher can't find, dropping the function to
+// an estimated 0% and inflating its CRAP.
+export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function CodeBlockImpl(
   {
     value,
     ariaLabel,
@@ -225,3 +223,6 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
     </div>
   );
 });
+// The inner function is `CodeBlockImpl` (see above); restore the public name for
+// React devtools and error overlays.
+CodeBlock.displayName = 'CodeBlock';

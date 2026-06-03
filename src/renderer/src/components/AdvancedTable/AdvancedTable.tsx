@@ -76,9 +76,6 @@ function fromSortingState(next: SortingState): AdvancedTableSort | null {
  * Safe default cell stringifier — renders primitives, renders nothing for
  * object-shaped accessor values (supply a `cell` renderer for those).
  */
-// CC 5 is the fallow floor; pure type-narrowing helper, fully covered by the
-// spec tests → CRAP is the Windows coverage-path false positive.
-// fallow-ignore-next-line complexity
 function stringifyCellValue(value: unknown): string {
   if (typeof value === 'string') return value;
   if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
@@ -89,9 +86,6 @@ function stringifyCellValue(value: unknown): string {
 }
 
 /** `aria-sort` value for a header cell. */
-// CC 5 is the fallow floor (== the pre-existing Field helper); pure guard fully
-// covered by the sort spec test → CRAP is the Windows coverage-path false positive.
-// fallow-ignore-next-line complexity
 function ariaSortFor(
   columnKey: string,
   sortable: boolean | undefined,
@@ -172,9 +166,7 @@ function HeaderLabel({
 // The cyclomatic count is the conditional attributes (data-part / data-active /
 // aria-label / tabIndex, all keyed off the active adjust sub-mode) on a flat
 // button render; the keydown logic is extracted to handleKeyDown and the state
-// machine to useColumnContextMenu. Exercised by the resize/reorder spec tests,
-// so the fallow CRAP is the known Windows coverage-path false positive.
-// fallow-ignore-next-line complexity
+// machine to useColumnContextMenu.
 function ColumnAdjustHandle({
   columnId,
   adjust,
@@ -212,10 +204,7 @@ function ColumnAdjustHandle({
 // The cyclomatic count is JSX branching (sortable label / context menu / resize
 // handle, all conditional on hasResizableColumns) plus the width-seed helper;
 // the label, menu, and handle are already extracted to HeaderLabel /
-// ColumnContextMenu / ColumnAdjustHandle. Exercised by the AdvancedTable.spec
-// story tests, so the fallow CRAP is the known Windows coverage-path false
-// positive.
-// fallow-ignore-next-line complexity
+// ColumnContextMenu / ColumnAdjustHandle.
 function HeaderCell<Row>({
   column,
   config,
@@ -329,9 +318,7 @@ function ExpandToggle<Row>({ row }: { row: TanstackRow<Row> }) {
 
 /** One data row: an optional leading expand cell + one gridcell per column. */
 // CC is the expand-cell conditional + the per-cell map on a flat row render; the
-// cell and toggle are extracted to GridCell / ExpandToggle. Exercised by the
-// grid-nav + expand spec tests → CRAP is the Windows coverage-path false positive.
-// fallow-ignore-next-line complexity
+// cell and toggle are extracted to GridCell / ExpandToggle.
 function GridRow<Row>({
   row,
   gridRow,
@@ -395,10 +382,13 @@ function GridRow<Row>({
 // JSX branching (expand column, grid vs treegrid role, header/body maps), with
 // the header cell, grid row, and grid cell already extracted to HeaderCell /
 // GridRow / GridCell and the keyboard model to useGridNavigation /
-// useColumnContextMenu. Exercised by the AdvancedTable.spec story tests, so the
-// fallow CRAP is the known Windows coverage-path false positive.
-// fallow-ignore-next-line complexity
-export const AdvancedTable = forwardRef(function AdvancedTable<Row>(
+// useColumnContextMenu. The inner function is named `AdvancedTableImpl` and the
+// `forwardRef` result is bound to `AdvancedTableBase` — two distinct names so
+// neither collides with anything. A name collision (inner fn name == its
+// binding) makes the coverage instrumenter mangle the name (e.g.
+// `AdvancedTable2`), which fallow's name-keyed coverage matcher can't find,
+// dropping the function to an estimated 0% and inflating its CRAP.
+const AdvancedTableBase = forwardRef(function AdvancedTableImpl<Row>(
   {
     columns,
     data,
@@ -542,4 +532,13 @@ export const AdvancedTable = forwardRef(function AdvancedTable<Row>(
       </table>
     </div>
   );
-}) as <Row>(props: AdvancedTableProps<Row> & { ref?: React.Ref<HTMLDivElement> }) => ReactNode;
+});
+// Set the public name on the typed forwardRef result before the generic cast
+// (the cast erases the `displayName` property), so React devtools shows
+// `AdvancedTable`.
+AdvancedTableBase.displayName = 'AdvancedTable';
+// The `forwardRef` over a generic render function widens `Row` to `unknown`; the
+// cast restores the generic call signature for consumers.
+export const AdvancedTable = AdvancedTableBase as <Row>(
+  props: AdvancedTableProps<Row> & { ref?: React.Ref<HTMLDivElement> },
+) => ReactNode;

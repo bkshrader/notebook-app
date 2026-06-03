@@ -133,7 +133,7 @@ A deep-dive document under `docs/research/` on a library, competitor, or adjacen
 
 ### Fallow
 
-A Rust-native codebase-intelligence tool (dead code, duplication, complexity, architecture) run via `npm run audit:fallow`. **Not** a license auditor.
+A Rust-native codebase-intelligence tool (dead code, duplication, complexity, architecture) run via `pnpm audit:fallow` (or `pnpm audit:fallow:cov` to score complexity against real test coverage). **Not** a license auditor.
 
 ### AGPL-compatible
 

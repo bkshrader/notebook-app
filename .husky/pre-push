@@ -19,12 +19,15 @@ pnpm exec license-checker \
 pnpm audit --prod --audit-level high || exit 1
 pnpm audit --audit-level high || echo "pre-push: devDep advisories found (non-blocking); see output above." >&2
 
-if git rev-parse --verify --quiet origin/main >/dev/null; then
-  pnpm audit:fallow --base origin/main || exit 1
-else
-  pnpm audit:fallow || exit 1
-fi
-
 pnpm build || exit 1
 
-pnpm test-storybook || exit 1
+# audit:fallow:cov generates Storybook coverage, then runs the fallow audit with
+# that coverage so CRAP is scored from real test execution (fully-tested
+# forwardRef render bodies otherwise score CRAP == CC²+CC and fail the gate). The
+# coverage run is a superset of `test-storybook`, so it gates the tests too — no
+# separate test-storybook step needed.
+if git rev-parse --verify --quiet origin/main >/dev/null; then
+  pnpm audit:fallow:cov --base origin/main || exit 1
+else
+  pnpm audit:fallow:cov || exit 1
+fi

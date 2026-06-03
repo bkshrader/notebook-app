@@ -83,16 +83,7 @@ function ButtonSpinner() {
 }
 
 /** The button's inner content: optional spinner, icons, and visible label.
- * Each slot decides its own presence, keeping the main `Button` trivial.
- *
- * The four optional slots give this a cyclomatic count of 5, but it is fully
- * exercised by the Button play tests (icon-only, leading/trailing icon, loading,
- * label) — its real CRAP is ~CC. fallow's changed-files `audit` does not apply
- * the V8 coverage on this platform (Windows backslash coverage paths don't match
- * its matcher; see audit:fallow:cov), so it scores the function as 0%-covered and
- * inflates CRAP. Suppressing the false positive rather than fragmenting four
- * trivial conditional slots further. */
-// fallow-ignore-next-line complexity
+ * Each slot decides its own presence, keeping the main `Button` trivial. */
 function ButtonContent({
   isLoading,
   leadingIcon,
@@ -114,12 +105,13 @@ function ButtonContent({
 const flag = (on: boolean) => (on ? '' : undefined);
 
 // Cyclomatic 7 here is the irreducible prop-defaulting surface of a full Button
-// (color/size defaults, type/disabled/aria-busy fallbacks, iconOnly). The body
-// is already extracted to ButtonContent. The function is covered by 20 Button
-// play tests; fallow's changed-files audit can't apply the V8 coverage on this
-// platform (see ButtonContent note), so its CRAP is a coverage false positive.
-// fallow-ignore-next-line complexity
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+// (color/size defaults, type/disabled/aria-busy fallbacks, iconOnly). The render
+// body is already extracted to ButtonContent. The inner function is named
+// `ButtonImpl` (not `Button`) so it doesn't collide with the `const Button`
+// binding — that collision makes the coverage instrumenter mangle the name to
+// `Button2`, which fallow's name-keyed coverage matcher can't find, dropping the
+// function to an estimated 0% and inflating its CRAP.
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function ButtonImpl(
   {
     children,
     color = 'primary',
@@ -160,3 +152,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     </button>
   );
 });
+// The inner function is `ButtonImpl` (see above); restore the public name for
+// React devtools and error overlays.
+Button.displayName = 'Button';

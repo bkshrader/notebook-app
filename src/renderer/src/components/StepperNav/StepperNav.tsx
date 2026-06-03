@@ -241,13 +241,12 @@ function InteractiveStepper({
 // Cyclomatic 6 is the irreducible prop-defaulting surface (count/linear/step/
 // defaultStep/ariaLabel fallbacks) plus the single interactive-vs-static mode
 // branch; the two render bodies are already extracted to StaticStepper /
-// InteractiveStepper. The function is exercised by the StepperNav play tests, so
-// its real CRAP is ~CC — fallow's changed-files audit can't apply the V8 coverage
-// on this platform (Windows backslash coverage paths; see audit:fallow:cov), so
-// the CRAP score is a coverage false positive. Suppressing rather than splitting
-// trivial prop defaults further.
-// fallow-ignore-next-line complexity
-export const StepperNav = forwardRef<HTMLDivElement, StepperNavProps>(function StepperNav(
+// InteractiveStepper. The inner function is named `StepperNavImpl` (not
+// `StepperNav`) so it doesn't collide with the `const StepperNav` binding — that
+// collision makes the coverage instrumenter mangle the name to `StepperNav2`,
+// which fallow's name-keyed coverage matcher can't find, dropping the function to
+// an estimated 0% and inflating its CRAP.
+export const StepperNav = forwardRef<HTMLDivElement, StepperNavProps>(function StepperNavImpl(
   {
     steps,
     interactive = true,
@@ -294,3 +293,6 @@ export const StepperNav = forwardRef<HTMLDivElement, StepperNavProps>(function S
     </ArkSteps.Root>
   );
 });
+// The inner function is `StepperNavImpl` (see above); restore the public name for
+// React devtools and error overlays.
+StepperNav.displayName = 'StepperNav';

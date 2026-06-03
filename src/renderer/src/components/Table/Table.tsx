@@ -111,10 +111,6 @@ function fromSortingState(next: SortingState): TableSort | null {
 }
 
 /** `aria-sort` value for a header cell, per WAI-ARIA. */
-// CC 5 is the fallow floor (== the pre-existing Field helper); this pure guard
-// is fully covered by the sort spec tests, so its CRAP is the Windows
-// coverage-path false positive.
-// fallow-ignore-next-line complexity
 function ariaSortFor(
   columnKey: string,
   sortable: boolean | undefined,
@@ -161,9 +157,6 @@ function TableSortButton({
  * accessor values the consumer should supply a `cell` renderer, so we render
  * nothing rather than `[object Object]`.
  */
-// CC 5 is the fallow floor; this pure type-narrowing helper is fully covered by
-// the spec tests, so its CRAP is the Windows coverage-path false positive.
-// fallow-ignore-next-line complexity
 function stringifyCellValue(value: unknown): string {
   if (typeof value === 'string') return value;
   if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
@@ -181,13 +174,10 @@ function toggleKey(keys: ReadonlySet<string>, id: string): Set<string> {
   return next;
 }
 
-/** One header cell: the (optionally sortable) label + optional tooltip. */
-// Cyclomatic count here is JSX branching (sortable label / tooltip / align /
-// aria-sort) over a flat render — the sort and label logic is already extracted
-// to TableSortButton/ariaSortFor. It is fully exercised by the Table.spec story
-// tests, so the elevated fallow CRAP is the known Windows coverage-path false
-// positive (coverage-final.json backslash paths don't match fallow's matcher).
-// fallow-ignore-next-line complexity
+/** One header cell: the (optionally sortable) label + optional tooltip. The
+ * cyclomatic count is JSX branching (sortable label / tooltip / align /
+ * aria-sort) over a flat render; the sort and label logic is already extracted
+ * to TableSortButton/ariaSortFor. */
 function TableHeaderCell<Row>({
   header,
   col,
@@ -262,12 +252,13 @@ function TableBodyRow<Row>({
 // The Table render body's cyclomatic count is prop-defaulting + JSX branching
 // (selectable header/row cells, striping/density/valign/layout data-attrs) over
 // a flat render; the header and row markup are already extracted to
-// TableHeaderCell / TableBodyRow and the data layer to TanStack. It is fully
-// exercised by the Table.spec story tests, so the fallow CRAP is the known
-// Windows coverage-path false positive. Further splitting would only scatter
-// prop wiring.
-// fallow-ignore-next-line complexity
-export const Table = forwardRef(function Table<Row>(
+// TableHeaderCell / TableBodyRow and the data layer to TanStack. The inner
+// function is named `TableImpl` and the `forwardRef` result is bound to
+// `TableBase` — two distinct names so neither collides with anything. A name
+// collision (inner fn name == its binding) makes the coverage instrumenter
+// mangle the name (e.g. `Table2`), which fallow's name-keyed coverage matcher
+// can't find, dropping the function to an estimated 0% and inflating its CRAP.
+const TableBase = forwardRef(function TableImpl<Row>(
   {
     columns,
     data,
@@ -383,4 +374,12 @@ export const Table = forwardRef(function Table<Row>(
       </tbody>
     </table>
   );
-}) as <Row>(props: TableProps<Row> & { ref?: React.Ref<HTMLTableElement> }) => ReactNode;
+});
+// Set the public name on the typed forwardRef result before the generic cast
+// (the cast erases the `displayName` property), so React devtools shows `Table`.
+TableBase.displayName = 'Table';
+// The `forwardRef` over a generic render function widens `Row` to `unknown`; the
+// cast restores the generic call signature for consumers.
+export const Table = TableBase as <Row>(
+  props: TableProps<Row> & { ref?: React.Ref<HTMLTableElement> },
+) => ReactNode;

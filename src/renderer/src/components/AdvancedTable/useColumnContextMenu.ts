@@ -43,9 +43,6 @@ export interface UseColumnContextMenu {
 }
 
 /** Move the item at `from` to `to` in a copy of `arr`. */
-// CC 5 is the fallow floor; pure bounds-guarded array move, covered by the
-// reorder spec test → CRAP is the Windows coverage-path false positive.
-// fallow-ignore-next-line complexity
 function moveItem<T>(arr: T[], from: number, to: number): T[] {
   if (to < 0 || to >= arr.length || from === to) return arr;
   const next = arr.slice();
@@ -117,9 +114,7 @@ export function useColumnContextMenu({
   const onAdjustKeyDown = useCallback(
     // CC is the guard chain (inactive / Escape / arrow direction) on a flat
     // handler; the direction lookup, array move, and dispatch are extracted to
-    // ARROW_DIR / moveItem / applyArrow. Covered by the resize + reorder spec
-    // tests → CRAP is the Windows coverage-path false positive.
-    // fallow-ignore-next-line complexity
+    // ARROW_DIR / moveItem / applyArrow.
     (event: KeyboardEvent<HTMLElement>): boolean => {
       if (!activeColumn || mode === 'idle') return false;
       if (event.key === 'Escape') {

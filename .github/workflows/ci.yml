@@ -134,7 +134,13 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - run: pnpm audit:fallow --base origin/main
+      # Generate Storybook coverage first so fallow scores CRAP from real test
+      # execution, not its static 0%-estimate. Without coverage, fully-tested
+      # forwardRef render bodies (whose inner fn name the instrumenter mangles)
+      # score CRAP == CC²+CC and fail the gate. See audit:fallow:cov.
+      - name: Install Playwright browser (chromium)
+        run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm audit:fallow:cov --base origin/main
 
   pnpm-audit:
     name: pnpm-audit
