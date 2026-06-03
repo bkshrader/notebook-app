@@ -25,6 +25,13 @@ export { AngleSlider, type AngleSliderProps } from './AngleSlider';
 export { Avatar, type AvatarProps } from './Avatar';
 export { Checkbox, type CheckboxProps } from './Checkbox';
 export { Clipboard, type ClipboardProps } from './Clipboard';
+export { CodeBlock, type CodeBlockProps, type HighlightLines } from './CodeBlock';
+export {
+  CodeEditor,
+  type CodeEditorProps,
+  type CodeLanguage,
+  type CodeLanguageKey,
+} from './CodeEditor';
 export { Collapsible, type CollapsibleProps } from './Collapsible';
 export { Combobox, type ComboboxProps, type ComboboxItem } from './Combobox';
 export { DatePicker, type DatePickerProps } from './DatePicker';
