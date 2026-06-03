@@ -93,8 +93,7 @@ These patterns are better expressed as **documented composition** (a layout reci
 ### Negative Consequences
 
 - A future reader comparing our set to the Helios catalogue will see these absent and
-  must read this ADR to understand why (mitigated by this record and the
-  [component-library PROGRESS note](../../component-library/PROGRESS.md)).
+  must read this ADR to understand why (mitigated by this record).
 - If `notebook-app` ever grows a genuinely repeated shell pattern (unlikely given the
   charter), this decision must be revisited — see below.
 
@@ -114,7 +113,5 @@ actually repeats — not the full Helios app-shell set — and supersede this AD
   wrapper scope; the "CSS one-liner isn't worth a component" principle.
 - [design-system-helios ADR](./design-system-helios.md) — tokens-only Helios consumption.
 - [accessibility OVERVIEW](../OVERVIEW.md) — the ADHD-first, stable-layout charter.
-- [component-library PROGRESS](../../component-library/PROGRESS.md) — the 2026-06 audit +
-  expansion that surfaced this gap.
 - [DESIGN.md](../../../../DESIGN.md) — where bespoke layout recipes live instead.
 - MADR template: <https://adr.github.io/madr/>
