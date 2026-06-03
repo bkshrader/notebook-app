@@ -58,6 +58,21 @@ export default {
     'csstools/use-nesting': 'always',
     'import-notation': 'string',
 
+    // Our own selectors are attribute-based (`[data-scope][data-part]`), never
+    // class names — see the unstyled-primitives-ark ADR. The ONE exception is
+    // library-emitted DOM we must style in place: CodeMirror 6 renders camelCase
+    // classes (`.cm-activeLine`, `.cm-matchingBracket`, `.cm-lintRange-error`, …)
+    // on its editor, exactly as Helios styles `.hds-code-editor .cm-*`. Permit
+    // the `cm-`-prefixed library classes (any casing) alongside the default
+    // kebab-case pattern; everything else still must be kebab-case. This allows
+    // the third-party classes without weakening the rule for our own code.
+    'selector-class-pattern': [
+      '^(cm-[a-zA-Z][a-zA-Z0-9-]*|[a-z][a-z0-9]*(-[a-z0-9]+)*)$',
+      {
+        message: 'Expected class selector to be kebab-case, or a `cm-*` CodeMirror-emitted class',
+      },
+    ],
+
     // Dark mode is handled centrally in the token layer
     'a11y/media-prefers-color-scheme': null,
 

@@ -38,6 +38,15 @@ pnpm licenses list --json | jq -r '
 @blazediff/core@1.9.1: MIT
 @cacheable/memory@2.0.9: MIT
 @cacheable/utils@2.4.1: MIT
+@codemirror/autocomplete@6.20.2: MIT
+@codemirror/commands@6.10.3: MIT
+@codemirror/lang-javascript@6.2.5: MIT
+@codemirror/lang-json@6.0.2: MIT
+@codemirror/language@6.12.3: MIT
+@codemirror/lint@6.9.6: MIT
+@codemirror/search@6.7.0: MIT
+@codemirror/state@6.6.0: MIT
+@codemirror/view@6.43.0: MIT
 @csstools/css-calc@3.2.1: MIT
 @csstools/css-parser-algorithms@4.0.0: MIT
 @csstools/css-syntax-patches-for-csstree@1.1.4: MIT-0
@@ -93,10 +102,16 @@ pnpm licenses list --json | jq -r '
 @jridgewell/trace-mapping@0.3.31: MIT
 @keyv/bigmap@1.3.1: MIT
 @keyv/serialize@1.1.1: MIT
+@lezer/common@1.5.2: MIT
+@lezer/highlight@1.2.3: MIT
+@lezer/javascript@1.5.4: MIT
+@lezer/json@1.0.3: MIT
+@lezer/lr@1.4.10: MIT
 @lhci/cli@0.15.1: Apache-2.0
 @lhci/utils@0.15.1: Apache-2.0
 @malept/cross-spawn-promise@2.0.0: Apache-2.0
 @malept/flatpak-bundler@0.4.0: MIT
+@marijn/find-cluster-break@1.0.2: MIT
 @mdx-js/react@3.1.1: MIT
 @nodelib/fs.scandir@2.1.5: MIT
 @nodelib/fs.stat@2.0.5: MIT
@@ -392,6 +407,7 @@ convert-source-map@2.0.0: MIT
 cookie-signature@1.0.7: MIT
 cookie@0.7.2: MIT
 cosmiconfig@9.0.1: MIT
+crelt@1.0.6: MIT
 cross-dirname@0.1.0: MIT
 cross-spawn@7.0.6: MIT
 crypto-random-string@2.0.0: MIT
@@ -954,6 +970,7 @@ strip-bom@3.0.0: MIT
 strip-indent@3.0.0: MIT
 strip-indent@4.1.1: MIT
 strip-json-comments@3.1.1: MIT
+style-mod@4.1.3: MIT
 stylelint-config-clean-order@10.0.0: MIT
 stylelint-config-modern@1.0.0: MIT
 stylelint-config-recommended@18.0.0: MIT
@@ -1044,6 +1061,7 @@ validate-npm-package-license@3.0.4: Apache-2.0
 vary@1.1.2: MIT
 vite@7.3.3: MIT
 vitest@4.1.7: MIT
+w3c-keyname@2.2.8: MIT
 webdriver-bidi-protocol@0.4.1: Apache-2.0
 webidl-conversions@3.0.1: BSD-2-Clause
 webpack-virtual-modules@0.6.2: MIT

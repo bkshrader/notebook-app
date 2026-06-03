@@ -1,0 +1,241 @@
+/**
+ * CodeEditor — editable code editor on a CodeMirror 6 `EditorView`, at full
+ * Helios Code Editor parity. Values mirror the live Helios `.hds-code-editor`
+ * CSS captured during the Helios documentation audit:
+ *   - root: flex column, overflow hidden, 1px border
+ *   - isStandalone → border-radius medium
+ *   - full-screen → position fixed; inset 0; z-index 1000
+ *   - header: flex, gap 12px, padding 16px, surface-faint bg, border-block-end
+ *   - editor font 0.8125rem / code-200 family; min-block-size 164px
+ *   - linting on → editor min-block-size 160px; the lint panel (CM `.cm-panel`)
+ *     is the Helios alert dialog (opened with Ctrl/Cmd-Shift-m via lintKeymap).
+ *
+ * Styling targets BOTH our own `data-scope`/`data-part` attributes AND the
+ * `.cm-*` classes CodeMirror emits (exactly as Helios scopes
+ * `.hds-code-editor .cm-*`). Every color-bearing value resolves to a semantic
+ * Helios `--token-*` custom property. The cursor-blink animation is suppressed
+ * under reduced motion via BOTH the media query and the
+ * `[data-reduced-motion='reduce']` attribute.
+ */
+
+[data-scope='code-editor'][data-part='root'] {
+  overflow: hidden;
+  display: block flex;
+  flex-direction: column;
+
+  border: 1px solid var(--token-color-border-primary);
+
+  font-family: var(--token-typography-code-200-font-family);
+  color: var(--token-color-foreground-primary);
+
+  background-color: var(--token-color-surface-primary);
+
+  &[data-standalone] {
+    border-radius: var(--token-border-radius-medium);
+  }
+
+  /* Helios full-screen box. */
+  &[data-full-screen] {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    border-radius: 0;
+  }
+}
+
+/* Header: text block on the start edge, actions on the end edge. */
+[data-scope='code-editor'][data-part='header'] {
+  display: block flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 16px;
+  border-block-end: 1px solid var(--token-color-border-faint);
+
+  background-color: var(--token-color-surface-faint);
+}
+
+[data-scope='code-editor'][data-part='header-text'] {
+  display: block flow-root;
+  min-inline-size: 0;
+}
+
+[data-scope='code-editor'][data-part='title'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-weight: var(--token-typography-font-weight-semibold);
+  color: var(--token-color-foreground-strong);
+}
+
+[data-scope='code-editor'][data-part='description'] {
+  margin-block-start: 2px;
+
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='code-editor'][data-part='actions'] {
+  display: block flex;
+  flex-shrink: 0;
+  gap: 8px;
+  align-items: center;
+}
+
+[data-scope='code-editor'][data-part='secondary-actions'] {
+  display: block flex;
+  gap: 8px;
+  align-items: center;
+}
+
+[data-scope='code-editor'][data-part='custom-actions'] {
+  display: block flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* The full-screen toggle: a native button styled as a secondary action. */
+[data-scope='code-editor'][data-part='full-screen-toggle'] {
+  cursor: pointer;
+
+  display: block flow-root;
+
+  padding-block: 6px;
+  padding-inline: 12px;
+  border: 1px solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-small);
+
+  font: inherit;
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  color: var(--token-color-foreground-primary);
+
+  background-color: var(--token-color-surface-primary);
+
+  &:hover,
+  &:focus {
+    color: var(--token-color-foreground-action-hover);
+    background-color: var(--token-color-surface-interactive);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+}
+
+/* --- CodeMirror-emitted DOM (.cm-*) -------------------------------------- */
+
+[data-scope='code-editor'][data-part='editor'] {
+  display: block flow-root;
+  flex: 1 1 auto;
+  min-block-size: 0;
+
+  .cm-editor {
+    block-size: 100%;
+    min-block-size: 164px; /* Helios editor min-height */
+    background-color: transparent;
+  }
+}
+
+/* When linting is on, Helios sets a 160px editor min-height. */
+[data-scope='code-editor'][data-part='root'][data-linting] [data-part='editor'] .cm-editor {
+  min-block-size: 160px;
+}
+
+[data-scope='code-editor'][data-part='editor'] .cm-scroller {
+  font-family: var(--token-typography-code-200-font-family);
+  font-size: 0.8125rem; /* Helios editor font-size */
+  line-height: var(--token-typography-code-200-line-height);
+}
+
+[data-scope='code-editor'][data-part='editor'] .cm-gutters {
+  border-inline-end: 1px solid var(--token-color-border-faint);
+  color: var(--token-color-foreground-faint);
+  background-color: var(--token-color-surface-faint);
+}
+
+/* Active-line highlight (line + gutter). */
+[data-scope='code-editor'][data-part='editor'] .cm-activeLine {
+  background-color: var(--token-color-surface-faint);
+}
+
+[data-scope='code-editor'][data-part='editor'] .cm-activeLineGutter {
+  color: var(--token-color-foreground-primary);
+  background-color: var(--token-color-surface-interactive);
+}
+
+/* Matching-bracket emphasis. */
+[data-scope='code-editor'][data-part='editor'] .cm-matchingBracket {
+  color: var(--token-color-foreground-action);
+  background-color: var(--token-color-surface-action);
+}
+
+[data-scope='code-editor'][data-part='editor'] .cm-nonmatchingBracket {
+  color: var(--token-color-foreground-critical);
+}
+
+/* Selection-match highlight. */
+[data-scope='code-editor'][data-part='editor'] .cm-selectionMatch {
+  background-color: var(--token-color-surface-highlight);
+}
+
+/* Keyboard focus ring on the editor surface. */
+[data-scope='code-editor'][data-part='editor'] .cm-editor.cm-focused {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* The lint panel = the Helios alert dialog (opened with Ctrl/Cmd-Shift-m). */
+[data-scope='code-editor'][data-part='editor'] .cm-panels {
+  border-block-start: 1px solid var(--token-color-border-primary);
+  color: var(--token-color-foreground-primary);
+  background-color: var(--token-color-surface-faint);
+}
+
+[data-scope='code-editor'][data-part='editor'] .cm-panel.cm-panel-lint {
+  min-block-size: 80px; /* Helios alert-dialog opened height */
+}
+
+/* CodeMirror's default selected-diagnostic styling uses the system `Highlight` /
+   `HighlightText` colors, which resolve to a ~4.49:1 pair on Windows (just under
+   WCAG AA). Override the selected row — in both the idle and list-focused states
+   — with a Helios token pairing that clears 4.5:1. */
+[data-scope='code-editor'][data-part='editor'] .cm-panel.cm-panel-lint ul [aria-selected],
+[data-scope='code-editor'][data-part='editor'] .cm-panel.cm-panel-lint ul:focus [aria-selected] {
+  color: var(--token-color-foreground-primary);
+  background-color: var(--token-color-surface-action);
+}
+
+[data-scope='code-editor'][data-part='editor'] .cm-diagnostic {
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+}
+
+[data-scope='code-editor'][data-part='editor'] .cm-diagnostic-error {
+  border-inline-start: 3px solid var(--token-color-foreground-critical);
+}
+
+[data-scope='code-editor'][data-part='editor'] .cm-lintRange-error {
+  /* CM draws the squiggle via a background image; tint the gutter marker too. */
+  background-color: transparent;
+}
+
+[data-scope='code-editor'][data-part='editor'] .cm-lint-marker-error {
+  color: var(--token-color-foreground-critical);
+}
+
+/* Reduced motion: stop the caret blink. The repo already ships a global reset;
+   these per-selector rules are the component-level belt-and-suspenders the CSS
+   convention asks for. */
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='code-editor'][data-part='editor'] .cm-cursor {
+    animation: none;
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='code-editor'][data-part='editor'] .cm-cursor {
+  animation: none;
+}

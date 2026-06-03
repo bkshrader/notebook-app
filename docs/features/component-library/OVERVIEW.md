@@ -99,12 +99,26 @@ The test contract scales with the widget's interaction surface:
   carousel/marquee must stop autoplay under reduced motion (asserted).
 - **Tier E — provider-shaped** (toast): `createToaster` + a `Toaster` host; asserts the
   toast lands in a live region and is keyboard-dismissible.
+- **Tier F — code editing** (code-block, code-editor): **no Ark primitive** — like the
+  tables, these pair a plain `[data-scope][data-part]` host with [CodeMirror 6](https://codemirror.net)
+  (MIT), the project's decided editor substrate (`docs/research/codemirror.md`), mounted as a
+  `.cm-*` `EditorView` inside the host. `CodeBlock` is a **read-only** view
+  (`EditorState.readOnly` + `editable: false`) for syntax-highlighted display (line numbers,
+  line highlighting, height toggle); `CodeEditor` is the **editable** surface with active-line
+  highlight, bracket matching/auto-close, optional JSON linting (the Ctrl/Cmd-Shift-m lint
+  panel is CM6's `lintKeymap` default), and a full-screen toggle. Both require an
+  `ariaLabel` (CM6's contenteditable has no accessible name by default — WCAG 4.1.2) and enable
+  CM6 tab-focus mode so Tab does not trap (WCAG 2.1.2). Syntax colors map Lezer highlight tags
+  onto Helios **semantic** foreground tokens (Helios publishes no syntax-color tokens). The
+  shared mount hook, base extensions, and Helios highlight style live under `CodeEditor/` and
+  are imported by `CodeBlock`.
 
 ## Scope
 
-In scope: every interactive Ark primitive plus `field`, `fieldset`, and `highlight`, and the
-two data tables (`table`, `advanced-table`) which have no Ark primitive and instead pair a
-semantic `<table>` with TanStack Table (see Tier C above).
+In scope: every interactive Ark primitive plus `field`, `fieldset`, and `highlight`, the two
+data tables (`table`, `advanced-table`), and the two code surfaces (`code-block`,
+`code-editor`) — the tables and code surfaces have no Ark primitive and instead pair a plain
+host with TanStack Table / CodeMirror 6 respectively (see Tiers C and F above).
 
 **Deliberately excluded:**
 

@@ -50,8 +50,24 @@ export default defineConfig({
           // this, the first story importing an Ark subpath triggers an on-the-fly
           // optimize + full page reload mid-test ("Failed to fetch dynamically
           // imported module" / "Vite unexpectedly reloaded a test"). Ark ships
-          // per-component entry points, so include the wildcard subpath.
-          include: ['react/jsx-dev-runtime', '@ark-ui/react/*', '@tanstack/react-table'],
+          // per-component entry points, so include the wildcard subpath. The
+          // CodeMirror 6 packages (@codemirror/*, @lezer/*) that the Code Block
+          // and Code Editor mount are pre-bundled for the same reason.
+          include: [
+            'react/jsx-dev-runtime',
+            '@ark-ui/react/*',
+            '@tanstack/react-table',
+            '@codemirror/state',
+            '@codemirror/view',
+            '@codemirror/commands',
+            '@codemirror/language',
+            '@codemirror/search',
+            '@codemirror/lint',
+            '@codemirror/lang-json',
+            '@codemirror/lang-javascript',
+            '@codemirror/autocomplete',
+            '@lezer/highlight',
+          ],
         },
         server: {
           fs: {

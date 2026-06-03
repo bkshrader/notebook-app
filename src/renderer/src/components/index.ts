@@ -33,6 +33,13 @@ export { Card, type CardProps } from './Card';
 export { Carousel, type CarouselProps, type CarouselSlide } from './Carousel';
 export { Checkbox, type CheckboxProps } from './Checkbox';
 export { Clipboard, type ClipboardProps } from './Clipboard';
+export { CodeBlock, type CodeBlockProps, type HighlightLines } from './CodeBlock';
+export {
+  CodeEditor,
+  type CodeEditorProps,
+  type CodeLanguage,
+  type CodeLanguageKey,
+} from './CodeEditor';
 export { Collapsible, type CollapsibleProps } from './Collapsible';
 export { ColorPicker, type ColorPickerProps } from './ColorPicker';
 export { Combobox, type ComboboxProps, type ComboboxItem } from './Combobox';

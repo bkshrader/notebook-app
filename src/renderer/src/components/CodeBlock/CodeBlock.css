@@ -1,0 +1,173 @@
+/**
+ * CodeBlock — read-only, syntax-highlighted code display on a CodeMirror 6
+ * `EditorView` (`editable: false`). Helios's own Code Block renders on Prism; we
+ * render on a read-only CM6 instance for a single highlighting engine across the
+ * library (see the CM6 ADR). Visuals are audited against the Helios Code Block
+ * reference.
+ *
+ * Styling targets BOTH our own `data-scope`/`data-part` attributes (header,
+ * body, footer, the copy slot) AND the `.cm-*` classes CodeMirror emits — exactly
+ * as Helios scopes `.hds-code-block .cm-*`. The `.cm-*` selectors are the
+ * library's emitted DOM (not BEM/custom class names of ours), the same precedent
+ * the unstyled-primitives-ark ADR allows for non-Ark primitives.
+ *
+ * Every color-bearing value resolves to a semantic Helios `--token-*` custom
+ * property. The read-only editor has no caret and no animations; the
+ * reduced-motion belt-and-suspenders reset below matches the repo convention.
+ */
+
+[data-scope='code-block'][data-part='root'] {
+  overflow: hidden;
+  display: block flow-root;
+
+  border: 1px solid var(--token-color-border-primary);
+
+  font-family: var(--token-typography-code-200-font-family);
+  font-size: var(--token-typography-code-200-font-size);
+  line-height: var(--token-typography-code-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background-color: var(--token-color-surface-primary);
+
+  /* Helios `isStandalone` rounds the corners. */
+  &[data-standalone] {
+    border-radius: var(--token-border-radius-medium);
+  }
+}
+
+[data-scope='code-block'][data-part='header'] {
+  display: block flow-root;
+
+  padding-block: 12px;
+  padding-inline: 16px;
+  border-block-end: 1px solid var(--token-color-border-faint);
+
+  background-color: var(--token-color-surface-faint);
+}
+
+[data-scope='code-block'][data-part='title'] {
+  font-weight: var(--token-typography-font-weight-semibold);
+  color: var(--token-color-foreground-strong);
+}
+
+[data-scope='code-block'][data-part='description'] {
+  margin-block-start: 2px;
+
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-color-foreground-faint);
+}
+
+/* The body lays the scroll region and the floating copy button on one plane. */
+[data-scope='code-block'][data-part='body'] {
+  position: relative;
+  display: block flow-root;
+}
+
+[data-scope='code-block'][data-part='scroll'] {
+  overflow: auto;
+
+  /* When capped, clamp to the consumer-provided max height (set via the
+     `--code-block-max-height` custom property on the element). */
+  &[data-capped] {
+    max-block-size: var(--code-block-max-height);
+  }
+}
+
+/* The copy button floats top-end over the scroll region (Helios placement). */
+[data-scope='code-block'][data-part='copy'] {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 8px;
+  inset-inline-end: 8px;
+}
+
+/* The "Show more / Show less code" footer toggle. */
+[data-scope='code-block'][data-part='footer'] {
+  display: block flow-root;
+  border-block-start: 1px solid var(--token-color-border-faint);
+  background-color: var(--token-color-surface-faint);
+}
+
+[data-scope='code-block'][data-part='height-toggle'] {
+  cursor: pointer;
+
+  display: block flow-root;
+
+  inline-size: 100%;
+  padding-block: 10px;
+  padding-inline: 16px;
+  border: 0;
+
+  font: inherit;
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  color: var(--token-color-foreground-action);
+  text-align: start;
+
+  background: transparent;
+
+  &:hover,
+  &:focus {
+    color: var(--token-color-foreground-action-hover);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+}
+
+/* --- CodeMirror-emitted DOM (.cm-*) -------------------------------------- */
+
+[data-scope='code-block'][data-part='editor'] .cm-editor {
+  background-color: transparent;
+}
+
+[data-scope='code-block'][data-part='editor'] .cm-scroller {
+  font-family: var(--token-typography-code-200-font-family);
+  line-height: var(--token-typography-code-200-line-height);
+}
+
+[data-scope='code-block'][data-part='editor'] .cm-content {
+  padding-block: 12px;
+  caret-color: transparent; /* read-only: no caret */
+}
+
+[data-scope='code-block'][data-part='editor'] .cm-gutters {
+  border-inline-end: 1px solid var(--token-color-border-faint);
+  color: var(--token-color-foreground-faint);
+  background-color: var(--token-color-surface-faint);
+}
+
+/* The focus ring is drawn on the focusable editor surface, keyboard-only. */
+[data-scope='code-block'][data-part='editor'] .cm-editor.cm-focused {
+  outline: none;
+}
+
+[data-scope='code-block'][data-part='editor'] .cm-editor:focus-visible,
+[data-scope='code-block'][data-part='editor'] .cm-content:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Highlighted lines (Helios "line highlighting"). */
+[data-scope='code-block'][data-part='editor'] .cm-line[data-line-highlight] {
+  background-color: var(--token-color-surface-highlight);
+}
+
+/* The read-only block hides its caret via `caret-color: transparent` on
+   `.cm-content` above (no `display: none`, which would remove it from the a11y
+   tree). The cursor primitive carries CM's blink animation; suppress it under
+   reduced motion via BOTH signals, matching the repo convention. */
+[data-scope='code-block'][data-part='editor'] .cm-cursor {
+  [data-reduced-motion='reduce'] & {
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
