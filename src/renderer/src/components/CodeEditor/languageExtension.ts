@@ -34,5 +34,10 @@ const LANGUAGE_MAP: Record<CodeLanguageKey, () => Extension> = {
 export function resolveLanguage(language: CodeLanguage | undefined): Extension {
   if (language == null) return [];
   if (typeof language !== 'string') return language; // already an Extension
-  return (LANGUAGE_MAP[language] ?? (() => []))();
+  // `language` is narrowed to a known key here, so the lookup is total; the
+  // `factory ?? null` guards only the runtime case where an unknown string is
+  // cast in (matching the old `default: return []`), without allocating a
+  // throwaway fallback closure on the hot path.
+  const factory = LANGUAGE_MAP[language];
+  return factory ? factory() : [];
 }

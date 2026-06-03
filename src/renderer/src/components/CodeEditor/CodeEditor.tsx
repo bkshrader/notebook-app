@@ -101,11 +101,11 @@ function CodeEditorActions({
 }) {
   return (
     <div data-scope={SCOPE} data-part="actions">
-      {customActions && (
+      {customActions ? (
         <div data-scope={SCOPE} data-part="custom-actions">
           {customActions}
         </div>
-      )}
+      ) : null}
       <div data-scope={SCOPE} data-part="secondary-actions">
         {copyable && <Clipboard label="Copy code" value={value} triggerLabel="Copy" />}
         {fullScreenable && (
@@ -141,7 +141,11 @@ function hasHeaderContent(p: CodeEditorHeaderProps) {
 
 /**
  * The full header: text block + actions. Owns the "is there anything to show?"
- * decision and returns null when the header would be empty, keeping the main
+ * decision and returns null when nothing would render — i.e. no title,
+ * description, or custom actions AND both `copyable` and `fullScreenable` are
+ * off — so a fully-suppressed header adds no empty landmark to the a11y tree.
+ * (With the default `copyable`/`fullScreenable` of `true` the header always
+ * renders; null only happens when a consumer turns both off.) Keeps the main
  * render body branch-free.
  */
 function CodeEditorHeader(props: CodeEditorHeaderProps) {
@@ -191,9 +195,15 @@ function rootAttrs(isStandalone: boolean, isFullScreen: boolean, lintLanguage: s
  * The extension wiring lives in `useCodeEditorExtensions`, the mount lifecycle in
  * `useCodeMirror`, and full-screen behavior in `useFullScreen`, so this render
  * body stays flat (low cyclomatic complexity / CRAP).
+ *
+ * The inner function is named `CodeEditorImpl` (not `CodeEditor`) so it doesn't
+ * collide with the `const CodeEditor` binding — that collision makes the coverage
+ * instrumenter mangle the name to `CodeEditor2`, which fallow's name-keyed
+ * coverage matcher can't find, dropping the function to an estimated 0% and
+ * inflating its CRAP. Matches the sibling components (Button/CodeBlock/etc.).
  */
 export const CodeEditor = forwardRef<HTMLDivElement, CodeEditorProps>(
-  function CodeEditor(props, ref) {
+  function CodeEditorImpl(props, ref) {
     const {
       value,
       onChange,
@@ -245,3 +255,6 @@ export const CodeEditor = forwardRef<HTMLDivElement, CodeEditorProps>(
     );
   },
 );
+// The inner function is `CodeEditorImpl` (see above); restore the public name for
+// React devtools and error overlays.
+CodeEditor.displayName = 'CodeEditor';
