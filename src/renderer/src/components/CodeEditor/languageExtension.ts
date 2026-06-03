@@ -21,25 +21,18 @@ export type CodeLanguageKey = 'json' | 'javascript' | 'jsx' | 'typescript' | 'ts
  */
 export type CodeLanguage = CodeLanguageKey | Extension;
 
+const LANGUAGE_MAP: Record<CodeLanguageKey, () => Extension> = {
+  json: () => json(),
+  javascript: () => javascript(),
+  jsx: () => javascript({ jsx: true }),
+  typescript: () => javascript({ typescript: true }),
+  tsx: () => javascript({ jsx: true, typescript: true }),
+  plaintext: () => [],
+};
+
 /** Resolve a {@link CodeLanguage} to the CM6 extension(s) that enable it. */
 export function resolveLanguage(language: CodeLanguage | undefined): Extension {
   if (language == null) return [];
   if (typeof language !== 'string') return language; // already an Extension
-
-  switch (language) {
-    case 'json':
-      return json();
-    case 'javascript':
-      return javascript();
-    case 'jsx':
-      return javascript({ jsx: true });
-    case 'typescript':
-      return javascript({ typescript: true });
-    case 'tsx':
-      return javascript({ jsx: true, typescript: true });
-    case 'plaintext':
-      return [];
-    default:
-      return [];
-  }
+  return (LANGUAGE_MAP[language] ?? (() => []))();
 }

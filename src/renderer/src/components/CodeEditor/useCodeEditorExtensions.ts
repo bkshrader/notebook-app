@@ -49,6 +49,18 @@ export interface UseCodeEditorExtensionsOptions {
   onChange?: (value: string) => void;
 }
 
+function buildLintExtensions(lintLanguage: 'json' | undefined): Extension {
+  if (lintLanguage !== 'json') return [];
+  return [json(), linter(jsonParseLinter()), lintGutter()];
+}
+
+function buildChangeListener(onChange: ((value: string) => void) | undefined): Extension {
+  if (!onChange) return [];
+  return EditorView.updateListener.of((update) => {
+    if (update.docChanged) onChange(update.state.doc.toString());
+  });
+}
+
 export function useCodeEditorExtensions({
   ariaLabel,
   language,
@@ -57,17 +69,8 @@ export function useCodeEditorExtensions({
   lintLanguage,
   onChange,
 }: UseCodeEditorExtensionsOptions): Extension {
-  return useMemo<Extension>(() => {
-    const lintExtensions: Extension =
-      lintLanguage === 'json' ? [json(), linter(jsonParseLinter()), lintGutter()] : [];
-
-    const changeListener = onChange
-      ? EditorView.updateListener.of((update) => {
-          if (update.docChanged) onChange(update.state.doc.toString());
-        })
-      : [];
-
-    return [
+  return useMemo<Extension>(
+    () => [
       ...codeMirrorBase({ ariaLabel }),
       lineNumbers(),
       highlightActiveLine(),
@@ -88,10 +91,11 @@ export function useCodeEditorExtensions({
       // The language extension. When linting JSON we add the JSON language via
       // lintExtensions, so skip a duplicate here for the json key.
       lintLanguage === 'json' ? [] : resolveLanguage(language),
-      lintExtensions,
+      buildLintExtensions(lintLanguage),
       placeholder ? cmPlaceholder(placeholder) : [],
       readOnly ? [EditorState.readOnly.of(true), EditorView.editable.of(false)] : [],
-      changeListener,
-    ];
-  }, [ariaLabel, language, readOnly, placeholder, lintLanguage, onChange]);
+      buildChangeListener(onChange),
+    ],
+    [ariaLabel, language, readOnly, placeholder, lintLanguage, onChange],
+  );
 }

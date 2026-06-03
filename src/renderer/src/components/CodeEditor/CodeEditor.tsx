@@ -44,7 +44,25 @@ export interface CodeEditorProps {
   isStandalone?: boolean;
 }
 
-/** Header text block: title and/or description. */
+function HeaderTitle({ title }: { title?: ReactNode }) {
+  if (!title) return null;
+  return (
+    <div data-scope={SCOPE} data-part="title">
+      {title}
+    </div>
+  );
+}
+
+function HeaderDescription({ description }: { description?: ReactNode }) {
+  if (!description) return null;
+  return (
+    <div data-scope={SCOPE} data-part="description">
+      {description}
+    </div>
+  );
+}
+
+/** Header text block: title and/or description. Null when both are absent. */
 function CodeEditorHeaderText({
   title,
   description,
@@ -55,18 +73,14 @@ function CodeEditorHeaderText({
   if (!title && !description) return null;
   return (
     <div data-scope={SCOPE} data-part="header-text">
-      {title ? (
-        <div data-scope={SCOPE} data-part="title">
-          {title}
-        </div>
-      ) : null}
-      {description ? (
-        <div data-scope={SCOPE} data-part="description">
-          {description}
-        </div>
-      ) : null}
+      <HeaderTitle title={title} />
+      <HeaderDescription description={description} />
     </div>
   );
+}
+
+function fullScreenLabel(isFullScreen: boolean) {
+  return isFullScreen ? 'Exit full screen' : 'Full screen';
 }
 
 /** Secondary actions: CopyButton + full-screen toggle (Helios). */
@@ -87,14 +101,14 @@ function CodeEditorActions({
 }) {
   return (
     <div data-scope={SCOPE} data-part="actions">
-      {customActions ? (
+      {customActions && (
         <div data-scope={SCOPE} data-part="custom-actions">
           {customActions}
         </div>
-      ) : null}
+      )}
       <div data-scope={SCOPE} data-part="secondary-actions">
-        {copyable ? <Clipboard label="Copy code" value={value} triggerLabel="Copy" /> : null}
-        {fullScreenable ? (
+        {copyable && <Clipboard label="Copy code" value={value} triggerLabel="Copy" />}
+        {fullScreenable && (
           <button
             type="button"
             data-scope={SCOPE}
@@ -102,29 +116,15 @@ function CodeEditorActions({
             aria-pressed={isFullScreen}
             onClick={onToggleFullScreen}
           >
-            {isFullScreen ? 'Exit full screen' : 'Full screen'}
+            {fullScreenLabel(isFullScreen)}
           </button>
-        ) : null}
+        )}
       </div>
     </div>
   );
 }
 
-/**
- * The full header: text block + actions. Owns the "is there anything to show?"
- * decision and returns null when the header would be empty, so the main render
- * body carries neither the boolean nor the branch (keeping its complexity low).
- */
-function CodeEditorHeader({
-  value,
-  title,
-  description,
-  copyable,
-  fullScreenable,
-  isFullScreen,
-  onToggleFullScreen,
-  customActions,
-}: {
+interface CodeEditorHeaderProps {
   value: string;
   title?: ReactNode;
   description?: ReactNode;
@@ -133,9 +133,29 @@ function CodeEditorHeader({
   isFullScreen: boolean;
   onToggleFullScreen: () => void;
   customActions?: ReactNode;
-}) {
-  const hasHeader = Boolean(title || description || copyable || fullScreenable || customActions);
-  if (!hasHeader) return null;
+}
+
+function hasHeaderContent(p: CodeEditorHeaderProps) {
+  return [p.title, p.description, p.copyable, p.fullScreenable, p.customActions].some(Boolean);
+}
+
+/**
+ * The full header: text block + actions. Owns the "is there anything to show?"
+ * decision and returns null when the header would be empty, keeping the main
+ * render body branch-free.
+ */
+function CodeEditorHeader(props: CodeEditorHeaderProps) {
+  if (!hasHeaderContent(props)) return null;
+  const {
+    value,
+    title,
+    description,
+    copyable,
+    fullScreenable,
+    isFullScreen,
+    onToggleFullScreen,
+    customActions,
+  } = props;
   return (
     <div data-scope={SCOPE} data-part="header">
       <CodeEditorHeaderText title={title} description={description} />
@@ -151,6 +171,15 @@ function CodeEditorHeader({
   );
 }
 
+/** Root data-attribute set, derived from controlled state. */
+function rootAttrs(isStandalone: boolean, isFullScreen: boolean, lintLanguage: string | undefined) {
+  return {
+    'data-standalone': isStandalone ? '' : undefined,
+    'data-full-screen': isFullScreen ? '' : undefined,
+    'data-linting': lintLanguage ? '' : undefined,
+  };
+}
+
 /**
  * CodeEditor — an editable, syntax-highlighting code editor on CodeMirror 6, at
  * full Helios Code Editor parity: a header (title/description + secondary actions
@@ -163,57 +192,56 @@ function CodeEditorHeader({
  * `useCodeMirror`, and full-screen behavior in `useFullScreen`, so this render
  * body stays flat (low cyclomatic complexity / CRAP).
  */
-export const CodeEditor = forwardRef<HTMLDivElement, CodeEditorProps>(function CodeEditor(
-  {
-    value,
-    onChange,
-    ariaLabel,
-    language,
-    title,
-    description,
-    copyable = true,
-    fullScreenable = true,
-    customActions,
-    lintLanguage,
-    placeholder,
-    readOnly,
-    isStandalone = true,
+export const CodeEditor = forwardRef<HTMLDivElement, CodeEditorProps>(
+  function CodeEditor(props, ref) {
+    const {
+      value,
+      onChange,
+      ariaLabel,
+      language,
+      title,
+      description,
+      copyable = true,
+      fullScreenable = true,
+      customActions,
+      lintLanguage,
+      placeholder,
+      readOnly,
+      isStandalone = true,
+    } = props;
+
+    const extensions = useCodeEditorExtensions({
+      ariaLabel,
+      language,
+      readOnly,
+      placeholder,
+      lintLanguage,
+      onChange,
+    });
+
+    const { hostRef, view } = useCodeMirror({ value, extensions });
+    const { isFullScreen, toggle } = useFullScreen(view);
+
+    return (
+      <div
+        ref={ref}
+        data-scope={SCOPE}
+        data-part="root"
+        {...rootAttrs(isStandalone, isFullScreen, lintLanguage)}
+      >
+        <CodeEditorHeader
+          value={value}
+          title={title}
+          description={description}
+          copyable={copyable}
+          fullScreenable={fullScreenable}
+          isFullScreen={isFullScreen}
+          onToggleFullScreen={toggle}
+          customActions={customActions}
+        />
+
+        <div ref={hostRef} data-scope={SCOPE} data-part="editor" />
+      </div>
+    );
   },
-  ref,
-) {
-  const extensions = useCodeEditorExtensions({
-    ariaLabel,
-    language,
-    readOnly,
-    placeholder,
-    lintLanguage,
-    onChange,
-  });
-
-  const { hostRef, view } = useCodeMirror({ value, extensions });
-  const { isFullScreen, toggle } = useFullScreen(view);
-
-  return (
-    <div
-      ref={ref}
-      data-scope={SCOPE}
-      data-part="root"
-      data-standalone={isStandalone ? '' : undefined}
-      data-full-screen={isFullScreen ? '' : undefined}
-      data-linting={lintLanguage ? '' : undefined}
-    >
-      <CodeEditorHeader
-        value={value}
-        title={title}
-        description={description}
-        copyable={copyable}
-        fullScreenable={fullScreenable}
-        isFullScreen={isFullScreen}
-        onToggleFullScreen={toggle}
-        customActions={customActions}
-      />
-
-      <div ref={hostRef} data-scope={SCOPE} data-part="editor" />
-    </div>
-  );
-});
+);

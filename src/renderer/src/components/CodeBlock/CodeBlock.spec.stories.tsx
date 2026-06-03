@@ -161,6 +161,68 @@ export const HeightToggleExpandsAndCollapses: Story = {
   },
 };
 
+/** A range entry in highlightLines expands to every line in the range. */
+export const HighlightedRange: Story = {
+  args: { highlightLines: [[1, 3]], showLineNumbers: true },
+  play: async ({ canvasElement, step }) => {
+    await getContent(canvasElement);
+    await step('three lines in the range are decorated', async () => {
+      const highlighted = await waitFor(() => {
+        const els = canvasElement.querySelectorAll<HTMLElement>('.cm-line[data-line-highlight]');
+        if (els.length < 3) throw new Error(`only ${els.length} highlighted lines`);
+        return els;
+      });
+      await expect(highlighted.length).toBeGreaterThanOrEqual(3);
+    });
+  },
+};
+
+/** Plaintext language renders without syntax tokens (no span[class] inside lines). */
+export const PlaintextLanguage: Story = {
+  args: { language: 'plaintext', value: 'no highlighting here' },
+  play: async ({ canvasElement, step }) => {
+    const content = await getContent(canvasElement);
+    await step('no highlighted token spans are emitted', async () => {
+      const tokens = content.querySelectorAll('.cm-line span[class]');
+      await expect(tokens.length).toBe(0);
+    });
+  },
+};
+
+/** jsx language resolves without error (editor mounts and renders lines). */
+export const JsxLanguage: Story = {
+  args: { language: 'jsx', value: 'const El = () => <div />;' },
+  play: async ({ canvasElement, step }) => {
+    const content = await getContent(canvasElement);
+    await step('the editor surface is present with content', async () => {
+      await expect(content).not.toBeNull();
+      await expect(content.textContent).toContain('El');
+    });
+  },
+};
+
+/** typescript language resolves without error. */
+export const TypeScriptLanguage: Story = {
+  args: { language: 'typescript', value: 'const x: number = 1;' },
+  play: async ({ canvasElement, step }) => {
+    const content = await getContent(canvasElement);
+    await step('the editor surface is present', async () => {
+      await expect(content.textContent).toContain('number');
+    });
+  },
+};
+
+/** tsx language resolves without error. */
+export const TsxLanguage: Story = {
+  args: { language: 'tsx', value: 'const El = (): JSX.Element => <span />;' },
+  play: async ({ canvasElement, step }) => {
+    const content = await getContent(canvasElement);
+    await step('the editor surface is present', async () => {
+      await expect(content.textContent).toContain('JSX');
+    });
+  },
+};
+
 /**
  * The read-only editor does not trap Tab (WCAG 2.1.2). Its `.cm-content` is
  * `contenteditable="false"` (so it is not an editing target); we assert that

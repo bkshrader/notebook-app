@@ -206,6 +206,68 @@ export const CopyButtonCarriesValue: Story = {
   },
 };
 
+/** jsx language resolves without error (editor mounts and renders the surface). */
+export const JsxLanguage: Story = {
+  args: { value: 'const El = () => <div />;', language: 'jsx', ariaLabel: 'JSX editor' },
+  play: async ({ canvasElement, step }) => {
+    const content = await getContent(canvasElement);
+    await step('the editor surface is present with content', async () => {
+      await expect(content).not.toBeNull();
+      await expect(content.textContent).toContain('El');
+    });
+  },
+};
+
+/** typescript language resolves without error. */
+export const TypeScriptLanguage: Story = {
+  args: { value: 'const x: number = 1;', language: 'typescript', ariaLabel: 'TS editor' },
+  play: async ({ canvasElement, step }) => {
+    const content = await getContent(canvasElement);
+    await step('the editor surface is present', async () => {
+      await expect(content.textContent).toContain('number');
+    });
+  },
+};
+
+/** tsx language resolves without error. */
+export const TsxLanguage: Story = {
+  args: {
+    value: 'const El = (): JSX.Element => <span />;',
+    language: 'tsx',
+    ariaLabel: 'TSX editor',
+  },
+  play: async ({ canvasElement, step }) => {
+    const content = await getContent(canvasElement);
+    await step('the editor surface is present', async () => {
+      await expect(content.textContent).toContain('JSX');
+    });
+  },
+};
+
+/** plaintext language emits no syntax token spans. */
+export const PlaintextLanguage: Story = {
+  args: { value: 'no highlighting here', language: 'plaintext', ariaLabel: 'plain editor' },
+  play: async ({ canvasElement, step }) => {
+    const content = await getContent(canvasElement);
+    await step('no highlighted token spans are emitted', async () => {
+      const tokens = content.querySelectorAll('.cm-line span[class]');
+      await expect(tokens.length).toBe(0);
+    });
+  },
+};
+
+/** Without onChange the editor is uncontrolled — mounts without errors. */
+export const NoOnChange: Story = {
+  args: { value: jsSample, ariaLabel: 'Uncontrolled editor' },
+  render: (args) => <CodeEditor {...args} onChange={undefined} />,
+  play: async ({ canvasElement, step }) => {
+    const content = await getContent(canvasElement);
+    await step('the editor mounts without an onChange handler', async () => {
+      await expect(content).toHaveAttribute('contenteditable', 'true');
+    });
+  },
+};
+
 /** Read-only mode prevents edits but keeps the surface labeled and focusable. */
 export const ReadOnlyIsNotEditable: Story = {
   args: { readOnly: true },

@@ -13,21 +13,25 @@ import { RangeSetBuilder, type Extension } from '@codemirror/state';
  */
 export type HighlightLines = ReadonlyArray<number | readonly [number, number]>;
 
+/** Expand a single entry (number or [start, end] range) into line numbers. */
+function expandEntry(entry: number | readonly [number, number]): number[] {
+  if (typeof entry === 'number') {
+    return entry >= 1 ? [entry] : [];
+  }
+  const [start, end] = entry;
+  const lo = Math.max(1, Math.min(start, end));
+  const hi = Math.max(start, end);
+  return Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
+}
+
+function numericAsc(a: number, b: number) {
+  return a - b;
+}
+
 /** Expand ranges and dedupe into a sorted set of 1-based line numbers. */
 export function normalizeHighlightLines(input: HighlightLines | undefined): number[] {
-  if (!input || input.length === 0) return [];
-  const lines = new Set<number>();
-  for (const entry of input) {
-    if (typeof entry === 'number') {
-      if (entry >= 1) lines.add(entry);
-    } else {
-      const [start, end] = entry;
-      const lo = Math.max(1, Math.min(start, end));
-      const hi = Math.max(start, end);
-      for (let n = lo; n <= hi; n += 1) lines.add(n);
-    }
-  }
-  return [...lines].sort((a, b) => a - b);
+  if (!input?.length) return [];
+  return [...new Set(input.flatMap(expandEntry))].sort(numericAsc);
 }
 
 const lineHighlightDecoration = Decoration.line({ attributes: { 'data-line-highlight': '' } });

@@ -53,21 +53,31 @@ export interface CodeBlockProps {
   isStandalone?: boolean;
 }
 
+function BlockTitle({ title }: { title?: ReactNode }) {
+  if (!title) return null;
+  return (
+    <div data-scope={SCOPE} data-part="title">
+      {title}
+    </div>
+  );
+}
+
+function BlockDescription({ description }: { description?: ReactNode }) {
+  if (!description) return null;
+  return (
+    <div data-scope={SCOPE} data-part="description">
+      {description}
+    </div>
+  );
+}
+
 /** The header: title and/or description. Rendered only when one is present. */
 function CodeBlockHeader({ title, description }: { title?: ReactNode; description?: ReactNode }) {
   if (!title && !description) return null;
   return (
     <div data-scope={SCOPE} data-part="header">
-      {title ? (
-        <div data-scope={SCOPE} data-part="title">
-          {title}
-        </div>
-      ) : null}
-      {description ? (
-        <div data-scope={SCOPE} data-part="description">
-          {description}
-        </div>
-      ) : null}
+      <BlockTitle title={title} />
+      <BlockDescription description={description} />
     </div>
   );
 }
