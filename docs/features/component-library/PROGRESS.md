@@ -140,11 +140,13 @@ These Helios components are out of scope for this pass by explicit decision — 
 a multi-day feature, not a primitive wrapper, and some belong to other roadmap items:
 
 - **App shell:** App Header, App Footer, App Side Nav, Page Header, Filter Bar,
-  Application State — app-composition surfaces, not library primitives.
+  Application State — **not planned**: they either don't fit this app's design or are
+  layout-only rules that don't compose into reusable components. Decision recorded in the
+  [no-app-shell-components ADR](../accessibility/adrs/no-app-shell-components.md).
 - **Data tables:** Table, Advanced Table — pair Ark with TanStack Table (MIT) per the
   unstyled-primitives-ark ADR follow-up; a dedicated effort.
 - **Code surfaces:** Code Block, Code Editor — these are the **CodeMirror 6** feature
   ([codemirror research](../../research/codemirror.md)); must align with that ADR, not
   be hand-rolled here.
 
-Each should get its own roadmap line + `OVERVIEW.md` when picked up. 6. Completeness critic pass; push; update the PR.
+Each should get its own roadmap line + `OVERVIEW.md` when picked up.
