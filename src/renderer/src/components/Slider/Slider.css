@@ -6,18 +6,50 @@
  * value resolves to a Helios `--token-*` custom property. No raw literals,
  * no `--token-color-palette-*`.
  *
- * State comes from Ark's data-attributes (data-disabled, data-dragging,
- * data-orientation). Focus ring is applied ONLY on keyboard focus via
- * [data-focus-visible], never on every [data-focus].
+ * State comes from Ark's data-attributes. Per the Ark slider styling guide the
+ * emitted attrs are data-disabled, data-orientation, data-dragging, data-invalid,
+ * and data-focus — there is NO data-focus-visible. The keyboard focus ring is
+ * therefore drawn with the native `:focus-visible` pseudo on the thumb (the
+ * thumb is the focusable element: a div with role="slider" and tabindex="0").
  *
- * Motion: Any CSS variable changes driven by pointer/keyboard are inherently
- * instant (no transitions are needed on track/range per Ark's styling notes
- * "All parts: Don't include any transition styles"). The thumb receives no
- * transitions per Ark guidance. Accordingly, no reduced-motion resets are needed.
+ * Sizing: a single `[data-part='root'][data-size]` block sets the local
+ * `--slider-*` custom properties that the parts consume (mirrors the Accordion
+ * size-matrix pattern). Three scales: small / medium / large.
+ *
+ * Motion: per Ark's styling notes ("All parts: Don't include any transition
+ * styles") the slider uses no CSS transitions — thumb positioning is applied by
+ * Ark via inline transforms, instantly. With zero CSS transitions there is
+ * nothing for prefers-reduced-motion to suppress, so no reduced-motion reset is
+ * needed; do not add transitions here.
  *
  * Logical properties (inline-size / block-size / padding-inline) are used
  * throughout instead of width/height/padding-left.
  */
+
+/* ── Size matrix ──────────────────────────────────────────────────────────── */
+
+/* The size scale lives in one place: [data-size] on the root sets the local
+ * --slider-* properties every part below consumes. */
+[data-scope='slider'][data-part='root'][data-size='small'] {
+  --slider-thumb-size: 12px;
+  --slider-track-thickness: 2px;
+  --slider-label-font-size: var(--token-typography-body-100-font-size);
+  --slider-label-line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-scope='slider'][data-part='root'][data-size='medium'] {
+  --slider-thumb-size: var(--token-form-toggle-thumb-size);
+  --slider-track-thickness: var(--token-form-toggle-border-width);
+  --slider-label-font-size: var(--token-typography-body-200-font-size);
+  --slider-label-line-height: var(--token-typography-body-200-line-height);
+}
+
+[data-scope='slider'][data-part='root'][data-size='large'] {
+  --slider-thumb-size: 20px;
+  --slider-track-thickness: 3px;
+  --slider-label-font-size: var(--token-typography-body-300-font-size);
+  --slider-label-line-height: var(--token-typography-body-300-line-height);
+}
 
 /* ── Root ─────────────────────────────────────────────────────────────────── */
 
@@ -29,8 +61,8 @@
   inline-size: 100%;
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--slider-label-font-size);
+  line-height: var(--slider-label-line-height);
   color: var(--token-color-foreground-primary);
 
   &[data-disabled] {
@@ -56,8 +88,8 @@
   user-select: none;
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--slider-label-font-size);
+  line-height: var(--slider-label-line-height);
   color: var(--token-form-label-color);
 
   &[data-disabled] {
@@ -72,8 +104,8 @@
 
 [data-scope='slider'][data-part='value-text'] {
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--slider-label-font-size);
+  line-height: var(--slider-label-line-height);
   color: var(--token-color-foreground-faint);
 
   &[data-disabled] {
@@ -89,11 +121,11 @@
   position: relative;
   display: block flex;
   align-items: center;
-  block-size: var(--token-form-toggle-height);
+  block-size: var(--slider-thumb-size);
 
   &[data-orientation='vertical'] {
     flex-direction: column;
-    inline-size: var(--token-form-toggle-height);
+    inline-size: var(--slider-thumb-size);
     block-size: 100%;
   }
 }
@@ -104,13 +136,13 @@
   overflow: hidden;
   flex: 1;
 
-  block-size: var(--token-form-toggle-border-width);
+  block-size: var(--slider-track-thickness);
   border-radius: var(--token-border-radius-large);
 
   background: var(--token-form-control-base-border-color-default);
 
   &[data-orientation='vertical'] {
-    inline-size: var(--token-form-toggle-border-width);
+    inline-size: var(--slider-track-thickness);
     block-size: 100%;
   }
 
@@ -145,8 +177,8 @@
   align-items: center;
   justify-content: center;
 
-  inline-size: var(--token-form-toggle-thumb-size);
-  block-size: var(--token-form-toggle-thumb-size);
+  inline-size: var(--slider-thumb-size);
+  block-size: var(--slider-thumb-size);
   border-color: var(--token-form-control-checked-border-color-default);
   border-style: solid;
   border-width: var(--token-form-control-border-width);
@@ -163,8 +195,10 @@
   }
 }
 
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='slider'][data-part='thumb'][data-focus-visible] {
+/* Keyboard focus only — Ark exposes NO data-focus-visible attribute, so the
+ * ring is drawn with the native :focus-visible pseudo. (data-focus would fire on
+ * any focus, including pointer; :focus-visible is keyboard-focus-only.) */
+[data-scope='slider'][data-part='thumb']:focus-visible {
   outline: none;
   box-shadow: var(--token-focus-ring-action-box-shadow);
 }

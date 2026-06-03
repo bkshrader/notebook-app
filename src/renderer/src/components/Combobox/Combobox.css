@@ -4,11 +4,30 @@
  * Styling targets Ark's `data-scope`/`data-part` attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios `--token-*` custom property. No raw literals,
- * no `--token-color-palette-*`.
+ * no `--token-color-palette-*`. The only bare values are the per-size SPACING
+ * px values, which Helios itself hardcodes (they are not design tokens) —
+ * replicated here as local `--combobox-*` custom properties set by [data-size].
  *
- * State comes from Ark's data-attributes (data-state="open|closed",
- * data-highlighted, data-disabled, data-focus-visible, data-invalid).
- * Focus ring is applied ONLY on keyboard focus ([data-focus-visible]).
+ * State comes from Ark's data-attributes (verified against the Ark styling
+ * guide — do NOT assume attributes Ark doesn't document):
+ *   data-state="open|closed"  (on Control, Input, Content)
+ *   data-focus                (on Control + Label — present whenever focused,
+ *                              mouse OR keyboard; drives the border color only)
+ *   data-highlighted          (on Item — Ark's keyboard-navigation highlight;
+ *                              items are aria-activedescendant-managed and never
+ *                              take real DOM focus, so this IS their "focused"
+ *                              visual)
+ *   data-state="checked"      (on Item — the committed selection)
+ *   data-disabled / data-invalid / data-readonly (per part, per the guide)
+ *
+ * Ark exposes NO `data-focus-visible` on ANY combobox part. The keyboard-only
+ * focus RING is therefore drawn with the native `:focus-visible` pseudo:
+ *   - the Control wrapper carries the ring via `:has(input:focus-visible)` (the
+ *     <input> is the focusable element; the ring renders on its bordered parent)
+ *   - the Trigger and ClearTrigger (native <button>s) use their own
+ *     `:focus-visible`.
+ * Items never receive DOM focus (tabindex=-1, role=option), so they carry no
+ * focus ring — `data-highlighted` is their keyboard-visible affordance.
  *
  * Motion: transitions are suppressed under reduced-motion — both the OS
  * `prefers-reduced-motion` media query AND the Storybook toolbar's
@@ -19,21 +38,47 @@
  * used throughout per stylelint-plugin-logical-css.
  *
  * The content panel renders in a Portal — its z-index uses the Ark-provided
- * --layer-index CSS variable so stacking is correct in nested overlay contexts.
+ * --z-index CSS variable so stacking is correct in nested overlay contexts.
  */
+
+/* ── Size scale ──────────────────────────────────────────────────────────────
+   Helios hardcodes these spacing/icon px values per size (not design tokens);
+   replicated as local custom properties consumed by the parts below. Set once
+   on the root so a single [data-size] drives the whole control. */
+
+[data-scope='combobox'][data-part='root'][data-size='small'] {
+  --combobox-control-padding: 4px;
+  --combobox-icon-size: 16px;
+  --combobox-font-size: var(--token-typography-body-100-font-size);
+  --combobox-line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-scope='combobox'][data-part='root'][data-size='medium'] {
+  --combobox-control-padding: 7px;
+  --combobox-icon-size: 20px;
+  --combobox-font-size: var(--token-typography-body-200-font-size);
+  --combobox-line-height: var(--token-typography-body-200-line-height);
+}
+
+[data-scope='combobox'][data-part='root'][data-size='large'] {
+  --combobox-control-padding: 12px;
+  --combobox-icon-size: 24px;
+  --combobox-font-size: var(--token-typography-body-300-font-size);
+  --combobox-line-height: var(--token-typography-body-300-line-height);
+}
 
 /* ── Root ─────────────────────────────────────────────────────────────────── */
 
 [data-scope='combobox'][data-part='root'] {
   display: block flex;
   flex-direction: column;
-  gap: var(--token-form-control-padding);
+  gap: var(--combobox-control-padding, var(--token-form-control-padding));
 
   inline-size: 100%;
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--combobox-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--combobox-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-color-foreground-primary);
 }
 
@@ -43,8 +88,8 @@
   user-select: none;
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--combobox-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--combobox-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-form-label-color);
 
   &[data-disabled] {
@@ -70,20 +115,30 @@
 
   background: var(--token-form-control-base-surface-color-default);
 
+  /* Form-control interaction timing (0.2s); the combobox has no token family of
+     its own, so we borrow the sibling form-toggle duration rather than an
+     unrelated component's. */
   transition:
-    border-color var(--token-form-radiocard-transition-duration) ease,
-    box-shadow var(--token-form-radiocard-transition-duration) ease;
+    border-color var(--token-form-toggle-transition-duration) ease,
+    box-shadow var(--token-form-toggle-transition-duration) ease;
 
+  /* Reduced-motion resets first (lowest-relevant specificity), so the
+     interactive-state selectors below stay in ascending specificity order
+     (no-descending-specificity). */
   [data-reduced-motion='reduce'] & {
     transition: none;
   }
 
+  /* Hover/focus border affordance. The control is a div; it reacts to focus of
+     its contained <input> via :focus-within (paired with :hover per the a11y
+     focus-parity rule). The keyboard-only focus RING is separate (below). */
   &:hover,
-  &:focus {
+  &:focus-within {
     border-color: var(--token-form-control-base-border-color-hover);
     background: var(--token-form-control-base-surface-color-hover);
   }
 
+  /* data-focus is present for mouse OR keyboard focus: tint the border. */
   &[data-focus] {
     border-color: var(--token-color-border-action);
   }
@@ -98,8 +153,23 @@
   }
 
   &[data-invalid]:hover,
-  &[data-invalid]:focus {
+  &[data-invalid]:focus-within {
     border-color: var(--token-form-control-invalid-border-color-hover);
+  }
+
+  /* Ark carries data-readonly on the Root (not the Control — verified against
+     the Ark combobox styling guide), so the read-only surface descends from the
+     root rather than hanging off this part directly. */
+  [data-part='root'][data-readonly] & {
+    border-color: var(--token-form-control-readonly-border-color);
+    background: var(--token-form-control-readonly-surface-color);
+  }
+
+  /* Keyboard-only focus ring. The <input> is the focusable element; Ark emits
+     no data-focus-visible, so we draw the ring on this bordered wrapper when the
+     input matches the native :focus-visible pseudo (mouse focus does not). */
+  &:has([data-part='input']:focus-visible) {
+    box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -113,16 +183,19 @@
   flex: 1;
 
   min-inline-size: 0;
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--combobox-control-padding, var(--token-form-control-padding));
+  padding-inline: var(--combobox-control-padding, var(--token-form-control-padding));
   border: none;
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--combobox-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--combobox-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-form-control-base-foreground-value-color);
 
   background: transparent;
+
+  /* The keyboard focus ring lives on the control wrapper (see above), driven by
+     this input's :focus-visible — so the input itself shows no outline. */
   outline: none;
 }
 
@@ -135,13 +208,11 @@
   color: var(--token-form-control-disabled-foreground-color);
 }
 
-/* Keyboard focus ring lives on the control wrapper, driven by data-focus. The
-   input itself has no visible focus indicator — the control border carries it.
-   But if the input ever receives [data-focus-visible] directly, we pair the
-   outline: none with a box-shadow so the a11y/no-outline-none rule is met. */
-[data-scope='combobox'][data-part='input'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+/* data-readonly lives on the Root (per the Ark styling guide), so the read-only
+   text color descends from there rather than from the input part directly. */
+[data-scope='combobox'][data-part='root'][data-readonly]
+  [data-scope='combobox'][data-part='input'] {
+  color: var(--token-form-control-readonly-foreground-color);
 }
 
 /* ── Trigger (toggle button) ──────────────────────────────────────────────── */
@@ -150,9 +221,11 @@
   cursor: pointer;
 
   display: block flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
 
+  inline-size: var(--combobox-icon-size, 20px);
   padding-inline: var(--token-form-control-padding);
   border: none;
 
@@ -160,8 +233,9 @@
 
   background: transparent;
 
+  /* Hover/keyboard-focus recolor (paired per the a11y focus-parity rule). */
   &:hover,
-  &:focus {
+  &:focus-visible {
     color: var(--token-color-foreground-primary);
   }
 
@@ -170,7 +244,8 @@
     color: var(--token-color-foreground-disabled);
   }
 
-  &[data-focus-visible] {
+  /* Native keyboard focus ring — Ark emits no data-focus-visible attribute. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -182,9 +257,11 @@
   cursor: pointer;
 
   display: block flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
 
+  inline-size: var(--combobox-icon-size, 20px);
   padding-inline: var(--token-form-control-padding);
   border: none;
 
@@ -192,12 +269,14 @@
 
   background: transparent;
 
+  /* Hover/keyboard-focus recolor (paired per the a11y focus-parity rule). */
   &:hover,
-  &:focus {
+  &:focus-visible {
     color: var(--token-color-foreground-primary);
   }
 
-  &[data-focus-visible] {
+  /* Native keyboard focus ring — Ark emits no data-focus-visible attribute. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -253,6 +332,9 @@
 
   outline: none;
 
+  /* data-highlighted is Ark's keyboard-navigation highlight. Items are
+     aria-activedescendant-managed (tabindex=-1) and never receive DOM focus, so
+     this IS the keyboard-visible "focused option" state — no focus ring. */
   &[data-highlighted] {
     color: var(--token-color-foreground-action-hover);
     background: var(--token-color-surface-interactive-hover);
@@ -265,11 +347,6 @@
   &[data-disabled] {
     cursor: not-allowed;
     color: var(--token-color-foreground-disabled);
-  }
-
-  &[data-focus-visible] {
-    outline: none;
-    box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 }
 
@@ -296,7 +373,7 @@
   padding-inline: var(--token-form-control-padding);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--combobox-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--combobox-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-color-foreground-faint);
 }

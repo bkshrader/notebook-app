@@ -39,32 +39,28 @@
   &[data-state='open'] {
     animation: tooltip-scale-fade-in 150ms var(--token-tooltip-transition-function);
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
+
+  &[data-state='closed'] {
+    animation: tooltip-scale-fade-out 100ms var(--token-tooltip-transition-function);
+
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='tooltip'][data-part='content'][data-state='open'] {
-    animation: none;
-  }
-}
-
+/* Storybook toolbar reduced-motion attribute (mirrors the media query above,
+ * one reset per animated selector — comma-grouped resets fail the a11y lint). */
 [data-reduced-motion='reduce'] [data-scope='tooltip'][data-part='content'][data-state='open'] {
   animation: none;
 }
 
-[data-scope='tooltip'][data-part='content'][data-state='closed'] {
-  animation: tooltip-scale-fade-out 100ms var(--token-tooltip-transition-function);
-
-  [data-reduced-motion='reduce'] & {
-    animation: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
+[data-reduced-motion='reduce'] [data-scope='tooltip'][data-part='content'][data-state='closed'] {
+  animation: none;
 }
 
 /* Arrow body — inherits --arrow-background set on the content part */
@@ -78,9 +74,13 @@
   border-inline-start-color: var(--token-color-border-faint);
 }
 
-/* Trigger: Ark renders a <button> by default; ensure the focus ring appears
- * only on keyboard focus via [data-focus-visible]. */
-[data-scope='tooltip'][data-part='trigger'][data-focus-visible] {
+/* Trigger: Ark renders the asChild element as an HTMLButtonElement and exposes
+ * data-state / data-expanded — it does NOT emit data-focus-visible (verified
+ * against the live DOM). The keyboard focus ring therefore uses the native
+ * :focus-visible pseudo so it actually renders; a [data-focus-visible] selector
+ * would be phantom. The ring lives on :focus-visible alone so a pointer hover
+ * never paints the keyboard affordance. */
+[data-scope='tooltip'][data-part='trigger']:focus-visible {
   outline: none;
   box-shadow: var(--token-focus-ring-action-box-shadow);
 }

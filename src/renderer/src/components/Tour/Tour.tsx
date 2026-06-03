@@ -8,9 +8,18 @@ import {
 
 import './Tour.css';
 
+/** Step-panel sizing scale. Controls the floating Content width. */
+export type TourSize = 'small' | 'medium' | 'large';
+
 export interface TourProps extends Omit<TourRootProps, 'tour' | 'children'> {
   /** Tour step definitions. Each step can be type 'dialog' or 'tooltip'. */
   steps: TourStepDetails[];
+  /**
+   * Step-panel size. Drives the Content width via a per-size local custom
+   * property (mirrors the Accordion `[data-size]` pattern). Defaults to
+   * 'medium'.
+   */
+  size?: TourSize;
   /**
    * Render prop that receives the `start` function so the caller can trigger
    * the tour from their own button / trigger element.
@@ -38,7 +47,7 @@ export interface TourProps extends Omit<TourRootProps, 'tour' | 'children'> {
  * Styling uses Ark's data-scope/data-part attributes per the
  * unstyled-primitives-ark ADR — no custom class names.
  */
-export function Tour({ steps, children, ...rootProps }: TourProps) {
+export function Tour({ steps, size = 'medium', children, ...rootProps }: TourProps) {
   const tour = useTour({ steps });
 
   return (
@@ -58,7 +67,7 @@ export function Tour({ steps, children, ...rootProps }: TourProps) {
             <ArkTour.Backdrop />
             <ArkTour.Spotlight />
             <ArkTour.Positioner>
-              <ArkTour.Content>
+              <ArkTour.Content data-size={size}>
                 <ArkTour.Arrow>
                   <ArkTour.ArrowTip />
                 </ArkTour.Arrow>

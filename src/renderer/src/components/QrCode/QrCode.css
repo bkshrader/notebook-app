@@ -1,10 +1,33 @@
-/* Styling targets Ark's data-scope/data-part attributes (per the
- * unstyled-primitives-ark ADR) rather than custom class names. Every visual
- * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
- * motion suppressed via BOTH the prefers-reduced-motion media query AND the
- * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
- * selector getting its OWN reduced-motion reset. */
+/**
+ * QrCode — token-styled Ark UI primitive.
+ *
+ * CONTRACT (verified against the live DOM, 2026-06-01): inside the QrCode
+ * machine, Ark DOES emit `data-scope='qr-code'` + `data-part` on every part —
+ * Root (<div>), Frame (<svg>), Pattern (<path>), and DownloadTrigger
+ * (native <button>). (The Ark styling guide returns an empty `dataAttr` map
+ * because QrCode exposes no interactive STATE attributes — that is NOT the same
+ * as "no scope/part is emitted". The scope/part attributes are present.) So the
+ * rules below correctly key off `data-scope='qr-code'`/`data-part='...'`, per
+ * the unstyled-primitives-ark convention (style the data attributes, not class
+ * names).
+ *
+ * The DownloadTrigger is a native <button>: it carries NO `data-disabled` and
+ * NO `data-focus-visible`. Interactive state is therefore expressed via the
+ * native pseudo-classes the button genuinely has — `:disabled`,
+ * `:focus-visible`, `:hover`, `:active`. (An earlier `[data-focus-visible]` /
+ * `[data-disabled]` selector here was dead and has been replaced.)
+ *
+ * Every visual value resolves to a Helios `--token-*` custom property. No raw
+ * literals, no `--token-color-palette-*`.
+ *
+ * Selector order on the trigger: base → :disabled → :focus-visible →
+ * hover/active, so the `:not(:disabled)` guards (higher specificity) come after
+ * the plain pseudo-classes and stylelint's no-descending-specificity is happy.
+ *
+ * Motion: the trigger's background transition is suppressed under reduced
+ * motion — both the OS `prefers-reduced-motion` media query AND the Storybook
+ * toolbar's `[data-reduced-motion='reduce']` attribute on <html>.
+ */
 
 [data-scope='qr-code'][data-part='root'] {
   display: block flex;
@@ -23,45 +46,75 @@
 }
 
 [data-scope='qr-code'][data-part='download-trigger'] {
+  cursor: pointer;
+  user-select: none;
+
   display: inline flex;
+  gap: var(--token-form-control-padding);
   align-items: center;
   justify-content: center;
 
-  padding-inline: var(--token-form-control-padding);
-  border-color: var(--token-color-border-primary);
+  padding-block: var(--token-form-control-padding);
+  padding-inline: 12px;
+  border-color: var(--token-color-border-action);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
   border-radius: var(--token-border-radius-medium);
 
   font-family: var(--token-typography-body-200-font-family);
   font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
   line-height: var(--token-typography-body-200-line-height);
-  color: var(--token-color-foreground-primary);
+  color: var(--token-color-foreground-action);
 
-  background: var(--token-color-surface-interactive);
+  background: var(--token-color-surface-action);
 
-  transition: background-color var(--token-form-toggle-transition-duration)
-    var(--token-form-toggle-transition-timing-function);
+  /* Button click interaction → the form-toggle interaction duration (~0.2s). */
+  transition:
+    background-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    border-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+  /* Ark emits no `data-disabled` on this native button; match `:disabled`. */
+  &:disabled {
+    cursor: not-allowed;
+    border-color: var(--token-color-border-faint);
+    color: var(--token-color-foreground-disabled);
+    background: var(--token-color-surface-interactive-disabled);
+  }
 
   [data-reduced-motion='reduce'] & {
     transition: none;
   }
 
-  &:hover,
-  &:focus {
-    background: var(--token-color-surface-interactive-hover);
-  }
-
-  &[data-focus-visible] {
-    outline: none;
-    box-shadow: var(--token-focus-ring-action-box-shadow);
-  }
-
-  &:disabled,
-  &[data-disabled] {
-    color: var(--token-color-foreground-disabled);
-    background: var(--token-color-surface-interactive-disabled);
-  }
-
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+}
+
+/* Keyboard focus only — Ark exposes NO `data-focus-visible`; the native
+   `:focus-visible` pseudo is what actually renders the keyboard focus ring.
+   Kept as a top-level selector (after the base block) so its specificity sits
+   below the `:not(:disabled)` guards below — no-descending-specificity. */
+[data-scope='qr-code'][data-part='download-trigger']:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Keyboard parity: hover and keyboard-focus share the affordance, but never
+   decorate the disabled button or plain pointer focus. */
+[data-scope='qr-code'][data-part='download-trigger']:hover:not(:disabled),
+[data-scope='qr-code'][data-part='download-trigger']:focus-visible:not(:disabled) {
+  border-color: var(--token-color-foreground-action-hover);
+  color: var(--token-color-foreground-action-hover);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-scope='qr-code'][data-part='download-trigger']:active:not(:disabled) {
+  border-color: var(--token-color-foreground-action-active);
+  color: var(--token-color-foreground-action-active);
+  background: var(--token-color-surface-interactive-active);
 }

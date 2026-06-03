@@ -28,6 +28,16 @@ export interface JsonTreeViewProps extends JsonTreeViewRootProps {
    * screen readers announce it when the user enters the widget.
    */
   label: string;
+
+  /*
+   * NOTE: no `indentGuide` prop. Ark's `Tree` accepts one, but it delegates to
+   * @zag-js/tree-view's `getBranchIndentGuideProps`, which does not exist in the
+   * pinned zag-js version — so no indent-guide element is ever emitted and the
+   * prop would be a confusing no-op. Nesting depth is conveyed by padding driven
+   * by the `--depth` custom property in JsonTreeView.css instead. All other Ark
+   * Root/Tree options (`data`, `defaultExpandedDepth`, `quotesOnKeys`,
+   * `selectionMode`, `expandOnClick`, …) are inherited via JsonTreeViewRootProps.
+   */
 }
 
 /**
@@ -35,8 +45,8 @@ export interface JsonTreeViewProps extends JsonTreeViewRootProps {
  *
  * Anatomy (from \@ark-ui/react/json-tree-view): Root > Tree.
  * The Tree renders the full recursive JSON structure using Ark's tree-view
- * primitives internally: branch-control, branch-indicator, branch-text,
- * branch-content, branch-indent-guide, item, item-text, etc.
+ * primitives internally: branch, branch-control, branch-indicator, branch-text,
+ * branch-content, item, item-text (verified against the live DOM).
  *
  * Styling is attached to Ark's `data-scope` / `data-part` attributes (see
  * JsonTreeView.css) per the unstyled-primitives-ark ADR — no custom class names.

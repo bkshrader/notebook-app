@@ -1,10 +1,24 @@
-/* Styling targets Ark's data-scope/data-part attributes (per the
+/* Popover — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's data-scope/data-part attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
- * motion suppressed via BOTH the prefers-reduced-motion media query AND the
- * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
- * selector getting its OWN reduced-motion reset. Logical properties throughout. */
+ * --token-color-palette-*.
+ *
+ * State comes from Ark's data-attributes, VERIFIED against the live DOM and the
+ * Ark styling guide (do NOT assume attributes Ark doesn't emit):
+ *   data-state="open|closed"   (on Trigger and Content)
+ *   data-placement / data-side (on Trigger and Content)
+ * Ark's Trigger and CloseTrigger are native <button> elements. Ark exposes NO
+ * data-focus-visible and NO data-disabled on them — the keyboard focus ring
+ * uses the native :focus-visible pseudo, and disabled styling uses native
+ * :disabled. (Ark Popover has no `disabled` prop; a consumer disables the
+ * trigger by rendering a disabled <button>, which sets the native attribute.)
+ *
+ * Motion: the content open/close scale animations are suppressed under
+ * reduced-motion — both the OS prefers-reduced-motion media query AND the
+ * Storybook toolbar's [data-reduced-motion='reduce'] attribute on <html>.
+ * Logical properties throughout. */
 
 /* ── Trigger ──────────────────────────────────────────────────────────────── */
 
@@ -28,39 +42,56 @@
 
   background-color: var(--token-color-surface-interactive);
 
-  &:hover:not([disabled], [data-disabled]),
-  &:focus:not([disabled], [data-disabled]) {
-    border-color: var(--token-color-border-strong);
-    background-color: var(--token-color-surface-interactive-hover);
-  }
-
-  &[data-state='open'] {
-    border-color: var(--token-color-border-action);
-    color: var(--token-color-foreground-action);
-    background-color: var(--token-color-surface-interactive-active);
-  }
-
-  &[data-focus-visible] {
+  /* Keyboard focus ring. Ark exposes no data-focus-visible — use the native
+     pseudo so the ring actually renders for keyboard users. Declared before the
+     hover/focus affordance to keep ascending specificity. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 
-  &[data-disabled] {
+  /* Disabled trigger. Ark Popover has no disabled state and emits no
+     data-disabled; a disabled trigger is a native disabled <button>. */
+  &:disabled {
     cursor: not-allowed;
     color: var(--token-color-foreground-disabled);
     background-color: var(--token-color-surface-interactive-disabled);
+  }
+
+  /* Hover and keyboard focus share the same affordance (a11y parity).
+     :focus-visible (not :focus) keeps mouse focus quiet. */
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    border-color: var(--token-color-border-strong);
+    background-color: var(--token-color-surface-interactive-hover);
+  }
+
+  /* Open: signal via the action-colored border + active surface, NOT by
+     recoloring the label to foreground-action — that #1060ff on the active
+     surface fails WCAG 1.4.3 AA contrast (3.8:1). Keep a strong foreground
+     (mirrors the Accordion "no action-color recolor" deviation). */
+  &[data-state='open'] {
+    border-color: var(--token-color-border-action);
+    color: var(--token-color-foreground-strong);
+    background-color: var(--token-color-surface-interactive-active);
   }
 }
 
 /* ── Positioner ───────────────────────────────────────────────────────────── */
 
 [data-scope='popover'][data-part='positioner'] {
+  /* Ark reads the z-index from the Content part and re-exposes it here as
+     --z-index; fall back to a high overlay layer when unset. */
   z-index: var(--z-index, 1000);
 }
 
 /* ── Content panel ────────────────────────────────────────────────────────── */
 
 [data-scope='popover'][data-part='content'] {
+  /* Popover panels are richer than tooltips, so we size them with a local
+     custom property rather than borrowing the (narrower) tooltip max-width. */
+  --popover-max-width: 22rem;
+
   transform-origin: var(--transform-origin);
 
   display: block flex;
@@ -68,7 +99,7 @@
   gap: var(--token-form-control-padding);
 
   inline-size: max(var(--reference-width, 0px), 18rem);
-  max-inline-size: var(--token-tooltip-max-width);
+  max-inline-size: var(--popover-max-width);
   padding-block: var(--token-form-control-padding);
   padding-inline: var(--token-form-control-padding);
   border: var(--token-form-control-border-width) solid var(--token-color-border-faint);
@@ -83,41 +114,31 @@
   outline: none;
   box-shadow: var(--token-elevation-overlay-box-shadow);
 
+  /* Open/close use the toggle-reveal timing token (0.2s) — the same family
+     Accordion uses for its reveal — not a borrowed cross-component timing. */
   &[data-state='open'] {
-    animation: popover-scale-in var(--token-form-radiocard-transition-duration) ease-out;
+    animation: popover-scale-in var(--token-form-toggle-transition-duration) ease-out;
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    [data-reduced-motion='reduce'] & {
+      animation: none;
+    }
+
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 
   &[data-state='closed'] {
-    animation: popover-scale-out var(--token-form-radiocard-transition-duration) ease-in;
+    animation: popover-scale-out var(--token-form-toggle-transition-duration) ease-in;
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
+    [data-reduced-motion='reduce'] & {
+      animation: none;
+    }
+
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='popover'][data-part='content'][data-state='open'] {
-    animation: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='popover'][data-part='content'][data-state='closed'] {
-    animation: none;
-  }
-}
-
-[data-reduced-motion='reduce'] [data-scope='popover'][data-part='content'][data-state='open'] {
-  animation: none;
-}
-
-[data-reduced-motion='reduce'] [data-scope='popover'][data-part='content'][data-state='closed'] {
-  animation: none;
 }
 
 /* ── Title ────────────────────────────────────────────────────────────────── */
@@ -159,15 +180,18 @@
 
   background-color: transparent;
 
-  &:hover,
-  &:focus {
-    color: var(--token-color-foreground-primary);
-    background-color: var(--token-color-surface-interactive-hover);
-  }
-
-  &[data-focus-visible] {
+  /* Keyboard focus ring — native :focus-visible (Ark emits no
+     data-focus-visible on this native <button>). */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  /* Hover and keyboard focus share the same affordance (a11y parity). */
+  &:hover,
+  &:focus-visible {
+    color: var(--token-color-foreground-primary);
+    background-color: var(--token-color-surface-interactive-hover);
   }
 }
 

@@ -8,7 +8,8 @@
  *
  * The circular control uses Ark's injected `--angle` CSS variable (degrees) to
  * rotate the thumb line. State is conveyed through data-disabled, data-invalid,
- * data-readonly, and data-focus-visible on the thumb.
+ * and data-readonly on the thumb (verified against the Ark angle-slider styling
+ * guide — Ark does NOT emit data-focus-visible on this component's thumb).
  *
  * Motion: the thumb rotation transition is suppressed under reduced-motion —
  * both the OS `prefers-reduced-motion` media query AND the Storybook toolbar's
@@ -16,8 +17,10 @@
  * gets its own reduced-motion reset so the stylelint a11y rule (per-selector
  * matching) is satisfied.
  *
- * Focus ring: applied ONLY on `data-focus-visible` (keyboard focus), never on
- * every :focus or data-focus.
+ * Focus ring: the thumb is a focusable div (role="slider", tabindex=0). Ark
+ * exposes NO data-focus-visible attribute for angle-slider, so the keyboard
+ * focus ring is drawn via the native :focus-visible pseudo — which renders on
+ * keyboard focus only, never on mouse focus.
  *
  * Logical properties (inline-size/block-size/padding-inline) used throughout
  * per stylelint-plugin-logical-css.
@@ -104,8 +107,11 @@
   }
 }
 
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='angle-slider'][data-part='thumb'][data-focus-visible] {
+/* Keyboard focus only — never decorate mouse focus. Ark exposes NO
+   data-focus-visible attribute for angle-slider (verified against the styling
+   guide and the live DOM), so the ring is drawn via the native :focus-visible
+   pseudo on the focusable thumb div. */
+[data-scope='angle-slider'][data-part='thumb']:focus-visible {
   outline: none;
   box-shadow: var(--token-focus-ring-action-box-shadow);
 }

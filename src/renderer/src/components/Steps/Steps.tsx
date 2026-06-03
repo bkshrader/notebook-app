@@ -13,12 +13,20 @@ export interface StepsItem {
   content: React.ReactNode;
 }
 
+/** Visual size scale. Drives the per-size `--steps-*` custom properties in CSS. */
+export type StepsSize = 'small' | 'medium' | 'large';
+
 export interface StepsProps extends StepsRootProps {
   /**
    * The ordered list of step descriptors rendered as the step list. `count` is
    * derived from this array's length when omitted.
    */
   items: StepsItem[];
+  /**
+   * Size scale — sets `data-size` on the root, which selects the indicator
+   * diameter, label typography, and spacing. Defaults to `'medium'`.
+   */
+  size?: StepsSize;
   /** Label for the "Back" navigation button. Defaults to "Back". */
   prevLabel?: string;
   /** Label for the "Next" navigation button. Defaults to "Next". */
@@ -49,6 +57,7 @@ export interface StepsProps extends StepsRootProps {
 export const Steps = forwardRef<HTMLDivElement, StepsProps>(function Steps(
   {
     items,
+    size = 'medium',
     prevLabel = 'Back',
     nextLabel = 'Next',
     children,
@@ -61,7 +70,7 @@ export const Steps = forwardRef<HTMLDivElement, StepsProps>(function Steps(
   const resolvedCount = count ?? items.length;
 
   return (
-    <ArkSteps.Root ref={ref} count={resolvedCount} {...rootProps}>
+    <ArkSteps.Root ref={ref} count={resolvedCount} data-size={size} {...rootProps}>
       <ArkSteps.List>
         {items.map((item, index) => (
           <ArkSteps.Item key={item.value} index={index}>

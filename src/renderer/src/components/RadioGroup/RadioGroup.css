@@ -6,9 +6,18 @@
  * value resolves to a Helios `--token-*` custom property. No raw literals, no
  * `--token-color-palette-*`.
  *
- * State comes from Ark's data-attributes (data-state="checked|unchecked",
- * data-disabled, data-focus-visible). The focus ring is applied ONLY on
- * keyboard focus (data-focus-visible), never on every focus.
+ * State comes from Ark's data-attributes, VERIFIED against the live rendered
+ * DOM (do NOT trust the styling-guide MCP — it lists only `data-active` for
+ * ItemControl, but the installed Ark version actually emits):
+ *   data-state="checked|unchecked"  (on item, item-control, item-text)
+ *   data-disabled                   (when the group or option is disabled)
+ *   data-orientation="horizontal|vertical"  (on every part)
+ * Ark does NOT emit `data-focus-visible` or `data-focus` on any radio-group
+ * part. The real focus target is the clip-hidden native `<input type="radio">`
+ * inside each item; the keyboard focus ring is therefore drawn on the control
+ * via `[data-part='item']:has(input:focus-visible)`, using the native
+ * `:focus-visible` pseudo so the ring renders ONLY on keyboard focus — never on
+ * a mouse click.
  *
  * Motion: the item-control transition is suppressed under reduced-motion — both
  * the OS `prefers-reduced-motion` media query AND the Storybook toolbar's
@@ -26,6 +35,12 @@
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-color-foreground-primary);
+
+  /* Horizontal groups lay the options out in a row (Ark emits the attribute). */
+  &[data-orientation='horizontal'] {
+    flex-flow: row wrap;
+    align-items: center;
+  }
 
   &[data-disabled] {
     color: var(--token-color-foreground-disabled);
@@ -73,9 +88,14 @@
 
   background: var(--token-form-control-base-surface-color-default);
 
+  /* Generic form-toggle timing (≈0.2s) — the sibling Checkbox uses the same.
+     The previous `--token-form-radiocard-*` token was borrowed from the
+     separate RadioCard component; this group is a radio, not a card. */
   transition:
-    border-color var(--token-form-radiocard-transition-duration) ease,
-    background var(--token-form-radiocard-transition-duration) ease;
+    border-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    background var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
 
   [data-reduced-motion='reduce'] & {
     transition: none;
@@ -106,10 +126,41 @@
   }
 }
 
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='radio-group'][data-part='item-control'][data-focus-visible] {
+/* Keyboard focus only — never decorate mouse focus.
+   Ark emits NO `data-focus-visible`/`data-focus` on any radio-group part
+   (verified against the live DOM); the real focus target is the clip-hidden
+   native `<input type="radio">` inside each item. So the ring is drawn on the
+   control when its item contains a keyboard-focused input, via the native
+   `:focus-visible` pseudo. `:has()` is supported in the bundled Chromium. */
+[data-scope='radio-group'][data-part='item']:has(input:focus-visible)
+  [data-scope='radio-group'][data-part='item-control'] {
   outline: none;
   box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Border emphasis for an enabled UNCHECKED control on hover, with keyboard
+   parity: the same emphasis on keyboard focus (the focus target is the hidden
+   input, so :focus-visible is matched on the item). Matches the Checkbox
+   sibling's hover affordance. */
+[data-scope='radio-group'][data-part='item-control'][data-state='unchecked']:not(
+    [data-disabled]
+  ):hover,
+[data-scope='radio-group'][data-part='item']:has(input:focus-visible)
+  [data-scope='radio-group'][data-part='item-control'][data-state='unchecked']:not(
+    [data-disabled]
+  ) {
+  border-color: var(--token-form-control-base-border-color-hover);
+  background: var(--token-form-control-base-surface-color-hover);
+}
+
+/* Same, for an enabled CHECKED control. */
+[data-scope='radio-group'][data-part='item-control'][data-state='checked']:not(
+    [data-disabled]
+  ):hover,
+[data-scope='radio-group'][data-part='item']:has(input:focus-visible)
+  [data-scope='radio-group'][data-part='item-control'][data-state='checked']:not([data-disabled]) {
+  border-color: var(--token-form-control-checked-border-color-hover);
+  background-color: var(--token-form-control-checked-surface-color-hover);
 }
 
 [data-scope='radio-group'][data-part='item-text'] {

@@ -1,40 +1,63 @@
 /* Styling targets Ark's data-scope/data-part attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
- * motion suppressed via BOTH the prefers-reduced-motion media query AND the
- * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
- * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
- * per-selector, so comma-grouped resets fail). */
+ * --token-color-palette-*.
+ *
+ * Focus ring: the Ark hover-card Trigger renders the asChild element (a link or
+ * button) and exposes data-state / data-placement / data-side — it does NOT
+ * emit data-focus-visible (verified against the Ark styling guide AND the live
+ * DOM). Keyboard focus styling therefore uses the native :focus-visible pseudo
+ * so the ring actually renders (a dead [data-focus-visible] selector would
+ * never match). The ring lives on :focus-visible alone — no :hover rule paints
+ * it, so a pointer hover never shows the keyboard affordance.
+ *
+ * Reduced motion is suppressed via BOTH the prefers-reduced-motion media query
+ * AND the [data-reduced-motion='reduce'] attribute (Storybook toolbar), each
+ * animated selector getting its OWN reduced-motion reset (the stylelint a11y
+ * rule matches per-selector, so comma-grouped resets fail). Logical properties
+ * throughout. */
 
-/* foreground-action (#1060ff) only meets 4.5:1 on pure white; on grey canvas
+/* ── Trigger ──────────────────────────────────────────────────────────────────
+ * foreground-action (#1060ff) only meets 4.5:1 on pure white; on grey canvas
  * surfaces it falls to ~4.45:1 and axe flags it. foreground-strong (#0c0c0e)
  * passes on every surface while the underline preserves the link affordance. */
 [data-scope='hover-card'][data-part='trigger'] {
   cursor: pointer;
+  border-radius: var(--token-border-radius-small);
   color: var(--token-color-foreground-strong);
   text-decoration: underline;
 
-  &:hover,
-  &:focus {
-    color: var(--token-color-foreground-strong);
-  }
+  /* No :hover recolor: foreground-strong is already the resting color, so a
+     hover rule would be a no-op (and would force a paired :focus per the a11y
+     lint). The only stateful affordance is the keyboard focus ring below. */
 
-  &[data-focus-visible] {
+  /* Keyboard focus only — native :focus-visible (Ark emits no
+     data-focus-visible / data-focus on the trigger). */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 }
 
+/* ── Positioner ───────────────────────────────────────────────────────────── */
+
+[data-scope='hover-card'][data-part='positioner'] {
+  z-index: var(--z-index, 1000);
+}
+
+/* ── Content panel ──────────────────────────────────────────────────────────
+ * A rich-content surface (the Popover sibling), NOT a terse tooltip — so it
+ * uses the form-control padding family (matching Popover.css) rather than the
+ * borrowed tooltip padding tokens. */
 [data-scope='hover-card'][data-part='content'] {
   --arrow-background: var(--token-color-surface-primary);
 
   transform-origin: var(--transform-origin);
 
   inline-size: 20rem;
-  padding-block: var(--token-tooltip-padding-vertical);
-  padding-inline: var(--token-tooltip-padding-horizontal);
-  border: 1px solid var(--token-color-border-primary);
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
   border-radius: var(--token-border-radius-medium);
 
   font-family: var(--token-typography-body-200-font-family);
@@ -47,19 +70,19 @@
   box-shadow: var(--token-elevation-overlay-box-shadow);
 
   &[data-state='open'] {
-    animation: hovercard-scale-fade-in 150ms ease-out;
+    animation: hovercard-scale-fade-in var(--token-form-toggle-transition-duration) ease-out;
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 
   &[data-state='closed'] {
-    animation: hovercard-scale-fade-out 100ms ease-in;
+    animation: hovercard-scale-fade-out var(--token-form-toggle-transition-duration) ease-in;
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 }
 
@@ -83,14 +106,18 @@
   animation: none;
 }
 
+/* ── Arrow ────────────────────────────────────────────────────────────────── */
+
 [data-scope='hover-card'][data-part='arrow'] {
   --arrow-background: var(--token-color-surface-primary);
 }
 
 [data-scope='hover-card'][data-part='arrow-tip'] {
-  border-block-start: 1px solid var(--token-color-border-faint);
-  border-inline-start: 1px solid var(--token-color-border-faint);
+  border-block-start: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+  border-inline-start: var(--token-form-control-border-width) solid var(--token-color-border-faint);
 }
+
+/* ── Keyframes ────────────────────────────────────────────────────────────── */
 
 @keyframes hovercard-scale-fade-in {
   from {

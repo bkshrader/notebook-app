@@ -6,9 +6,24 @@
  * value resolves to a Helios `--token-*` custom property. No raw literals,
  * no `--token-color-palette-*` (semantic tokens only).
  *
- * Focus ring is applied ONLY on [data-focus-visible] (keyboard focus), never
- * on plain [data-focus] or :focus. outline: none is always paired with a
- * visible focus indicator on the same selector (box-shadow focus ring).
+ * State attributes come from Ark's data-attributes (verified against the Ark
+ * styling guide — do NOT assume attributes Ark doesn't document):
+ *   Area:    data-focus, data-disabled, data-placeholder-shown
+ *   Label:   data-focus, data-invalid, data-required
+ *   Input:   data-disabled, data-readonly, data-invalid, data-autoresize
+ *   Preview: data-placeholder-shown, data-readonly, data-disabled,
+ *            data-invalid, data-autoresize
+ * Ark does NOT emit `data-focus-visible` on ANY part, and the three trigger
+ * buttons (EditTrigger/SubmitTrigger/CancelTrigger) are plain native
+ * `<button>` elements with NO Ark state attributes. The keyboard focus ring is
+ * therefore drawn with the native `:focus-visible` pseudo on the focusable
+ * elements (Input, Preview, and the trigger buttons), NOT a phantom
+ * `[data-focus-visible]` attribute. `data-disabled` is emitted on Area / Input /
+ * Preview, never on Root.
+ *
+ * Size scale lives in one place: `[data-part='root'][data-size]` sets local
+ * `--editable-*` custom properties (padding, font) consumed by every part. The
+ * `variant` toggles the preview/input chrome via `[data-variant]` on the root.
  *
  * Reduced motion: any transition is suppressed under BOTH
  *   @media (prefers-reduced-motion: reduce)
@@ -22,6 +37,32 @@
  * throughout — never width/height/padding-left.
  */
 
+/* ── Size scale ──────────────────────────────────────────────────────────────
+   Helios form-control sizing is driven off the shared form-control tokens; the
+   per-size font scale is the only thing that varies, replicated as local
+   custom properties consumed by the parts below. */
+
+[data-scope='editable'][data-part='root'][data-size='small'] {
+  --editable-padding-block: var(--token-form-control-padding);
+  --editable-padding-inline: var(--token-form-control-padding);
+  --editable-font-size: var(--token-typography-body-100-font-size);
+  --editable-line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-scope='editable'][data-part='root'][data-size='medium'] {
+  --editable-padding-block: var(--token-form-control-padding);
+  --editable-padding-inline: var(--token-form-control-padding);
+  --editable-font-size: var(--token-typography-body-200-font-size);
+  --editable-line-height: var(--token-typography-body-200-line-height);
+}
+
+[data-scope='editable'][data-part='root'][data-size='large'] {
+  --editable-padding-block: var(--token-form-control-padding);
+  --editable-padding-inline: var(--token-form-control-padding);
+  --editable-font-size: var(--token-typography-body-300-font-size);
+  --editable-line-height: var(--token-typography-body-300-line-height);
+}
+
 /* ── Root ────────────────────────────────────────────────────────────────── */
 
 [data-scope='editable'][data-part='root'] {
@@ -32,22 +73,18 @@
   inline-size: 100%;
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--editable-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--editable-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-color-foreground-primary);
-
-  &[data-disabled] {
-    color: var(--token-color-foreground-disabled);
-  }
 }
 
 /* ── Label ───────────────────────────────────────────────────────────────── */
 
 [data-scope='editable'][data-part='label'] {
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
+  font-size: var(--editable-font-size, var(--token-typography-body-200-font-size));
   font-weight: var(--token-typography-font-weight-medium);
-  line-height: var(--token-typography-body-200-line-height);
+  line-height: var(--editable-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-form-label-color);
 
   &[data-invalid] {
@@ -62,6 +99,12 @@
   display: block flex;
   align-items: flex-start;
   inline-size: 100%;
+
+  /* Ark emits data-disabled on Area (NOT on Root); dim the area so any plain
+     text descendants inherit the disabled foreground. */
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
 }
 
 /* ── Input (edit mode) ───────────────────────────────────────────────────── */
@@ -70,22 +113,24 @@
   box-sizing: border-box;
   inline-size: 100%;
   min-inline-size: 0;
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--editable-padding-block, var(--token-form-control-padding));
+  padding-inline: var(--editable-padding-inline, var(--token-form-control-padding));
   border-color: var(--token-form-control-base-border-color-default);
   border-style: solid;
   border-width: var(--token-form-control-border-width);
   border-radius: var(--token-form-control-border-radius);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--editable-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--editable-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-form-control-base-foreground-value-color);
 
   background: var(--token-color-surface-primary);
   outline: none;
 
-  &[data-focus-visible] {
+  /* Keyboard focus ring: native :focus-visible (Ark exposes NO
+     data-focus-visible on Input). */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -107,6 +152,14 @@
   }
 }
 
+/* The `ghost` variant strips the input chrome until focused — useful for
+   inline-edit-in-place where the field should read as text at rest. */
+[data-scope='editable'][data-part='root'][data-variant='ghost']
+  [data-scope='editable'][data-part='input'] {
+  border-color: transparent;
+  background: transparent;
+}
+
 /* ── Preview (read/display mode) ─────────────────────────────────────────── */
 
 [data-scope='editable'][data-part='preview'] {
@@ -115,48 +168,57 @@
   box-sizing: border-box;
   inline-size: 100%;
   min-inline-size: 0;
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--editable-padding-block, var(--token-form-control-padding));
+  padding-inline: var(--editable-padding-inline, var(--token-form-control-padding));
   border-color: transparent;
   border-style: solid;
   border-width: var(--token-form-control-border-width);
   border-radius: var(--token-form-control-border-radius);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--editable-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--editable-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-form-control-base-foreground-value-color);
 
   background: transparent;
 
-  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
 
   [data-reduced-motion='reduce'] & {
     transition: none;
   }
 
+  /* Hover affordance (the preview is clickable to enter edit mode), with
+     keyboard parity via :focus-visible — NOT bare :focus, and NOT the phantom
+     [data-focus-visible] attribute Ark never emits on Preview. */
   &:hover,
-  &:focus {
+  &:focus-visible {
     background: var(--token-color-surface-interactive-hover);
+  }
+
+  /* Keyboard focus ring: native :focus-visible. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 
   &[data-placeholder-shown] {
     color: var(--token-form-control-base-foreground-placeholder-color);
   }
 
-  &[data-disabled] {
-    cursor: not-allowed;
-    color: var(--token-form-control-disabled-foreground-color);
-  }
-
+  /* Read-only and disabled are listed readonly-FIRST so that when Ark co-emits
+     BOTH on the Preview (it adds data-readonly alongside data-disabled in the
+     disabled state), the disabled rule — being later and equal-specificity —
+     wins the cascade. */
   &[data-readonly] {
     cursor: default;
     color: var(--token-form-control-readonly-foreground-color);
   }
 
-  &[data-focus-visible] {
-    outline: none;
-    box-shadow: var(--token-focus-ring-action-box-shadow);
+  &[data-disabled] {
+    cursor: not-allowed;
+    color: var(--token-form-control-disabled-foreground-color);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -181,32 +243,36 @@
   align-items: center;
   justify-content: center;
 
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--editable-padding-block, var(--token-form-control-padding));
+  padding-inline: var(--editable-padding-inline, var(--token-form-control-padding));
   border-color: var(--token-color-border-primary);
   border-style: solid;
   border-width: var(--token-form-control-border-width);
   border-radius: var(--token-form-control-border-radius);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--editable-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--editable-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-color-foreground-primary);
 
   background: var(--token-color-surface-interactive);
 
-  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
 
   [data-reduced-motion='reduce'] & {
     transition: none;
   }
 
+  /* Hover, with keyboard parity via :focus-visible (this is a plain <button>;
+     Ark emits NO state attributes on it, so no [data-focus-visible]). */
   &:hover,
-  &:focus {
+  &:focus-visible {
     background: var(--token-color-surface-interactive-hover);
   }
 
-  &[data-focus-visible] {
+  /* Keyboard focus ring: native :focus-visible. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -225,32 +291,36 @@
   align-items: center;
   justify-content: center;
 
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--editable-padding-block, var(--token-form-control-padding));
+  padding-inline: var(--editable-padding-inline, var(--token-form-control-padding));
   border-color: var(--token-color-border-action);
   border-style: solid;
   border-width: var(--token-form-control-border-width);
   border-radius: var(--token-form-control-border-radius);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--editable-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--editable-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-color-foreground-action);
 
   background: var(--token-color-surface-action);
 
-  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
 
   [data-reduced-motion='reduce'] & {
     transition: none;
   }
 
+  /* Hover, with keyboard parity via :focus-visible (plain <button>; no Ark
+     state attributes, so no [data-focus-visible]). */
   &:hover,
-  &:focus {
+  &:focus-visible {
     background: var(--token-color-surface-interactive-active);
   }
 
-  &[data-focus-visible] {
+  /* Keyboard focus ring: native :focus-visible. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -269,32 +339,36 @@
   align-items: center;
   justify-content: center;
 
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--editable-padding-block, var(--token-form-control-padding));
+  padding-inline: var(--editable-padding-inline, var(--token-form-control-padding));
   border-color: var(--token-color-border-primary);
   border-style: solid;
   border-width: var(--token-form-control-border-width);
   border-radius: var(--token-form-control-border-radius);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--editable-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--editable-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-color-foreground-primary);
 
   background: var(--token-color-surface-interactive);
 
-  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
 
   [data-reduced-motion='reduce'] & {
     transition: none;
   }
 
+  /* Hover, with keyboard parity via :focus-visible (plain <button>; no Ark
+     state attributes, so no [data-focus-visible]). */
   &:hover,
-  &:focus {
+  &:focus-visible {
     background: var(--token-color-surface-interactive-hover);
   }
 
-  &[data-focus-visible] {
+  /* Keyboard focus ring: native :focus-visible. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }

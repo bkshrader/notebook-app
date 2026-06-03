@@ -4,12 +4,28 @@ import { Editable as ArkEditable, type EditableRootProps } from '@ark-ui/react/e
 
 import './Editable.css';
 
+/** Size scale for padding and typography. Defaults to `medium`. */
+export type EditableSize = 'small' | 'medium' | 'large';
+
+/**
+ * Visual variant.
+ * - `default` — the input/preview carry the standard form-control chrome.
+ * - `ghost` — the input chrome is transparent at rest (the field reads as
+ *   plain text) and only the keyboard focus ring appears; suited to dense
+ *   inline edit-in-place rows.
+ */
+export type EditableVariant = 'default' | 'ghost';
+
 export interface EditableProps extends EditableRootProps {
   /**
    * Visible, screen-reader-announceable label. Required (WCAG 4.1.2).
    * Rendered as a `<label>` via Ark's EditableLabel, associated with the input.
    */
   label: React.ReactNode;
+  /** Size scale for padding and typography. Defaults to `medium`. */
+  size?: EditableSize;
+  /** Visual variant. Defaults to `default`. */
+  variant?: EditableVariant;
 }
 
 /**
@@ -28,11 +44,11 @@ export interface EditableProps extends EditableRootProps {
  * (per the unstyled-primitives-ark ADR) — no custom class names.
  */
 export const Editable = forwardRef<HTMLDivElement, EditableProps>(function Editable(
-  { label, children, ...rootProps },
+  { label, children, size = 'medium', variant = 'default', ...rootProps },
   ref,
 ) {
   return (
-    <ArkEditable.Root ref={ref} {...rootProps}>
+    <ArkEditable.Root ref={ref} data-size={size} data-variant={variant} {...rootProps}>
       <ArkEditable.Label>{label}</ArkEditable.Label>
       <ArkEditable.Area>
         <ArkEditable.Input />

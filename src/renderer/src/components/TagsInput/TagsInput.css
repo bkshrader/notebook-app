@@ -4,7 +4,18 @@
  * Styling targets Ark's `data-scope`/`data-part` attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios `--token-*` custom property. No raw literals,
- * no `--token-color-palette-*`. Focus ring ONLY on data-focus-visible.
+ * no `--token-color-palette-*`.
+ *
+ * Focus ring: Ark's tags-input NEVER emits `data-focus-visible` on any part
+ * (DOM-verified against live Storybook). It emits `data-focus` on the
+ * `control` part one tick after the inner `input` receives focus (keyboard or
+ * pointer). Helios draws the ring on the whole control whenever its field is
+ * focused, so the ring is keyed off `[data-focus]` — the genuine "this
+ * tags-input has focus" state — not the phantom `data-focus-visible`.
+ *
+ * Size: `data-size` (small | medium | large) on root flows to a local
+ * `--tags-input-*` custom-property matrix (padding, gap, typography), mirroring
+ * the Accordion size pattern. Defaults to `medium`.
  *
  * Reduced motion: every transition/animation is suppressed under BOTH
  * @media (prefers-reduced-motion: reduce) AND [data-reduced-motion='reduce']
@@ -18,16 +29,34 @@
 /* ── Root ──────────────────────────────────────────────────────────────── */
 
 [data-scope='tags-input'][data-part='root'] {
+  /* Size matrix — one source of truth, consumed by control/items/input below.
+     `medium` is the default and is also applied when no data-size is set. */
+  --tags-input-gap: var(--token-form-control-padding);
+  --tags-input-pad-block: var(--token-form-control-padding);
+  --tags-input-pad-inline: var(--token-form-control-padding);
+  --tags-input-font-size: var(--token-typography-body-200-font-size);
+  --tags-input-line-height: var(--token-typography-body-200-line-height);
+
   display: block flex;
   flex-direction: column;
-  gap: var(--token-form-control-padding);
+  gap: var(--tags-input-gap);
 
   inline-size: 100%;
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--tags-input-font-size);
+  line-height: var(--tags-input-line-height);
   color: var(--token-color-foreground-primary);
+
+  &[data-size='small'] {
+    --tags-input-font-size: var(--token-typography-body-100-font-size);
+    --tags-input-line-height: var(--token-typography-body-100-line-height);
+  }
+
+  &[data-size='large'] {
+    --tags-input-font-size: var(--token-typography-body-300-font-size);
+    --tags-input-line-height: var(--token-typography-body-300-line-height);
+  }
 
   &[data-disabled] {
     /* foreground-disabled fails AA; foreground-faint passes on white. */
@@ -60,28 +89,32 @@
 [data-scope='tags-input'][data-part='control'] {
   display: block flex;
   flex-wrap: wrap;
-  gap: var(--token-form-control-padding);
+  gap: var(--tags-input-gap);
   align-items: center;
 
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--tags-input-pad-block);
+  padding-inline: var(--tags-input-pad-inline);
   border: var(--token-form-control-border-width) solid
     var(--token-form-control-base-border-color-default);
   border-radius: var(--token-form-control-border-radius);
 
   background: var(--token-form-control-base-surface-color-default);
 
-  transition: border-color var(--token-form-radiocard-transition-duration) ease;
+  /* form-control interaction timing (0.2s); was the cross-component radiocard
+     token — same value, but radiocard is not this component's family. */
+  transition:
+    border-color var(--token-form-toggle-transition-duration) ease,
+    box-shadow var(--token-form-toggle-transition-duration) ease;
 
   [data-reduced-motion='reduce'] & {
     transition: none;
   }
 
+  /* Ark sets data-focus on the control once the inner input is focused (any
+     input method). That is the only focus signal Ark emits — there is NO
+     data-focus-visible — so the keyboard focus ring lives here. */
   &[data-focus] {
     border-color: var(--token-color-border-action);
-  }
-
-  &[data-focus][data-focus-visible] {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -111,18 +144,20 @@
 
 [data-scope='tags-input'][data-part='item-preview'] {
   display: inline flex;
-  gap: var(--token-form-control-padding);
+  gap: var(--tags-input-gap);
   align-items: center;
 
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--tags-input-pad-block);
+  padding-inline: var(--tags-input-pad-inline);
   border-radius: var(--token-border-radius-small);
 
   color: var(--token-color-foreground-primary);
 
   background: var(--token-color-surface-interactive);
 
-  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+  /* form-control interaction timing (0.2s); was the cross-component radiocard
+     token — same value, but radiocard is not this component's family. */
+  transition: background-color var(--token-form-toggle-transition-duration) ease;
 
   [data-reduced-motion='reduce'] & {
     transition: none;
@@ -149,8 +184,8 @@
 
 [data-scope='tags-input'][data-part='item-text'] {
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--tags-input-font-size);
+  line-height: var(--tags-input-line-height);
 
   &[data-disabled] {
     /* foreground-disabled (#8c909c) is 3.05:1 on surface-interactive-disabled — fails AA.
@@ -194,15 +229,15 @@
 /* ── ItemInput (inline edit input, hidden until editing) ───────────────── */
 
 [data-scope='tags-input'][data-part='item-input'] {
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--tags-input-pad-block);
+  padding-inline: var(--tags-input-pad-inline);
   border: var(--token-form-control-border-width) solid
     var(--token-form-control-base-border-color-default);
   border-radius: var(--token-border-radius-small);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--tags-input-font-size);
+  line-height: var(--tags-input-line-height);
   color: var(--token-form-control-base-foreground-value-color);
 
   background: var(--token-form-control-base-surface-color-default);
@@ -218,8 +253,8 @@
   border: none;
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--tags-input-font-size);
+  line-height: var(--tags-input-line-height);
   color: var(--token-form-control-base-foreground-value-color);
 
   background: transparent;

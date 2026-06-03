@@ -1,43 +1,87 @@
 /**
- * Toggle — token-styled Ark UI primitive.
+ * Toggle — token-styled Ark UI primitive (a press-to-toggle button, e.g. a
+ * Bold control in a formatting toolbar). NOT the form switch — the root IS the
+ * interactive `<button>` and carries `aria-pressed`.
  *
  * Styling targets Ark's `data-scope`/`data-part` attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
- * value resolves to a Helios `--token-*` custom property. No raw literals,
- * no `--token-color-palette-*`.
+ * value resolves to a Helios `--token-*` custom property; the only bare values
+ * are the per-size SPACING/height px values, which Helios hardcodes for its
+ * controls (they are not design tokens) — replicated here as local
+ * `--toggle-*` properties. No raw colors, no `--token-color-palette-*`.
  *
- * The Toggle root IS the interactive button element. State comes from Ark's
- * data-attributes: data-state="on"|"off", data-pressed (present when pressed),
- * data-disabled (present when disabled), data-focus-visible (keyboard only).
+ * Ark contract (VERIFIED against the live Storybook DOM, not assumed):
+ *   The root <button data-scope="toggle" data-part="root"> exposes
+ *     data-state="on"|"off"   (pressed state)
+ *     data-disabled           (present when disabled — alongside the NATIVE
+ *                              `disabled` attribute, which is what removes it
+ *                              from the tab order)
+ *   Ark Toggle does NOT emit `data-focus-visible` (it is not in the rendered
+ *   attribute set). Keyboard-focus styling therefore uses the native
+ *   `:focus-visible` pseudo — never a phantom `[data-focus-visible]` selector.
  *
- * Focus ring is applied ONLY on keyboard focus ([data-focus-visible]), never
- * on every focus (WCAG 2.4.7 — Focus Visible).
+ * Focus ring is drawn ONLY on keyboard focus (`:focus-visible`), never on every
+ * focus and never on mere `:hover` (WCAG 2.4.7 — Focus Visible). Hover and
+ * keyboard-focus affordances are kept on separate selectors so a mouse focus
+ * does not inherit the keyboard ring.
+ *
+ * Size scale (`data-size`): one place sets the `--toggle-*` custom properties
+ * (height, horizontal padding, typography) consumed by the root.
  *
  * Motion: the background-color transition is suppressed under reduced-motion —
- * both the OS prefers-reduced-motion media query AND the Storybook toolbar's
- * [data-reduced-motion='reduce'] attribute on <html>. Each animated selector
+ * both the OS `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute on <html>. Each animated selector
  * gets its own reduced-motion reset so the stylelint a11y rule (which matches
  * per-selector) is satisfied.
  */
 
+/* ─── Size scale ───────────────────────────────────────────────────────────────
+   Helios hardcodes control height/padding px per size (not design tokens);
+   replicated as local custom properties consumed by the root below. */
+
+[data-scope='toggle'][data-part='root'][data-size='small'] {
+  --toggle-block-size: 28px;
+  --toggle-padding-inline: 12px;
+  --toggle-font-size: var(--token-typography-body-100-font-size);
+  --toggle-line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-scope='toggle'][data-part='root'][data-size='medium'] {
+  --toggle-block-size: 36px;
+  --toggle-padding-inline: 16px;
+  --toggle-font-size: var(--token-typography-body-200-font-size);
+  --toggle-line-height: var(--token-typography-body-200-line-height);
+}
+
+[data-scope='toggle'][data-part='root'][data-size='large'] {
+  --toggle-block-size: 48px;
+  --toggle-padding-inline: 20px;
+  --toggle-font-size: var(--token-typography-body-300-font-size);
+  --toggle-line-height: var(--token-typography-body-300-line-height);
+}
+
+/* ─── Root (the toggle button) ─────────────────────────────────────────────── */
+
 [data-scope='toggle'][data-part='root'] {
   cursor: pointer;
   user-select: none;
+
+  position: relative;
 
   display: inline flex;
   gap: var(--token-form-toggle-background-image-size);
   align-items: center;
   justify-content: center;
 
-  block-size: var(--token-tabs-tab-height-medium);
-  padding-inline: var(--token-tabs-tab-padding-horizontal-medium);
+  block-size: var(--toggle-block-size);
+  padding-inline: var(--toggle-padding-inline);
   border: var(--token-form-toggle-border-width) solid var(--token-color-border-primary);
   border-radius: var(--token-border-radius-medium);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
+  font-size: var(--toggle-font-size);
   font-weight: var(--token-typography-font-weight-medium);
-  line-height: var(--token-typography-body-200-line-height);
+  line-height: var(--toggle-line-height);
   color: var(--token-color-foreground-primary);
 
   background-color: var(--token-color-surface-faint);
@@ -55,14 +99,14 @@
     background-color: var(--token-color-surface-action);
   }
 
-  &:not([data-disabled]):hover,
-  &:not([data-disabled]):focus {
-    background-color: var(--token-color-surface-interactive-hover);
-  }
-
-  &[data-state='on']:not([data-disabled]):hover,
-  &[data-state='on']:not([data-disabled]):focus {
-    background-color: var(--token-color-surface-interactive-active);
+  /* Keyboard focus ring FIRST (higher specificity comes before the lower-
+     specificity hover/focus background rules — no-descending-specificity).
+     Ark exposes NO data-focus-visible attribute (verified against the live
+     DOM), so the ring hangs off the native :focus-visible pseudo and never
+     decorates mere :hover or mouse focus (WCAG 2.4.7). */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 
   &[data-disabled] {
@@ -72,13 +116,21 @@
     background-color: var(--token-color-surface-interactive-disabled);
   }
 
+  /* Background affordance: hover gets keyboard parity from :focus-visible so a
+     keyboard user sees the same hover tint (the a11y lint requires :hover and
+     :focus-visible together). The ring above is what distinguishes keyboard
+     focus visually; this only shifts the surface color. */
+  &:not([data-disabled]):hover,
+  &:not([data-disabled]):focus-visible {
+    background-color: var(--token-color-surface-interactive-hover);
+  }
+
+  &[data-state='on']:not([data-disabled]):hover,
+  &[data-state='on']:not([data-disabled]):focus-visible {
+    background-color: var(--token-color-surface-interactive-active);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
-}
-
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='toggle'][data-part='root'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
 }

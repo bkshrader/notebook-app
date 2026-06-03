@@ -6,13 +6,20 @@
  * value resolves to a Helios `--token-*` custom property. No raw literals,
  * no `--token-color-palette-*`.
  *
- * State comes from Ark's data-attributes (data-disabled, data-invalid,
- * data-complete, data-focus-visible, data-filled). The focus ring is applied
- * ONLY on keyboard focus (data-focus-visible), never on every :focus.
+ * State comes from Ark's data-attributes (verified against the Ark styling
+ * guide — do NOT assume attributes Ark doesn't document):
+ *   Root:  data-invalid, data-disabled, data-complete, data-readonly
+ *   Label: data-invalid, data-disabled, data-complete, data-required, data-readonly
+ *   Input: data-disabled, data-complete, data-filled, data-index, data-invalid
  *
- * Each Input slot is a real <input> element — no reduced-motion concern for
- * individual inputs (no transitions there). The control wrapper has no
- * transitions either, so no reduced-motion blocks are needed here.
+ * Ark does NOT expose a data-focus-visible attribute on any pin-input part. The
+ * keyboard focus ring is drawn with the native `:focus-visible` pseudo on the
+ * native <input> (Input) — never on every :focus, so mouse focus stays quiet.
+ *
+ * Motion: the input border/shadow transition is suppressed under reduced-motion —
+ * both the OS `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute on <html>. Each animated selector
+ * gets its own reset so the stylelint a11y rule (per-selector) is satisfied.
  */
 
 [data-scope='pin-input'][data-part='root'] {
@@ -40,6 +47,18 @@
   &[data-disabled] {
     color: var(--token-color-foreground-disabled);
   }
+
+  &[data-invalid] {
+    color: var(--token-form-error-color);
+  }
+}
+
+/* Required indicator — a real DOM element (Helios pattern), not CSS-injected
+   text, so assistive tech reliably reaches it and our a11y linter is satisfied.
+   Rendered by the component only when `required` is set (Ark mirrors the state
+   onto the Label via data-required). */
+[data-scope='pin-input'][data-part='required-indicator'] {
+  color: var(--token-form-error-color);
 }
 
 [data-scope='pin-input'][data-part='control'] {
@@ -64,18 +83,35 @@
   background: var(--token-form-control-base-surface-color-default);
   outline: none;
 
-  &:hover:not([data-disabled], [data-invalid]),
-  &:focus:not([data-disabled], [data-invalid]) {
-    border-color: var(--token-form-control-base-border-color-hover);
-    background: var(--token-form-control-base-surface-color-hover);
+  transition:
+    border-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    box-shadow var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 }
 
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='pin-input'][data-part='input'][data-focus-visible] {
+/* Keyboard focus only — Ark exposes NO data-focus-visible on the Input part, so
+   use the native :focus-visible pseudo so the keyboard focus ring renders.
+   Declared before the :hover/:focus rules so this lower-specificity ring rule
+   does not trail higher-specificity ones (no-descending-specificity). */
+[data-scope='pin-input'][data-part='input']:focus-visible {
   border-color: var(--token-color-border-action);
   outline: none;
   box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='pin-input'][data-part='input']:hover:not([data-disabled], [data-invalid]),
+[data-scope='pin-input'][data-part='input']:focus:not([data-disabled], [data-invalid]) {
+  border-color: var(--token-form-control-base-border-color-hover);
+  background: var(--token-form-control-base-surface-color-hover);
 }
 
 [data-scope='pin-input'][data-part='input'][data-disabled] {
@@ -85,22 +121,40 @@
   background: var(--token-form-control-disabled-surface-color);
 }
 
+/* Read-only: Ark emits data-readonly on the Root and Label parts (NOT the Input
+   part — verified against the Ark pin-input styling guide), so scope the input
+   styling through the Root's data-readonly rather than a phantom
+   [data-part='input'][data-readonly] selector. */
+[data-scope='pin-input'][data-part='root'][data-readonly]
+  [data-scope='pin-input'][data-part='input'] {
+  border-color: var(--token-form-control-readonly-border-color);
+  color: var(--token-form-control-readonly-foreground-color);
+  background: var(--token-form-control-readonly-surface-color);
+}
+
 [data-scope='pin-input'][data-part='input'][data-invalid] {
   border-color: var(--token-form-control-invalid-border-color-default);
+
+  /* Keyboard focus on an invalid input — native :focus-visible, critical ring.
+     Declared before :hover/:focus (lower specificity first;
+     no-descending-specificity). */
+  &:focus-visible {
+    border-color: var(--token-form-control-invalid-border-color-default);
+    outline: none;
+    box-shadow: var(--token-focus-ring-critical-box-shadow);
+  }
 
   &:hover:not([data-disabled]),
   &:focus:not([data-disabled]) {
     border-color: var(--token-form-control-invalid-border-color-hover);
   }
-
-  &[data-focus-visible] {
-    border-color: var(--token-form-control-invalid-border-color-default);
-    outline: none;
-    box-shadow: var(--token-focus-ring-critical-box-shadow);
-  }
 }
 
+/* Complete: the whole code has been entered. Highlight with the checked border
+   color, but keep the value in the base foreground (the input keeps its light
+   surface — the white checked-foreground token would fail contrast on it,
+   WCAG 1.4.3). */
 [data-scope='pin-input'][data-part='input'][data-complete] {
   border-color: var(--token-form-control-checked-border-color-default);
-  color: var(--token-form-control-checked-foreground-color);
+  color: var(--token-form-control-base-foreground-value-color);
 }

@@ -22,8 +22,11 @@ export interface FieldsetProps extends FieldsetRootProps {
  *
  * Anatomy (from @ark-ui/react/fieldset): Root > Legend, HelperText, ErrorText.
  * The Root renders a native `<fieldset>` element; Legend renders `<legend>`;
- * HelperText and ErrorText render `<span>` elements. Ark/Zag wire
- * `data-disabled` / `data-invalid` state attributes on each part for styling.
+ * HelperText and ErrorText render `<span>` elements. Verified against the live
+ * DOM: Ark wires `data-disabled` / `data-invalid` only on Root and Legend (and
+ * the native `disabled` attribute on the `<fieldset>` when disabled). HelperText
+ * and ErrorText carry NO state attributes, so their styling keys off the
+ * disabled Root via a descendant selector (see Fieldset.css).
  *
  * Styling is attached to Ark's `data-scope` / `data-part` attributes (see
  * Fieldset.css) per the unstyled-primitives-ark ADR — no custom class names.

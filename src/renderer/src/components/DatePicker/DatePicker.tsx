@@ -5,17 +5,23 @@ import { Portal } from '@ark-ui/react/portal';
 
 import './DatePicker.css';
 
+/** Helios control-size scale. Drives the per-size local custom properties in
+ *  DatePicker.css via the `data-size` attribute on the root. */
+export type DatePickerSize = 'small' | 'medium' | 'large';
+
 export interface DatePickerProps extends DatePickerRootProps {
   /** Visible, screen-reader-announceable label. Required (WCAG 4.1.2). */
   label: React.ReactNode;
+  /** Control sizing (padding + cell dimensions). Defaults to `'medium'`. */
+  size?: DatePickerSize;
 }
 
 export const DatePicker = forwardRef<HTMLDivElement, DatePickerProps>(function DatePicker(
-  { label, children, ...rootProps },
+  { label, size = 'medium', children, ...rootProps },
   ref,
 ) {
   return (
-    <ArkDatePicker.Root ref={ref} {...rootProps}>
+    <ArkDatePicker.Root ref={ref} data-size={size} {...rootProps}>
       <ArkDatePicker.Label>{label}</ArkDatePicker.Label>
       <ArkDatePicker.Control>
         <ArkDatePicker.Input />

@@ -7,6 +7,21 @@ import {
 
 import './ImageCropper.css';
 
+/**
+ * Props for {@link ImageCropper}.
+ *
+ * Extends `ImageCropperRootProps`, so the full Ark Root surface passes through
+ * unchanged — most notably the crop-shaping and image-transform controls:
+ *   - `cropShape` (`'rectangle' | 'circle'`, default `'rectangle'`)
+ *   - `aspectRatio` (number, width / height — omit for free resize)
+ *   - `fixedCropArea` (boolean)
+ *   - `minWidth` / `minHeight` / `maxWidth` / `maxHeight` (numbers)
+ *   - `defaultZoom` / `zoom`, `defaultRotation` / `rotation`,
+ *     `defaultFlip` / `flip` (uncontrolled + controlled image transforms)
+ *   - `onCropChange` / `onZoomChange` / `onRotationChange` / `onFlipChange`
+ * These are intentionally NOT re-declared here to avoid drifting from Ark's
+ * own types; consult Ark's image-cropper Root props for the authoritative list.
+ */
 export interface ImageCropperProps extends ImageCropperRootProps {
   /** URL of the image to crop. Required. */
   src: string;

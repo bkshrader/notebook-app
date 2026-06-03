@@ -4,9 +4,23 @@ import { Progress as ArkProgress, type ProgressRootProps } from '@ark-ui/react/p
 
 import './Progress.css';
 
+/** Track thickness. `medium` (8px) is the default; `small` (4px) is the compact bar. */
+export type ProgressSize = 'small' | 'medium';
+
+/**
+ * Range-fill color. `neutral` (the action color) is the default; `highlight`
+ * tints the fill with the highlight color for emphasis. At max, BOTH variants
+ * switch to the success color (the `complete` state wins over the variant).
+ */
+export type ProgressVariant = 'neutral' | 'highlight';
+
 export interface ProgressProps extends ProgressRootProps {
   /** Visible, screen-reader-announceable label. Required (WCAG 4.1.2). */
   label: React.ReactNode;
+  /** Track thickness. Defaults to `medium`. */
+  size?: ProgressSize;
+  /** Range-fill color before completion. Defaults to `neutral`. */
+  variant?: ProgressVariant;
 }
 
 /**
@@ -27,13 +41,16 @@ export interface ProgressProps extends ProgressRootProps {
  *
  * Styling is attached to Ark's `data-scope` / `data-part` attributes (see
  * Progress.css) per the unstyled-primitives-ark ADR — no custom class names.
+ * The `size` and `variant` props are surfaced as `data-size` / `data-variant`
+ * on the Root and resolved to per-mode local `--progress-*` custom properties in
+ * CSS (the Accordion size-scale pattern) — no per-variant class names.
  */
 export const Progress = forwardRef<HTMLDivElement, ProgressProps>(function Progress(
-  { label, children, ...rootProps },
+  { label, children, size = 'medium', variant = 'neutral', ...rootProps },
   ref,
 ) {
   return (
-    <ArkProgress.Root ref={ref} {...rootProps}>
+    <ArkProgress.Root ref={ref} data-size={size} data-variant={variant} {...rootProps}>
       <ArkProgress.Label>{label}</ArkProgress.Label>
       <ArkProgress.Context>
         {(ctx) => (

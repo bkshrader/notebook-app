@@ -1,16 +1,53 @@
-/* Styling targets Ark's data-scope/data-part attributes (per the
+/* Listbox — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's data-scope/data-part attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
- * motion suppressed via BOTH the prefers-reduced-motion media query AND the
- * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
- * selector getting its OWN reduced-motion reset. */
+ * --token-color-palette-*.
+ *
+ * Focusable node (verified against the live Ark DOM, 2026-06-01):
+ *   - Content carries role="listbox" and tabindex="0" — it is THE focusable
+ *     node. Items (role="option") are NOT individually focused; Ark uses
+ *     aria-activedescendant + data-highlighted to move the highlight while DOM
+ *     focus stays on Content. The keyboard focus ring therefore renders on
+ *     Content via the native :focus-visible pseudo.
+ *   - Ark emits NO data-focus-visible on ANY part (confirmed: Content carries
+ *     only data-orientation/data-layout/data-activedescendant/data-empty; Item
+ *     carries data-state/data-highlighted/data-selected/data-disabled/...).
+ *     A `[data-part='item'][data-focus-visible]` selector would be dead.
+ *
+ * Sizing: the size scale lives in one place — [data-size] sets local
+ * --listbox-* custom properties (item min-height, max content height, item
+ * font scale) consumed by the parts below, mirroring the Accordion pattern.
+ *
+ * Motion: the item highlight transition is suppressed under reduced motion via
+ * BOTH the prefers-reduced-motion media query AND the Storybook toolbar's
+ * [data-reduced-motion='reduce'] attribute, each animated selector getting its
+ * own reset. */
 
 [data-scope='listbox'][data-part='root'] {
+  /* Size scale defaults (md). Overridden by [data-size] below. */
+  --listbox-item-min-block-size: 2rem;
+  --listbox-max-block-size: 18rem;
+  --listbox-font-size: var(--token-typography-body-200-font-size);
+  --listbox-line-height: var(--token-typography-body-200-line-height);
+
   display: block flex;
   flex-direction: column;
   gap: var(--token-form-control-padding);
   inline-size: 100%;
+
+  &[data-size='sm'] {
+    --listbox-item-min-block-size: 1.75rem;
+    --listbox-font-size: var(--token-typography-body-100-font-size);
+    --listbox-line-height: var(--token-typography-body-100-line-height);
+  }
+
+  &[data-size='lg'] {
+    --listbox-item-min-block-size: 2.5rem;
+    --listbox-font-size: var(--token-typography-body-300-font-size);
+    --listbox-line-height: var(--token-typography-body-300-line-height);
+  }
 }
 
 [data-scope='listbox'][data-part='label'] {
@@ -39,7 +76,7 @@
   flex-direction: column;
 
   block-size: auto;
-  max-block-size: 18rem;
+  max-block-size: var(--listbox-max-block-size);
   padding-block: var(--token-form-control-padding);
   padding-inline: var(--token-form-control-padding);
   border: var(--token-form-control-border-width) solid
@@ -49,10 +86,21 @@
   background: var(--token-color-surface-primary);
   outline: none;
 
+  /* Surface/border emphasis on hover OR focus (any focus, pointer or keyboard).
+   * Paired per the a11y/selector-pseudo-class-focus rule so a hover affordance
+   * is never reachable without an equivalent focus affordance. */
   &:hover,
   &:focus {
     border-color: var(--token-form-control-base-border-color-hover);
     background: var(--token-form-control-base-surface-color-hover);
+  }
+
+  /* Keyboard focus ring layered on top. Content is the focusable role="listbox"
+   * node; Ark exposes NO data-focus-visible attribute, so the native
+   * :focus-visible pseudo is what makes the ring render for keyboard users
+   * (and correctly stay OFF for pointer focus). */
+  &:focus-visible {
+    box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 }
 
@@ -65,22 +113,22 @@
   align-items: center;
   justify-content: space-between;
 
-  min-block-size: 2rem;
+  min-block-size: var(--listbox-item-min-block-size);
   padding-inline: var(--token-form-control-padding);
   border-radius: var(--token-border-radius-small);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--listbox-font-size);
+  line-height: var(--listbox-line-height);
   color: var(--token-color-foreground-primary);
 
   outline: none;
 
-  transition: background-color var(--token-form-radiocard-transition-duration) ease;
-
-  [data-reduced-motion='reduce'] & {
-    transition: none;
-  }
+  /* Interactive highlight feedback. Borrows the toggle transition family
+   * (0.2s + Helios easing) — the closest form-control timing token; Helios
+   * ships no listbox-specific transition token. */
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
 
   &[data-highlighted] {
     color: var(--token-color-foreground-action-hover);
@@ -105,9 +153,8 @@
     background: var(--token-color-surface-interactive-disabled);
   }
 
-  &[data-focus-visible] {
-    outline: none;
-    box-shadow: var(--token-focus-ring-action-box-shadow);
+  [data-reduced-motion='reduce'] & {
+    transition: none;
   }
 
   @media (prefers-reduced-motion: reduce) {

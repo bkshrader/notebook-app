@@ -25,8 +25,13 @@ export interface ClipboardProps extends ClipboardRootProps {
  * Anatomy (from @ark-ui/react/clipboard):
  *   Root > Label, Control > Input + Trigger > Indicator
  *
- * Ark/Zag manage state ("idle" | "copied") and expose it through data-attributes
- * (data-copied, data-scope, data-part, data-readonly) which the CSS targets.
+ * Ark/Zag manage the copied state and expose it through data-attributes which
+ * the CSS targets (verified against the Ark styling guide for `clipboard`):
+ *   data-copied   — present on EVERY part once the value is copied (the "copied"
+ *                   state); the resting state has no data attribute.
+ *   data-readonly — present on the Input only.
+ * `data-scope`/`data-part` are structural anchors, not state. Ark emits NO
+ * data-focus-visible; the Trigger is a native <button> styled via :focus-visible.
  * No custom class names — see the unstyled-primitives-ark ADR.
  *
  * The trigger is a <button> with an accessible name derived from either the

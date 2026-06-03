@@ -15,8 +15,11 @@
  * `[data-reduced-motion='reduce']` attribute on <html>. Each animated selector
  * has its own reduced-motion reset (stylelint a11y rule matches per-selector).
  *
- * Focus ring is applied ONLY on `[data-focus-visible]` (keyboard focus only),
- * never on every :focus / [data-focus].
+ * Focus ring is applied via the native `:focus-visible` pseudo-class (keyboard
+ * focus only). Ark renders CloseTrigger and ActionTrigger as native <button>
+ * elements and does NOT expose a `data-focus-visible` attribute, so a
+ * `[data-focus-visible]` selector would be dead — `:focus-visible` is the
+ * correct, verified hook (confirmed against the live Ark DOM).
  */
 
 /* ── Backdrop ──────────────────────────────────────────────────────────────── */
@@ -32,17 +35,17 @@
   &[data-state='open'] {
     animation: tour-backdrop-in 150ms var(--token-tooltip-transition-function);
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 
   &[data-state='closed'] {
     animation: tour-backdrop-out 100ms var(--token-tooltip-transition-function);
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 }
 
@@ -102,13 +105,19 @@
 /* ── Content ───────────────────────────────────────────────────────────────── */
 
 [data-scope='tour'][data-part='content'] {
+  /* Per-size panel width. Helios sizes are layout px/rem values, not design
+     tokens (same rationale as Accordion's `--accordion-*` locals), so the size
+     scale lives in local custom properties consumed by `inline-size`.
+     `data-size` is set on the Content by the React wrapper; medium is default. */
+  --tour-content-inline-size: 20rem;
+
   position: relative;
 
   display: block flex;
   flex-direction: column;
   gap: var(--token-border-radius-small);
 
-  inline-size: 20rem;
+  inline-size: var(--tour-content-inline-size);
   padding-block: var(--token-tooltip-padding-vertical);
   padding-inline: var(--token-tooltip-padding-horizontal);
   border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
@@ -123,24 +132,42 @@
   outline: none;
   box-shadow: var(--token-elevation-overlay-box-shadow);
 
+  &[data-size='small'] {
+    --tour-content-inline-size: 16rem;
+  }
+
+  &[data-size='large'] {
+    --tour-content-inline-size: 24rem;
+  }
+
+  /* Modal dialog-type steps are centered and read as a focal panel, so they get
+     a wider footprint than tooltip-type steps at the same size. */
   &[data-type='dialog'] {
-    inline-size: 25rem;
+    --tour-content-inline-size: 25rem;
+  }
+
+  &[data-type='dialog'][data-size='small'] {
+    --tour-content-inline-size: 20rem;
+  }
+
+  &[data-type='dialog'][data-size='large'] {
+    --tour-content-inline-size: 30rem;
   }
 
   &[data-state='open'] {
     animation: tour-content-in 150ms var(--token-tooltip-transition-function);
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 
   &[data-state='closed'] {
     animation: tour-content-out 100ms var(--token-tooltip-transition-function);
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 }
 
@@ -232,12 +259,14 @@
   background: transparent;
 
   &:hover,
-  &:focus {
+  &:focus-visible {
     color: var(--token-color-foreground-primary);
     background: var(--token-color-surface-interactive-hover);
   }
 
-  &[data-focus-visible] {
+  /* Native :focus-visible — Ark exposes no data-focus-visible attribute on this
+     native <button> part (verified against the live Ark DOM). */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -297,21 +326,25 @@
   background: var(--token-color-surface-action);
 }
 
+/* Native :focus-visible — Ark exposes no data-focus-visible attribute on this
+   native <button> part (verified against the live Ark DOM). Ordered before the
+   higher-specificity :hover/:focus-visible interaction rules below so
+   stylelint's no-descending-specificity (lower specificity first) is satisfied. */
+[data-scope='tour'][data-part='action-trigger']:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
 [data-scope='tour'][data-part='action-trigger']:hover:not([data-disabled]),
-[data-scope='tour'][data-part='action-trigger']:focus:not([data-disabled]) {
+[data-scope='tour'][data-part='action-trigger']:focus-visible:not([data-disabled]) {
   border-color: var(--token-color-border-strong);
   background: var(--token-color-surface-interactive-hover);
 }
 
 [data-scope='tour'][data-part='action-trigger']:last-child:hover:not([data-disabled]),
-[data-scope='tour'][data-part='action-trigger']:last-child:focus:not([data-disabled]) {
+[data-scope='tour'][data-part='action-trigger']:last-child:focus-visible:not([data-disabled]) {
   border-color: var(--token-color-border-action);
   background: var(--token-color-surface-interactive-active);
-}
-
-[data-scope='tour'][data-part='action-trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
 }
 
 [data-scope='tour'][data-part='action-trigger'][data-disabled] {

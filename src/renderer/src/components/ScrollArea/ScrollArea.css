@@ -1,12 +1,24 @@
 /* Styling targets Ark's data-scope/data-part attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
- * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible (via
- * :focus-visible on the Viewport). Reduced motion suppressed via BOTH the
- * prefers-reduced-motion media query AND the [data-reduced-motion='reduce']
- * attribute (Storybook toolbar), each animated selector getting its OWN
- * reduced-motion reset. Logical properties only (inline-size / block-size /
- * padding-inline / etc.). */
+ * value resolves to a Helios --token-* custom property (the only bare values
+ * are the per-size scrollbar-thickness px values, which have no design token;
+ * replicated here as local --scroll-area-* properties set by [data-size]).
+ * No raw colours, no --token-color-palette-*.
+ *
+ * State comes from Ark's data-attributes (verified against the Ark scroll-area
+ * styling guide — do NOT assume attributes Ark doesn't document):
+ *   Scrollbar: data-orientation, data-scrolling, data-hover, data-dragging,
+ *              data-overflow-x, data-overflow-y
+ *   Thumb:     data-orientation, data-hover, data-dragging
+ *   Root/Viewport/Content/Corner: data-overflow-x, data-overflow-y
+ * Ark scroll-area exposes NO data-focus / data-focus-visible attribute, so the
+ * keyboard focus ring on the Viewport uses the native :focus-visible pseudo —
+ * NOT a data-attribute selector.
+ *
+ * Reduced motion suppressed via BOTH the prefers-reduced-motion media query AND
+ * the [data-reduced-motion='reduce'] attribute (Storybook toolbar), each
+ * animated selector getting its OWN reduced-motion reset. Logical properties
+ * only (inline-size / block-size / padding-inline / etc.). */
 
 /* ── Root ───────────────────────────────────────────────────────────────── */
 
@@ -14,6 +26,21 @@
   position: relative;
   overflow: hidden;
   background-color: var(--token-color-surface-primary);
+
+  /* Size scale: the scrollbar thickness is the only sizable dimension. Helios
+     has no design token for it, so define per-size local px values (consumed by
+     the scrollbar/thumb parts below). Default to medium when unset. */
+  &[data-size='small'] {
+    --scroll-area-scrollbar-size: 8px;
+  }
+
+  &[data-size='medium'] {
+    --scroll-area-scrollbar-size: 10px;
+  }
+
+  &[data-size='large'] {
+    --scroll-area-scrollbar-size: 14px;
+  }
 }
 
 /* ── Viewport (the scrollable region / keyboard focus target) ────────────── */
@@ -81,7 +108,7 @@
 
 /* Vertical track sizing */
 [data-scope='scroll-area'][data-part='scrollbar'][data-orientation='vertical'] {
-  inline-size: var(--token-border-radius-small);
+  inline-size: var(--scroll-area-scrollbar-size, 10px);
 }
 
 /* Hide vertical scrollbar when content does not overflow vertically. */
@@ -96,7 +123,7 @@
 
 /* Horizontal track sizing */
 [data-scope='scroll-area'][data-part='scrollbar'][data-orientation='horizontal'] {
-  block-size: var(--token-border-radius-small);
+  block-size: var(--scroll-area-scrollbar-size, 10px);
 }
 
 /* Hide horizontal scrollbar when content does not overflow horizontally. */

@@ -36,6 +36,14 @@ export interface QrCodeProps extends QrCodeRootProps {
    * @default 'image/png'
    */
   downloadMimeType?: 'image/png' | 'image/jpeg' | 'image/svg+xml';
+  /**
+   * Module size of the rendered QR code, in pixels per module ("pixel"). Maps
+   * to Ark/Zag's `pixelSize` on the Root, which drives the `--qrcode-pixel-size`
+   * CSS variable and the SVG viewBox. Prefer this over setting
+   * `--qrcode-pixel-size` by hand. Larger values produce a larger code.
+   * @default 10
+   */
+  pixelSize?: number;
 }
 
 /**
@@ -51,8 +59,14 @@ export interface QrCodeProps extends QrCodeRootProps {
  * role="img" can. The SVG IS the visual image, so this is semantically correct.
  *
  * Styling is via [data-scope='qr-code'][data-part='...'] attribute selectors
- * (per the unstyled-primitives-ark ADR). Size is controlled by the
- * --qrcode-pixel-size CSS variable set on the root.
+ * (per the unstyled-primitives-ark ADR). Verified against the live DOM
+ * (2026-06-01): Ark emits data-scope='qr-code' + data-part on Root, Frame,
+ * Pattern, AND the DownloadTrigger <button> — the styling guide's empty
+ * dataAttr map only means QrCode has no interactive STATE attributes, not that
+ * scope/part are absent. The DownloadTrigger is a native <button>, so its
+ * interactive state is the native :disabled/:focus-visible/:hover/:active
+ * pseudo-classes (no data-disabled / data-focus-visible). Size is controlled
+ * by the `pixelSize` prop (Ark sets the --qrcode-pixel-size CSS variable).
  */
 export const QrCode = forwardRef<HTMLDivElement, QrCodeProps>(function QrCode(
   {

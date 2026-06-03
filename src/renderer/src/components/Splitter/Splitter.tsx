@@ -27,6 +27,16 @@ export interface SplitterProps extends Omit<SplitterRootProps, 'panels'> {
    * Describes what the handle resizes, e.g. "Resize sidebar".
    */
   resizeTriggerLabel: string;
+  /**
+   * Disables the resize trigger. The handle stops accepting pointer/keyboard
+   * resize and Ark marks it with `data-disabled`. This is a ResizeTrigger-level
+   * prop in Ark (there is no Root-level `disabled`), so the wrapper forwards it
+   * explicitly rather than via the Root spread.
+   *
+   * `keyboardResizeBy`, `size`, `defaultSize`, and `orientation` are Root-level
+   * props and are forwarded automatically through `...rootProps`.
+   */
+  disabled?: boolean;
 }
 
 /**
@@ -45,7 +55,7 @@ export interface SplitterProps extends Omit<SplitterRootProps, 'panels'> {
  * `data-dragging`, and `data-disabled`.
  */
 export const Splitter = forwardRef<HTMLDivElement, SplitterProps>(function Splitter(
-  { panels, resizeTriggerLabel, children, ...rootProps },
+  { panels, resizeTriggerLabel, disabled, children, ...rootProps },
   ref,
 ) {
   // `panels` is required and meant to hold (at least) two entries. Under
@@ -61,7 +71,11 @@ export const Splitter = forwardRef<HTMLDivElement, SplitterProps>(function Split
   return (
     <ArkSplitter.Root ref={ref} panels={panels} {...rootProps}>
       <ArkSplitter.Panel id={panelAId}>{children}</ArkSplitter.Panel>
-      <ArkSplitter.ResizeTrigger id={`${panelAId}:${panelBId}`} aria-label={resizeTriggerLabel}>
+      <ArkSplitter.ResizeTrigger
+        id={`${panelAId}:${panelBId}`}
+        aria-label={resizeTriggerLabel}
+        disabled={disabled}
+      >
         <ArkSplitter.ResizeTriggerIndicator />
       </ArkSplitter.ResizeTrigger>
       <ArkSplitter.Panel id={panelBId} />

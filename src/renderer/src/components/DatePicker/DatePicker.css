@@ -11,9 +11,16 @@
  * `[data-reduced-motion='reduce'] <selector>`, with each animated selector
  * getting its OWN reset block (stylelint a11y rule matches per-selector).
  *
- * Focus ring: applied ONLY on `[data-focus-visible]` (keyboard focus), never
- * on every `:focus` / `[data-focus]`. `outline: none` and focus-ring
- * `box-shadow` always appear together in the same selector.
+ * Focus ring (verified against the Ark date-picker styling guide + the live
+ * DOM): Ark does NOT emit `data-focus-visible` on any part. The Input is a
+ * native <input> and every nav/clear/view trigger is a native <button>, so the
+ * keyboard focus ring is drawn with the native `:focus-visible` pseudo-class.
+ * The calendar cell triggers (`table-cell-trigger`) are <div>s whose focus is
+ * driven by Ark's roving-tabindex behavior — they expose `data-focus` (not
+ * `:focus-visible`), so the ring keys off `[data-focus]` there. `outline: none`
+ * and the focus-ring `box-shadow` always appear together in the same selector.
+ * Hover is kept SEPARATE from focus (`:hover` alone never doubles as a focus
+ * style).
  *
  * Logical properties (inline-size/block-size/padding-inline/padding-block)
  * are used throughout. Specificity order: lower-specificity before higher.
@@ -22,9 +29,27 @@
 /* ── Root ────────────────────────────────────────────────────────────────── */
 
 [data-scope='date-picker'][data-part='root'] {
+  /* Helios control-size scale. The extra vertical padding values are bare px —
+     Helios hardcodes these (they are not design tokens), mirrored as local
+     custom properties consumed by the field row (input + trigger). Defaults to
+     the medium scale so a root with no data-size still sizes correctly. */
+  --date-picker-field-padding-block: var(--token-form-control-padding);
+
   display: inline flex;
   flex-direction: column;
   gap: var(--token-form-control-border-width);
+
+  &[data-size='small'] {
+    --date-picker-field-padding-block: 2px;
+  }
+
+  &[data-size='medium'] {
+    --date-picker-field-padding-block: var(--token-form-control-padding);
+  }
+
+  &[data-size='large'] {
+    --date-picker-field-padding-block: 12px;
+  }
 }
 
 /* ── Label ───────────────────────────────────────────────────────────────── */
@@ -56,7 +81,7 @@
 [data-scope='date-picker'][data-part='input'] {
   flex: 1;
 
-  padding-block: var(--token-form-control-padding);
+  padding-block: var(--date-picker-field-padding-block);
   padding-inline: var(--token-form-control-padding);
   border-color: var(--token-form-control-base-border-color-default);
   border-style: solid;
@@ -80,13 +105,17 @@
     transition: none;
   }
 
-  &[data-focus-visible] {
+  /* Native <input>: Ark exposes no data-focus-visible. Use :focus-visible so
+     the keyboard ring renders only on keyboard focus, never on mouse focus. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 
+  /* Hover tint, mirrored on :focus-visible so keyboard users get the same
+     affordance (a11y/selector-pseudo-class-focus). */
   &:hover,
-  &:focus {
+  &:focus-visible {
     border-color: var(--token-form-control-base-border-color-hover);
     background-color: var(--token-form-control-base-surface-color-hover);
   }
@@ -116,7 +145,7 @@
   align-items: center;
   justify-content: center;
 
-  padding-block: var(--token-form-control-padding);
+  padding-block: var(--date-picker-field-padding-block);
   padding-inline: var(--token-form-control-padding);
   border-color: var(--token-form-control-base-border-color-default);
   border-style: solid;
@@ -140,13 +169,15 @@
     transition: none;
   }
 
-  &[data-focus-visible] {
+  /* Native <button>: keyboard ring via :focus-visible (no data-focus-visible). */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 
+  /* Hover tint, mirrored on :focus-visible for keyboard parity. */
   &:hover,
-  &:focus {
+  &:focus-visible {
     border-color: var(--token-form-control-base-border-color-hover);
     background-color: var(--token-form-control-base-surface-color-hover);
   }
@@ -182,13 +213,17 @@
 
   background-color: var(--token-color-surface-faint);
 
-  &[data-focus-visible] {
+  /* ClearTrigger renders a native <button> (confirmed in the live DOM — it IS
+     emitted with data-part='clear-trigger', even though the styling guide omits
+     it). Keyboard ring via :focus-visible, not the phantom data-focus-visible. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 
+  /* Hover tint, mirrored on :focus-visible for keyboard parity. */
   &:hover,
-  &:focus {
+  &:focus-visible {
     color: var(--token-color-foreground-primary);
     background-color: var(--token-color-surface-interactive-hover);
   }
@@ -218,36 +253,32 @@
   outline: none;
   box-shadow: var(--token-elevation-overlay-box-shadow);
 
+  /* Interaction-speed motion (~0.2s) for a popover open/close — NOT the slow
+     0.6s tabs-indicator timing this used to borrow. */
   &[data-state='open'] {
-    animation: date-picker-content-in var(--token-tabs-indicator-transition-duration)
-      var(--token-tabs-indicator-transition-function);
+    animation: date-picker-content-in var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
-  }
-}
+    [data-reduced-motion='reduce'] & {
+      animation: none;
+    }
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='date-picker'][data-part='content'][data-state='open'] {
-    animation: none;
-  }
-}
-
-[data-reduced-motion='reduce'] [data-scope='date-picker'][data-part='content'][data-state='open'] {
-  animation: none;
-}
-
-[data-scope='date-picker'][data-part='content'][data-state='closed'] {
-  animation: date-picker-content-out var(--token-tabs-indicator-transition-duration)
-    var(--token-tabs-indicator-transition-function);
-
-  [data-reduced-motion='reduce'] & {
-    animation: none;
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
+  &[data-state='closed'] {
+    animation: date-picker-content-out var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+    [data-reduced-motion='reduce'] & {
+      animation: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 }
 
@@ -279,13 +310,15 @@
 
   background-color: var(--token-color-surface-primary);
 
-  &[data-focus-visible] {
+  /* Native <button>: keyboard ring via :focus-visible (no data-focus-visible). */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 
+  /* Hover tint, mirrored on :focus-visible for keyboard parity. */
   &:hover,
-  &:focus {
+  &:focus-visible {
     background-color: var(--token-color-surface-interactive-hover);
   }
 }
@@ -312,23 +345,18 @@
   background-color: var(--token-color-surface-primary);
 }
 
-[data-scope='date-picker'][data-part='prev-trigger'][data-focus-visible] {
+/* Native <button>s: keyboard ring via :focus-visible (no data-focus-visible). */
+[data-scope='date-picker'][data-part='prev-trigger']:focus-visible,
+[data-scope='date-picker'][data-part='next-trigger']:focus-visible {
   outline: none;
   box-shadow: var(--token-focus-ring-action-box-shadow);
 }
 
-[data-scope='date-picker'][data-part='next-trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
-}
-
+/* Hover tint, mirrored on :focus-visible for keyboard parity. */
 [data-scope='date-picker'][data-part='prev-trigger']:hover,
-[data-scope='date-picker'][data-part='prev-trigger']:focus {
-  background-color: var(--token-color-surface-interactive-hover);
-}
-
+[data-scope='date-picker'][data-part='prev-trigger']:focus-visible,
 [data-scope='date-picker'][data-part='next-trigger']:hover,
-[data-scope='date-picker'][data-part='next-trigger']:focus {
+[data-scope='date-picker'][data-part='next-trigger']:focus-visible {
   background-color: var(--token-color-surface-interactive-hover);
 }
 
@@ -411,13 +439,19 @@
     transition: none;
   }
 
-  &[data-focus-visible] {
+  /* The cell trigger is a <div> with Ark roving-tabindex focus: it exposes
+     `data-focus` (the keyboard-focused cell), NOT :focus-visible and NOT the
+     phantom data-focus-visible. The ring keys off [data-focus]. */
+  &[data-focus] {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 
+  /* Hover/keyboard tint. The keyboard affordance is Ark's [data-focus] above;
+     :focus-visible is also paired so keyboard parity holds and the
+     a11y/selector-pseudo-class-focus rule is satisfied. */
   &:hover,
-  &:focus {
+  &:focus-visible {
     background-color: var(--token-color-surface-interactive-hover);
   }
 
@@ -432,12 +466,8 @@
   }
 
   &[data-selected]:hover,
-  &[data-selected]:focus {
+  &[data-selected]:focus-visible {
     background-color: var(--token-form-control-checked-surface-color-hover);
-  }
-
-  &[data-highlighted] {
-    background-color: var(--token-color-surface-interactive-hover);
   }
 
   &[data-outside-range] {

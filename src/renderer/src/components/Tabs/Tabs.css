@@ -1,20 +1,53 @@
-/* Styling targets Ark's data-scope/data-part attributes (per the
+/**
+ * Tabs — token-styled Ark UI primitive, built to the Helios Tabs specification
+ * (https://helios.hashicorp.design/components/tabs).
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
- * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
- * motion suppressed via BOTH the prefers-reduced-motion media query AND the
- * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
- * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
- * per-selector, so comma-grouped resets fail). Logical properties throughout. */
+ * value resolves to a Helios `--token-*` custom property. No raw literals, no
+ * --token-color-palette-*.
+ *
+ * State comes from Ark's data-attributes (VERIFIED against the live DOM — do
+ * NOT assume attributes Ark doesn't emit):
+ *   Trigger emits: data-selected, data-disabled, data-orientation, data-focus
+ *                  (Ark exposes NO data-focus-visible; the keyboard focus ring
+ *                  uses the native :focus-visible pseudo-class instead).
+ *   Content emits: data-selected, data-orientation, data-state. It also carries
+ *                  tabindex and is programmatically focusable on activation, so
+ *                  its keyboard focus ring likewise uses native :focus-visible.
+ * The trigger is a native <button>; the native `disabled` attribute (matched
+ * with :disabled) accompanies Ark's data-disabled part attribute.
+ *
+ * Size scale (`data-size`): Helios ships medium (default) and large. Each size
+ * sets local `--tabs-*` custom properties (tab height, horizontal padding)
+ * consumed by the trigger — mirroring the Accordion size-matrix pattern.
+ *
+ * Motion: the color transition is suppressed under reduced motion — both the
+ * OS `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute on <html>. Each animated selector
+ * carries its OWN reduced-motion reset (the stylelint a11y rule matches
+ * per-selector, so comma-grouped resets fail). Logical properties throughout.
+ */
 
-/* Root container — stacks list above panels (horizontal default). */
+/* ─── Root container — stacks list above panels (horizontal default). ────────
+   Also hosts the size scale: Helios sets tab height and horizontal padding per
+   size from the --token-tabs-* family. Defaults to medium when no data-size is
+   present; local --tabs-* properties are consumed by the trigger below. */
 [data-scope='tabs'][data-part='root'] {
+  --tabs-tab-height: var(--token-tabs-tab-height-medium);
+  --tabs-tab-padding-horizontal: var(--token-tabs-tab-padding-horizontal-medium);
+
   display: block flex;
   flex-direction: column;
   color: var(--token-color-foreground-primary);
+
+  &[data-size='large'] {
+    --tabs-tab-height: var(--token-tabs-tab-height-large);
+    --tabs-tab-padding-horizontal: var(--token-tabs-tab-padding-horizontal-large);
+  }
 }
 
-/* Tab list — horizontal row of triggers separated by the divider underline. */
+/* ─── Tab list — horizontal row of triggers over the divider underline. ────── */
 [data-scope='tabs'][data-part='list'] {
   position: relative;
 
@@ -23,23 +56,32 @@
   gap: var(--token-tabs-tab-gutter);
 
   border-block-end: var(--token-tabs-divider-height) solid var(--token-color-border-faint);
+
+  /* Vertical orientation stacks triggers and moves the divider to the side. */
+  &[data-orientation='vertical'] {
+    flex-direction: column;
+    border-block-end: none;
+    border-inline-end: var(--token-tabs-divider-height) solid var(--token-color-border-faint);
+  }
 }
 
-/* Individual tab trigger — button-like pill with active indicator underline. */
+/* ─── Individual tab trigger — button-like pill with active underline. ─────── */
 [data-scope='tabs'][data-part='trigger'] {
   cursor: pointer;
+
+  position: relative;
 
   display: inline flex;
   align-items: center;
   justify-content: center;
 
-  block-size: var(--token-tabs-tab-height-medium);
+  block-size: var(--tabs-tab-height);
 
-  /* Shift upward so the bottom border of the list sits flush with the
-     active indicator that Zag/Ark positions below the trigger. */
+  /* Shift toward the list edge so the active indicator that Zag/Ark positions
+     below the trigger sits flush with the list's divider border. */
   margin-block-end: calc(-1 * var(--token-tabs-divider-height));
   padding-block: var(--token-tabs-tab-padding-vertical);
-  padding-inline: var(--token-tabs-tab-padding-horizontal-medium);
+  padding-inline: var(--tabs-tab-padding-horizontal);
   border: none;
   border-radius: var(--token-tabs-tab-border-radius);
 
@@ -51,8 +93,10 @@
 
   background: transparent;
 
-  transition: color var(--token-tabs-indicator-transition-duration)
-    var(--token-tabs-indicator-transition-function);
+  /* Interaction transition (0.2s) — NOT the 0.6s indicator-transition token,
+     which is reserved for the underline indicator's slide animation. */
+  transition: color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
 
   [data-reduced-motion='reduce'] & {
     transition: none;
@@ -63,9 +107,11 @@
   }
 }
 
-/* Hover: lift foreground one step. */
+/* Hover (and keyboard focus, for parity): lift foreground one step and tint
+   the surface. Pairing :hover with :focus-visible gives keyboard users the same
+   affordance as pointer users (and satisfies the a11y focus-pairing rule). */
 [data-scope='tabs'][data-part='trigger']:hover,
-[data-scope='tabs'][data-part='trigger']:focus {
+[data-scope='tabs'][data-part='trigger']:focus-visible {
   color: var(--token-color-foreground-strong);
   background: var(--token-color-surface-interactive-hover);
 }
@@ -76,21 +122,39 @@
   color: var(--token-color-foreground-action);
 }
 
-/* Disabled state. */
-[data-scope='tabs'][data-part='trigger'][data-disabled] {
+/* Disabled state. Ark sets BOTH its data-disabled part attribute AND the native
+   `disabled` attribute on the <button>; match both so the styling holds whether
+   or not the consumer relies on Ark's attribute mirroring. */
+[data-scope='tabs'][data-part='trigger'][data-disabled],
+[data-scope='tabs'][data-part='trigger']:disabled {
   cursor: not-allowed;
   color: var(--token-color-foreground-disabled);
   background: transparent;
 }
 
-/* Focus ring — keyboard only (data-focus-visible), never on every :focus. */
-[data-scope='tabs'][data-part='trigger'][data-focus-visible] {
-  outline: none;
+/* Keyboard focus only — never decorate mouse focus. Helios insets the ring from
+   the tab edge by the tab-focus-inset token; we draw it on a ::before so it sits
+   outside the pill without affecting layout. Ark exposes NO data-focus-visible
+   attribute, so we key off the native :focus-visible pseudo-class. */
+[data-scope='tabs'][data-part='trigger']::before {
+  pointer-events: none;
+  content: '';
+
+  position: absolute;
+  z-index: -1;
+  inset: calc(-1 * var(--token-tabs-tab-focus-inset));
+
+  border-radius: var(--token-tabs-tab-border-radius);
+}
+
+[data-scope='tabs'][data-part='trigger']:focus-visible::before {
   box-shadow: var(--token-focus-ring-action-box-shadow);
 }
 
-/* Content panel — remove the default outline; provide focus ring when panel
-   receives programmatic focus (Ark tabs focus the panel on activation). */
+/* ─── Content panel ─────────────────────────────────────────────────────────
+   Ark focuses the panel programmatically on activation; remove the default
+   outline and draw the keyboard focus ring via native :focus-visible (Ark
+   exposes NO data-focus-visible on the content part either). */
 [data-scope='tabs'][data-part='content'] {
   padding-block: var(--token-tabs-tab-padding-vertical);
 
@@ -101,7 +165,7 @@
 
   outline: none;
 
-  &[data-focus-visible] {
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }

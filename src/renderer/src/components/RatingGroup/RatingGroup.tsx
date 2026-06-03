@@ -7,6 +7,9 @@ import {
 
 import './RatingGroup.css';
 
+/** Size scale for the star dimension and inter-star gap. */
+export type RatingGroupSize = 'small' | 'medium' | 'large';
+
 export interface RatingGroupProps extends RatingGroupRootProps {
   /**
    * Visible, screen-reader-announceable label. Required (WCAG 4.1.2).
@@ -15,6 +18,12 @@ export interface RatingGroupProps extends RatingGroupRootProps {
    * providing this prop ensures the group is always named.
    */
   label: React.ReactNode;
+  /**
+   * Size scale driving the star dimension and inter-star gap via `data-size`.
+   * Defaults to `medium`. Helios ships no RatingGroup, so the per-size px
+   * values are local custom properties (see RatingGroup.css).
+   */
+  size?: RatingGroupSize;
 }
 
 /**
@@ -30,11 +39,11 @@ export interface RatingGroupProps extends RatingGroupRootProps {
  * names.
  */
 export const RatingGroup = forwardRef<HTMLDivElement, RatingGroupProps>(function RatingGroup(
-  { label, children, ...rootProps },
+  { label, children, size = 'medium', ...rootProps },
   ref,
 ) {
   return (
-    <ArkRatingGroup.Root ref={ref} {...rootProps}>
+    <ArkRatingGroup.Root ref={ref} data-size={size} {...rootProps}>
       <ArkRatingGroup.Label>{label}</ArkRatingGroup.Label>
       <ArkRatingGroup.Control>
         <ArkRatingGroup.Context>

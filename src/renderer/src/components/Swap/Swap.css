@@ -1,56 +1,64 @@
 /* Styling targets Ark's data-scope/data-part attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
- * motion suppressed via BOTH the prefers-reduced-motion media query AND the
- * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
- * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
+ * --token-color-palette-*. Swap is a display-only primitive (not interactive),
+ * so it carries NO focus ring of its own — the focusable container the consumer
+ * wraps around it owns focus styling.
+ *
+ * Verified Ark contract (live DOM, @ark-ui/react/swap):
+ *   - Root      <span data-scope="swap" data-part="root" data-swap="on|off">
+ *               (Ark sets display:inline-grid inline)
+ *   - Indicator <span data-scope="swap" data-part="indicator" data-type="on|off">
+ *               with the HTML `hidden` attribute on the inactive indicator
+ *               (Ark sets display:inline-flex + grid-area:1/1 inline)
+ *   Ark does NOT emit data-state on this component — earlier data-state
+ *   selectors were dead. State is the native `hidden` attribute + data-swap.
+ *
+ * The size scale lives in one place: [data-size] on the root sets
+ * --swap-indicator-font-size, which the indicators consume. Reduced motion is
+ * suppressed via BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute (Storybook toolbar); the single
+ * animated selector gets its OWN reduced-motion reset (the a11y rule matches
  * per-selector, so comma-grouped resets fail). */
 
 [data-scope='swap'][data-part='root'] {
   position: relative;
-  display: inline flex;
   align-items: center;
   justify-content: center;
+
+  &[data-size='small'] {
+    --swap-indicator-font-size: var(--token-typography-body-100-font-size);
+  }
+
+  &[data-size='medium'] {
+    --swap-indicator-font-size: var(--token-typography-body-200-font-size);
+  }
+
+  &[data-size='large'] {
+    --swap-indicator-font-size: var(--token-typography-body-300-font-size);
+  }
 }
 
 [data-scope='swap'][data-part='indicator'] {
+  font-size: var(--swap-indicator-font-size);
   color: var(--token-color-foreground-primary);
 
-  &[data-state='open'] {
+  /* The visible (non-hidden) indicator fades in as it becomes active. The
+   * inactive one carries the native `hidden` attribute (display:none), so no
+   * fade-out selector is possible — the cross-fade reads as the incoming glyph
+   * easing in over the shared grid cell. */
+  &:not([hidden]) {
     animation-name: swap-fade-in;
     animation-duration: var(--token-form-toggle-transition-duration);
     animation-timing-function: var(--token-form-toggle-transition-timing-function);
 
-  @media screen and (prefers-reduced-motion: reduce) {
+    [data-reduced-motion='reduce'] & {
       animation: none;
-      animation-duration: var(--token-form-toggle-transition-duration);
-      animation-timing-function: var(--token-form-toggle-transition-timing-function)
-  }
-  }
-}
+    }
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='swap'][data-part='indicator'][data-state='open'] {
-    animation: none;
-  }
-}
-
-[data-reduced-motion='reduce'] [data-scope='swap'][data-part='indicator'][data-state='open'] {
-  animation: none;
-}
-
-[data-scope='swap'][data-part='indicator'][data-state='closed'] {
-  animation-name: swap-fade-out;
-  animation-duration: var(--token-form-toggle-transition-duration);
-  animation-timing-function: var(--token-form-toggle-transition-timing-function);
-
-  [data-reduced-motion='reduce'] & {
-    animation: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 }
 
@@ -61,15 +69,5 @@
 
   to {
     opacity: 1;
-  }
-}
-
-@keyframes swap-fade-out {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0;
   }
 }

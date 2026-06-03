@@ -32,8 +32,10 @@ const DEFAULT_MARKERS = [0, 45, 90, 135, 180, 225, 270, 315];
  *   Root > Label, Control > MarkerGroup > Marker*, Thumb, ValueText, HiddenInput
  *
  * The thumb (data-part="thumb") is the focusable interactive element with
- * role="slider"; it responds to Arrow keys for angular adjustment and exposes
- * data-state / data-disabled / data-focus-visible for styling.
+ * role="slider" and tabindex=0; it responds to Arrow keys for angular
+ * adjustment and exposes data-disabled / data-invalid / data-readonly for
+ * styling. Ark does NOT emit data-focus-visible here, so the keyboard focus
+ * ring is drawn via the native :focus-visible pseudo (see AngleSlider.css).
  *
  * Styling targets Ark's data-scope/data-part attributes (per the
  * unstyled-primitives-ark ADR). CSS custom props --angle and --value injected

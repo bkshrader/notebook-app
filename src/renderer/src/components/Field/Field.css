@@ -1,26 +1,79 @@
-/* Styling targets Ark's data-scope/data-part attributes (per the
+/* Field — token-styled Ark UI Field primitive (Helios form-control parity).
+ *
+ * Styling targets Ark's data-scope/data-part attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
- * motion suppressed via BOTH the prefers-reduced-motion media query AND the
- * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
- * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
- * per-selector, so comma-grouped resets fail). */
+ * --token-color-palette-*.
+ *
+ * Ark contract (verified against @ark-ui/react/field props + the live DOM, NOT
+ * assumed from comments):
+ *   - Field.Input renders a native <input> (HTMLInputElement). Native form
+ *     controls expose the keyboard focus ring via the native :focus-visible
+ *     pseudo-class — Ark emits NO data-focus-visible attribute (confirmed: the
+ *     input never matches [data-focus-visible]). The focus ring therefore lives
+ *     on :focus-visible, not a data-attribute selector.
+ *   - data-invalid / data-readonly are emitted on the input; data-disabled too.
+ *   - data-inline is OUR attribute (set by the wrapper); Ark Field has no
+ *     `inline` machine option, so we own that layout switch.
+ *
+ * Size scale: [data-size] sets local --field-* custom properties (the px
+ * spacing/typography values that vary per size) consumed by the parts, mirroring
+ * the Accordion size architecture.
+ *
+ * Motion: the input's border/box-shadow transition is suppressed under reduced
+ * motion via BOTH the prefers-reduced-motion media query AND the Storybook
+ * toolbar's [data-reduced-motion='reduce'] attribute. Each animated selector
+ * gets its OWN reduced-motion reset (the stylelint a11y rule matches
+ * per-selector, so comma-grouped resets fail).
+ */
 
 [data-scope='field'][data-part='root'] {
+  /* Per-size defaults (medium). Overridden by the [data-size] blocks below. */
+  --field-control-padding-block: var(--token-form-control-padding);
+  --field-control-padding-inline: var(--token-form-control-padding);
+  --field-label-font-size: var(--token-typography-body-200-font-size);
+  --field-label-line-height: var(--token-typography-body-200-line-height);
+  --field-input-font-size: var(--token-typography-body-200-font-size);
+  --field-input-line-height: var(--token-typography-body-200-line-height);
+
+  /* Two-value display notation (CSS Display L3); stylelint display-notation
+   * enforces this over the single-value `flex`. */
   display: block flex;
   flex-direction: column;
   gap: var(--token-form-control-padding);
   align-items: start;
 
   inline-size: 100%;
+
+  &[data-size='small'] {
+    --field-control-padding-block: calc(var(--token-form-control-padding) - 3px);
+    --field-control-padding-inline: calc(var(--token-form-control-padding) - 1px);
+    --field-label-font-size: var(--token-typography-body-100-font-size);
+    --field-label-line-height: var(--token-typography-body-100-line-height);
+    --field-input-font-size: var(--token-typography-body-100-font-size);
+    --field-input-line-height: var(--token-typography-body-100-line-height);
+  }
+
+  &[data-size='large'] {
+    --field-control-padding-block: calc(var(--token-form-control-padding) + 4px);
+    --field-control-padding-inline: calc(var(--token-form-control-padding) + 4px);
+    --field-label-font-size: var(--token-typography-body-300-font-size);
+    --field-label-line-height: var(--token-typography-body-300-line-height);
+    --field-input-font-size: var(--token-typography-body-300-font-size);
+    --field-input-line-height: var(--token-typography-body-300-line-height);
+  }
+
+  /* Inline layout: shrink-to-fit rather than fill the container. */
+  &[data-inline] {
+    inline-size: auto;
+  }
 }
 
 [data-scope='field'][data-part='label'] {
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
+  font-size: var(--field-label-font-size);
   font-weight: var(--token-typography-font-weight-medium);
-  line-height: var(--token-typography-body-200-line-height);
+  line-height: var(--field-label-line-height);
   color: var(--token-form-label-color);
 
   [data-scope='field'][data-part='root'][data-disabled] & {
@@ -34,15 +87,15 @@
 [data-scope='field'][data-part='input'] {
   inline-size: 100%;
   min-inline-size: 0;
-  padding: var(--token-form-control-padding);
+  padding: var(--field-control-padding-block) var(--field-control-padding-inline);
   border-color: var(--token-form-control-base-border-color-default);
   border-style: solid;
   border-width: var(--token-form-control-border-width);
   border-radius: var(--token-form-control-border-radius);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--field-input-font-size);
+  line-height: var(--field-input-line-height);
   color: var(--token-form-control-base-foreground-value-color);
 
   background-color: var(--token-form-control-base-surface-color-default);
@@ -58,13 +111,16 @@
     transition: none;
   }
 
+  /* Hover / non-keyboard focus: tint the border + surface (Helios hover). */
   &:hover,
   &:focus {
     border-color: var(--token-form-control-base-border-color-hover);
     background-color: var(--token-form-control-base-surface-color-hover);
   }
 
-  &[data-focus-visible] {
+  /* Keyboard focus ring — native :focus-visible on the <input> (Ark exposes NO
+   * data-focus-visible attribute). MUST render for WCAG 2.4.7. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -78,14 +134,20 @@
     border-color: var(--token-form-control-invalid-border-color-hover);
   }
 
-  &[data-disabled] {
+  /* Disabled/read-only: Ark sets the NATIVE `disabled`/`readonly` attributes on
+   * the <input> (verified in the live DOM — it carries `disabled`, NOT
+   * `data-disabled`). A `[data-disabled]`/`[data-readonly]` selector on the
+   * input is dead, so the chrome never recolors. Match the native pseudos. */
+  &:disabled {
     cursor: not-allowed;
     border-color: var(--token-form-control-disabled-border-color);
     color: var(--token-form-control-disabled-foreground-color);
     background-color: var(--token-form-control-disabled-surface-color);
   }
 
-  &[data-readonly] {
+  /* A disabled input ALSO matches :read-only, so exclude it — disabled styling
+   * wins. (A normal editable input is :read-write, so this only hits readonly.) */
+  &:read-only:not(:disabled) {
     border-color: var(--token-form-control-readonly-border-color);
     color: var(--token-form-control-readonly-foreground-color);
     background-color: var(--token-form-control-readonly-surface-color);
@@ -112,4 +174,11 @@
 
 [data-scope='field'][data-part='required-indicator'] {
   color: var(--token-form-error-color);
+}
+
+/* Inline layout shrinks the control to fit (root carries our data-inline).
+ * Placed last so its higher specificity does not precede the input's lower-
+ * specificity state rules (stylelint no-descending-specificity). */
+[data-scope='field'][data-part='root'][data-inline] [data-scope='field'][data-part='input'] {
+  inline-size: auto;
 }

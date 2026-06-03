@@ -1,17 +1,35 @@
 /**
- * Progress — token-styled Ark UI primitive.
+ * Progress — token-styled Ark UI primitive (linear), built toward the Helios
+ * ProgressBar specification (https://helios.hashicorp.design/components/progress-bar).
  *
  * Styling targets Ark's `data-scope`/`data-part` attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
- * value resolves to a Helios `--token-*` custom property. No raw literals, no
- * `--token-color-palette-*`.
+ * value resolves to a Helios `--token-*` custom property; the only bare values
+ * are the two track heights (small 4px / medium 8px), which Helios itself
+ * hardcodes for the ProgressBar (they are not design tokens) — replicated here
+ * as per-size local `--progress-*` properties following the Accordion
+ * size-scale pattern.
  *
- * State comes from Ark's data-attributes (data-state="indeterminate|loading|complete",
- * data-orientation). The indeterminate animation is suppressed under
- * reduced-motion — both the OS `prefers-reduced-motion` media query AND the
- * Storybook toolbar's `[data-reduced-motion='reduce']` attribute on <html>.
- * Each animated selector gets its own reduced-motion reset so the stylelint
- * a11y rule (which matches per-selector) is satisfied.
+ * Size and variant: the wrapper sets `data-size` (small|medium) and
+ * `data-variant` (neutral|highlight) on the Root. `data-size` selects the local
+ * `--progress-track-height`; `data-variant` selects the local
+ * `--progress-range-color`. Both resolve on Root and cascade to Track/Range, so
+ * no per-mode class names or duplicated part selectors are needed.
+ *
+ * State comes from Ark's data-attributes. Verified against the LIVE DOM (the Ark
+ * styling-guide MCP lists only a subset): the `track` and `value-text` parts ARE
+ * emitted, and `data-state` cycles through all THREE of:
+ *   data-state="loading"        (0 <= value < max)
+ *   data-state="complete"       (value === max)
+ *   data-state="indeterminate"  (value === null)
+ * on Root, Track, and Range. (An earlier audit claimed `loading` was never
+ * emitted; that was a false positive — confirmed loading IS emitted at value 50.)
+ *
+ * Motion: the indeterminate animation and the range-fill transition are
+ * suppressed under reduced-motion — both the OS `prefers-reduced-motion` media
+ * query AND the Storybook toolbar's `[data-reduced-motion='reduce']` attribute
+ * on <html>. Each animated selector gets its own reduced-motion reset so the
+ * stylelint a11y rule (which matches per-selector) is satisfied.
  */
 
 @keyframes progress-indeterminate {
@@ -25,14 +43,34 @@
 }
 
 [data-scope='progress'][data-part='root'] {
+  /* Helios hardcodes these px values for the ProgressBar (not design tokens):
+     the track height and a small label/value gap. Replicated as local
+     properties per the Accordion size-scale pattern. Track height defaults to
+     the `medium` value; `data-size='small'` halves it below. */
+  --progress-track-height: 8px;
+  --progress-row-gap: 8px;
+
+  /* Range fill color, selected by `data-variant`. Defaults to the action color
+     (`neutral`); `data-variant='highlight'` swaps to the highlight color. The
+     `complete` state overrides this with success regardless of variant. */
+  --progress-range-color: var(--token-color-foreground-action);
+
   display: block flex;
   flex-direction: column;
-  gap: var(--token-form-toggle-border-width);
+  gap: var(--progress-row-gap);
 
   font-family: var(--token-typography-body-200-font-family);
   font-size: var(--token-typography-body-200-font-size);
   line-height: var(--token-typography-body-200-line-height);
   color: var(--token-color-foreground-primary);
+
+  &[data-size='small'] {
+    --progress-track-height: 4px;
+  }
+
+  &[data-variant='highlight'] {
+    --progress-range-color: var(--token-color-foreground-highlight);
+  }
 }
 
 [data-scope='progress'][data-part='label'] {
@@ -45,7 +83,7 @@
 
 [data-scope='progress'][data-part='track'] {
   overflow: hidden;
-  block-size: var(--token-form-toggle-border-width);
+  block-size: var(--progress-track-height);
   border-radius: var(--token-border-radius-large);
   background: var(--token-color-surface-strong);
 }
@@ -56,41 +94,38 @@
   block-size: 100%;
   border-radius: var(--token-border-radius-large);
 
-  background: var(--token-color-foreground-action);
+  /* Resolved from `data-variant` on the Root (action | highlight). */
+  background: var(--progress-range-color);
 
-  transition: transform var(--token-form-radiocard-transition-duration)
-    var(--token-tooltip-transition-function);
+  /* Interaction-speed fill (0.2s, form-toggle easing) — NOT the bouncy tooltip
+     easing, which overshoots and is wrong for a determinate fill bar. */
+  transition: transform var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
 
   [data-reduced-motion='reduce'] & {
     transition: none;
   }
 
+  /* At max, the fill switches from the action color to success. */
+  &[data-state='complete'] {
+    background: var(--token-color-foreground-success);
+  }
+
   &[data-state='indeterminate'] {
     animation: progress-indeterminate 1.5s linear infinite;
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    [data-reduced-motion='reduce'] & {
+      animation: none;
+    }
+
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='progress'][data-part='range'][data-state='indeterminate'] {
-    animation: none;
-  }
-}
-
-[data-reduced-motion='reduce']
-  [data-scope='progress'][data-part='range'][data-state='indeterminate'] {
-  animation: none;
-}
-
-[data-scope='progress'][data-part='range'][data-state='complete'] {
-  background: var(--token-color-foreground-success);
 }
 
 [data-scope='progress'][data-part='value-text'] {
