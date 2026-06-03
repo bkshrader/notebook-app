@@ -1,0 +1,220 @@
+/**
+ * MaskedInput — token-styled, built on plain semantic HTML (no Ark primitive).
+ *
+ * Helios obfuscates the value with CSS `-webkit-text-security: disc` on a
+ * `type="text"` input (not `type="password"`); the reveal control is a button
+ * positioned top/right inside the control. This file reproduces that exactly,
+ * with every visual value resolving to a Helios `--token-*` custom property.
+ * No raw literals, no `--token-color-palette-*`.
+ *
+ * State comes from attributes our own wrapper sets (this is the plain-HTML
+ * branch of the unstyled-primitives-ark ADR, not an Ark scope):
+ *   data-state="masked|revealed"  (on input + toggle-button)
+ *   data-disabled, data-invalid, data-readonly
+ *
+ * The keyboard focus ring is drawn with the native `:focus-visible` pseudo on
+ * the native <input> and native <button> (both natively focusable/operable).
+ *
+ * Motion: the input border/shadow transition is suppressed under reduced-motion
+ * via BOTH the OS `prefers-reduced-motion` media query AND the Storybook
+ * toolbar's `[data-reduced-motion='reduce']` attribute on <html>. Each animated
+ * selector gets its own reduced-motion reset so the stylelint a11y rule (which
+ * matches per-selector) is satisfied.
+ */
+
+/* ── Root ─────────────────────────────────────────────────────────────────── */
+
+[data-scope='masked-input'][data-part='root'] {
+  /* Helios hardcodes the form-control icon box (24px) and toggle inset per the
+     live stylesheet; replicated as local custom properties consumed below
+     rather than borrowing a semantically-unrelated token. */
+  --masked-input-toggle-size: 24px;
+  --masked-input-indicator-size: 16px;
+
+  display: block flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+
+  inline-size: 100%;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
+}
+
+/* ── Label ────────────────────────────────────────────────────────────────── */
+
+[data-scope='masked-input'][data-part='label'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
+
+  &[data-invalid] {
+    color: var(--token-form-error-color);
+  }
+}
+
+/* ── Control (wraps Input + ToggleButton) ─────────────────────────────────── */
+
+[data-scope='masked-input'][data-part='control'] {
+  position: relative;
+  display: block flex;
+  align-items: center;
+}
+
+/* ── Input ────────────────────────────────────────────────────────────────── */
+
+[data-scope='masked-input'][data-part='input'] {
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+
+  /* Leave room for the toggle button on the inline-end (Helios:
+     padding-right: calc(form-control-padding + 24px)). */
+  padding-inline-end: calc(var(--token-form-control-padding) + var(--masked-input-toggle-size));
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-base-border-color-default);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background-color: var(--token-form-control-base-surface-color-default);
+  outline: none;
+
+  transition:
+    border-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    box-shadow var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* Helios masking mechanism: obfuscate the value with disc glyphs while keeping
+   it a real `type="text"` input. `-webkit-text-security` is Chromium-only, which
+   is the Electron renderer (and the Playwright/Chromium test runner) target. */
+[data-scope='masked-input'][data-part='input'][data-state='masked'] {
+  -webkit-text-security: disc;
+}
+
+[data-scope='masked-input'][data-part='input'][data-state='revealed'] {
+  -webkit-text-security: none;
+}
+
+[data-scope='masked-input'][data-part='input']::placeholder {
+  color: var(--token-form-control-base-foreground-placeholder-color);
+}
+
+[data-scope='masked-input'][data-part='input']:hover,
+[data-scope='masked-input'][data-part='input']:focus {
+  border-color: var(--token-form-control-base-border-color-hover);
+  background-color: var(--token-form-control-base-surface-color-hover);
+}
+
+/* Keyboard focus only — native <input>, so use the native `:focus-visible`
+   pseudo so the keyboard focus ring renders. */
+[data-scope='masked-input'][data-part='input']:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='masked-input'][data-part='input'][data-invalid] {
+  border-color: var(--token-form-control-invalid-border-color-default);
+
+  &:hover,
+  &:focus {
+    border-color: var(--token-form-control-invalid-border-color-hover);
+  }
+}
+
+[data-scope='masked-input'][data-part='input'][data-disabled] {
+  cursor: not-allowed;
+  border-color: var(--token-form-control-disabled-border-color);
+  color: var(--token-form-control-disabled-foreground-color);
+  background-color: var(--token-form-control-disabled-surface-color);
+}
+
+[data-scope='masked-input'][data-part='input'][data-readonly] {
+  border-color: var(--token-form-control-readonly-border-color);
+  color: var(--token-form-control-readonly-foreground-color);
+  background-color: var(--token-form-control-readonly-surface-color);
+}
+
+/* ── ToggleButton ─────────────────────────────────────────────────────────── */
+
+[data-scope='masked-input'][data-part='toggle-button'] {
+  cursor: pointer;
+
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: var(--token-form-control-padding);
+  transform: translateY(-50%);
+
+  display: inline flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: none;
+  border-radius: var(--token-border-radius-small);
+
+  color: var(--token-color-foreground-faint);
+
+  background: transparent;
+
+  transition: color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  &:hover,
+  &:focus {
+    color: var(--token-color-foreground-primary);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* Keyboard focus only — native <button>, so use the native `:focus-visible`
+   pseudo so the keyboard focus ring renders. */
+[data-scope='masked-input'][data-part='toggle-button']:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+[data-scope='masked-input'][data-part='toggle-button']:disabled {
+  cursor: not-allowed;
+  color: var(--token-color-foreground-disabled);
+}
+
+/* The eye / eye-off SVG fills the indicator box. */
+[data-scope='masked-input'][data-part='toggle-button'] svg {
+  inline-size: var(--masked-input-indicator-size);
+  block-size: var(--masked-input-indicator-size);
+}

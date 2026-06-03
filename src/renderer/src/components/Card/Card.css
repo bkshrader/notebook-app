@@ -1,0 +1,157 @@
+/**
+ * Card — token-styled presentational container surface, built to the Helios
+ * Card specification (https://helios.hashicorp.design/components/card).
+ *
+ * Card is presentational/static (no Ark primitive, no focus/keyboard/open/
+ * selection state) so it is built on a plain `<div>`. Having no Ark scope/part,
+ * it styles its OWN `data-*` attributes set by the wrapper (per the
+ * unstyled-primitives-ark ADR scope clarification) — keeping the
+ * attribute-selector convention and avoiding class-name styling.
+ *
+ * Authoritative Helios mapping (read live from the Helios stylesheet):
+ *   .hds-card__container                         → root: relative, radius-medium, surface bg
+ *   --level-{surface,elevation}-{base,mid,high}  → box-shadow: --token-{surface,elevation}-*-box-shadow
+ *   --hover-level-*  / --active-level-*           → same shadow on :hover / :active
+ *   --background-neutral-{primary,secondary}      → background-color surface token
+ *   --overflow-{hidden,visible}                   → overflow
+ *
+ * Every value resolves to a Helios `--token-*` custom property. The only
+ * animated property is the box-shadow elevation change on hover/active; it is
+ * suppressed under reduced motion via BOTH the prefers-reduced-motion media
+ * query AND the Storybook `[data-reduced-motion='reduce']` attribute, each as
+ * its own per-selector reset (the stylelint a11y rule matches per selector).
+ */
+
+/* ─── Root (container) ───────────────────────────────────────────────────────
+   A plain non-interactive surface: position context for absolutely-positioned
+   children, the Helios medium radius, and a default neutral background. */
+
+[data-scope='card'][data-part='root'] {
+  position: relative;
+  display: block flow;
+  border-radius: var(--token-border-radius-medium);
+
+  /* Resting elevation transitions only when a hover/active level is set; the
+     property is cheap to always declare and is reset under reduced motion.
+     Duration is a literal (the token build ships no duration scale; only
+     component-scoped timing-function tokens exist), matching the literal-ms
+     transition pattern other components (Tooltip/Tabs) use. */
+  transition: box-shadow 150ms ease-in-out;
+}
+
+/* Default background; overridden by the [data-background] selectors below. */
+[data-scope='card'][data-part='root'][data-background='primary'] {
+  background-color: var(--token-color-surface-primary);
+}
+
+[data-scope='card'][data-part='root'][data-background='secondary'] {
+  background-color: var(--token-color-surface-faint);
+}
+
+/* ─── Resting elevation (level) ──────────────────────────────────────────────
+   Maps each level value to its Helios shadow token. `elevation-base` is omitted
+   because the pinned token build does not ship --token-elevation-base-box-shadow. */
+
+[data-scope='card'][data-part='root'][data-level='surface-base'] {
+  box-shadow: var(--token-surface-base-box-shadow);
+}
+
+[data-scope='card'][data-part='root'][data-level='surface-mid'] {
+  box-shadow: var(--token-surface-mid-box-shadow);
+}
+
+[data-scope='card'][data-part='root'][data-level='surface-high'] {
+  box-shadow: var(--token-surface-high-box-shadow);
+}
+
+[data-scope='card'][data-part='root'][data-level='elevation-mid'] {
+  box-shadow: var(--token-elevation-mid-box-shadow);
+}
+
+[data-scope='card'][data-part='root'][data-level='elevation-high'] {
+  box-shadow: var(--token-elevation-high-box-shadow);
+}
+
+/* ─── Hover elevation (interactive cards) ────────────────────────────────────
+   Helios raises the card on :hover when a hover-level is configured. Because the
+   card itself is a non-interactive container (the control lives in its
+   children), the raised affordance is also applied on :focus-within — so the
+   card raises when its inner link/button receives keyboard focus, not just on
+   pointer hover. Pairing hover with a focus pseudo also satisfies the
+   a11y/selector-pseudo-class-focus rule (a hover-only affordance is
+   keyboard-inaccessible). */
+
+[data-scope='card'][data-part='root'][data-hover-level='surface-base']:hover,
+[data-scope='card'][data-part='root'][data-hover-level='surface-base']:focus-within {
+  box-shadow: var(--token-surface-base-box-shadow);
+}
+
+[data-scope='card'][data-part='root'][data-hover-level='surface-mid']:hover,
+[data-scope='card'][data-part='root'][data-hover-level='surface-mid']:focus-within {
+  box-shadow: var(--token-surface-mid-box-shadow);
+}
+
+[data-scope='card'][data-part='root'][data-hover-level='surface-high']:hover,
+[data-scope='card'][data-part='root'][data-hover-level='surface-high']:focus-within {
+  box-shadow: var(--token-surface-high-box-shadow);
+}
+
+[data-scope='card'][data-part='root'][data-hover-level='elevation-mid']:hover,
+[data-scope='card'][data-part='root'][data-hover-level='elevation-mid']:focus-within {
+  box-shadow: var(--token-elevation-mid-box-shadow);
+}
+
+[data-scope='card'][data-part='root'][data-hover-level='elevation-high']:hover,
+[data-scope='card'][data-part='root'][data-hover-level='elevation-high']:focus-within {
+  box-shadow: var(--token-elevation-high-box-shadow);
+}
+
+/* ─── Active elevation (interactive cards) ───────────────────────────────────
+   Helios lowers/raises the card on :active when an active-level is configured. */
+
+[data-scope='card'][data-part='root'][data-active-level='surface-base']:active {
+  box-shadow: var(--token-surface-base-box-shadow);
+}
+
+[data-scope='card'][data-part='root'][data-active-level='surface-mid']:active {
+  box-shadow: var(--token-surface-mid-box-shadow);
+}
+
+[data-scope='card'][data-part='root'][data-active-level='surface-high']:active {
+  box-shadow: var(--token-surface-high-box-shadow);
+}
+
+[data-scope='card'][data-part='root'][data-active-level='elevation-mid']:active {
+  box-shadow: var(--token-elevation-mid-box-shadow);
+}
+
+[data-scope='card'][data-part='root'][data-active-level='elevation-high']:active {
+  box-shadow: var(--token-elevation-high-box-shadow);
+}
+
+/* ─── Overflow ───────────────────────────────────────────────────────────────
+   Clip edge-to-edge media to the rounded corners, or let content escape. */
+
+[data-scope='card'][data-part='root'][data-overflow='hidden'] {
+  overflow: hidden;
+}
+
+[data-scope='card'][data-part='root'][data-overflow='visible'] {
+  overflow: visible;
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────────────────
+   The only animation is the elevation transition on the root; suppress it under
+   both signals. Each gets its own per-selector reset (stylelint a11y matches
+   per selector). */
+
+[data-scope='card'][data-part='root'][data-reduced-motion='reduce'],
+[data-reduced-motion='reduce'] [data-scope='card'][data-part='root'] {
+  transition: none;
+}
+
+@media screen and (prefers-reduced-motion: reduce) {
+  [data-scope='card'][data-part='root'] {
+    transition: none;
+  }
+}

@@ -1,0 +1,148 @@
+/**
+ * Marquee — token-styled Ark UI primitive. A scrolling strip of repeating
+ * content (logos, ticker headlines). Helios ships no dedicated Marquee page, so
+ * the visual language is matched to the closest Helios surfaces: body
+ * typography + neutral foreground for the content, and the page surface token
+ * for the optional fade edges.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than class names. Every visual value
+ * resolves to a Helios `--token-*` custom property; no raw colors, no
+ * `--token-color-palette-*`.
+ *
+ * Parts (from @ark-ui/react/marquee, verified against the connect source):
+ *   data-part="root"     — DIV region. Ark sets inline display:flex, overflow:hidden,
+ *                          and the --marquee-duration / --marquee-translate /
+ *                          --marquee-spacing / --marquee-loop-count / --marquee-delay
+ *                          custom properties consumed below. Carries
+ *                          data-state="idle|paused" and data-paused.
+ *   data-part="viewport" — DIV flex track wrapper. data-orientation / data-side.
+ *   data-part="content"  — DIV copy of the content (index 0 authored, 1+ are
+ *                          aria-hidden clones). THIS is the animated element.
+ *   data-part="item"     — DIV per-copy wrapper; Ark applies the spacing margin inline.
+ *   data-part="edge"     — DIV fade gradient (only rendered when `edges` is set).
+ *
+ * MOTION (WCAG 2.2.2 / 2.3.3): the scroll keyframe runs on the content part and
+ * is suppressed under BOTH the OS `prefers-reduced-motion: reduce` media query
+ * AND the Storybook `[data-reduced-motion='reduce']` attribute on <html>. Ark
+ * also pauses the animation (`data-paused`) on hover/focus when
+ * pauseOnInteraction is set — that pause is honored via animation-play-state.
+ * Each animated selector gets its OWN reduced-motion reset (the stylelint a11y
+ * rule matches per selector, so comma-grouped resets fail).
+ */
+
+/* ─── Root (region) ──────────────────────────────────────────────────────────
+   Ark owns the structural layout (display:flex, overflow:hidden, the custom
+   properties). We add the Helios typography/foreground skin and a positioning
+   context for the absolutely-positioned edges. */
+
+[data-scope='marquee'][data-part='root'] {
+  position: relative;
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+/* ─── Content (the animated track copies) ────────────────────────────────────
+   Each content copy translates by --marquee-translate over --marquee-duration,
+   repeating --marquee-loop-count times after --marquee-delay. Those custom
+   properties are set by Ark on the root and inherit down. The animation is
+   paused (rather than reset) when Ark flags the marquee paused, so resuming
+   continues from the same offset. */
+
+[data-scope='marquee'][data-part='content'] {
+  animation-name: marquee-scroll-x;
+  animation-duration: var(--marquee-duration);
+  animation-timing-function: linear;
+  animation-delay: var(--marquee-delay);
+  animation-iteration-count: var(--marquee-loop-count);
+
+  /* Reduced-motion resets come first so the cascade order matches selector
+     specificity (no-descending-specificity), and each animated selector keeps
+     its OWN reset (the stylelint a11y rule matches per selector). */
+  [data-reduced-motion='reduce'] & {
+    animation: none;
+  }
+
+  /* Ark flags the marquee paused on hover/focus (pauseOnInteraction) and via
+     the controlled `paused` prop; honor it without resetting the offset. */
+  [data-scope='marquee'][data-part='root'][data-paused] & {
+    animation-play-state: paused;
+  }
+
+  @media screen and (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Vertical marquees translate along the block axis instead. This selector also
+   animates, so it carries its own reduced-motion resets per the a11y rule. */
+[data-scope='marquee'][data-part='content'][data-orientation='vertical'] {
+  animation-name: marquee-scroll-y;
+
+  [data-reduced-motion='reduce'] & {
+    animation: none;
+  }
+
+  @media screen and (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* ─── Edge (optional fade gradients) ─────────────────────────────────────────
+   Dissolve the leading/trailing content into the page surface so the strip does
+   not hard-clip. Ark positions the edge absolutely and sets data-side; we paint
+   the gradient toward the matching side. */
+
+[data-scope='marquee'][data-part='edge'] {
+  z-index: 1;
+  inline-size: var(--token-typography-body-300-font-size);
+  block-size: 100%;
+
+  &[data-side='start'] {
+    background-image: linear-gradient(to right, var(--token-color-surface-primary), transparent);
+  }
+
+  &[data-side='end'] {
+    background-image: linear-gradient(to left, var(--token-color-surface-primary), transparent);
+  }
+
+  &[data-side='top'] {
+    inline-size: 100%;
+    block-size: var(--token-typography-body-300-font-size);
+    background-image: linear-gradient(to bottom, var(--token-color-surface-primary), transparent);
+  }
+
+  &[data-side='bottom'] {
+    inline-size: 100%;
+    block-size: var(--token-typography-body-300-font-size);
+    background-image: linear-gradient(to top, var(--token-color-surface-primary), transparent);
+  }
+}
+
+/* ─── Scroll keyframes ───────────────────────────────────────────────────────
+   --marquee-translate is a signed percentage (e.g. "-100%" / "100%") that
+   already encodes the side/direction, so each axis needs only a single from→to.
+   Horizontal marquees translate along the inline axis, vertical along block. */
+
+@keyframes marquee-scroll-x {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(var(--marquee-translate));
+  }
+}
+
+@keyframes marquee-scroll-y {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(var(--marquee-translate));
+  }
+}

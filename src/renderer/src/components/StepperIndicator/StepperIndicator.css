@@ -1,0 +1,150 @@
+/**
+ * StepperIndicator — token-styled PRESENTATIONAL component, built to the Helios
+ * Stepper Indicator specification
+ * (https://helios.hashicorp.design/components/stepper/indicator).
+ *
+ * This component has no Ark primitive (a single indicator dot is a visual
+ * decorator with no focus/keyboard/selection state — that lives in the parent
+ * Stepper/Steps). Per the unstyled-primitives-ark ADR's 2026-06-02 scope
+ * clarification, presentational components are built on a semantic element and
+ * style their OWN `data-part` attributes (no Ark `data-scope`, no class names).
+ *
+ * Anatomy: root[span] > hexagon[svg path] + status[span] > (text | icon[svg]).
+ * Every value resolves to a Helios `--token-*` custom property. The 24px box and
+ * 12px icon are bare px values Helios itself hardcodes (not design tokens),
+ * replicated here as local `--stepper-indicator-*` properties.
+ *
+ * Status token mapping (Helios uses raw --token-color-palette-blue-* which this
+ * project forbids; mapped to semantic equivalents):
+ *   incomplete  → surface-primary fill, border-strong stroke, foreground-primary text
+ *   progress    → foreground-action fill+stroke, foreground-high-contrast text
+ *   processing  → same as progress, with an animated spinner glyph
+ *   complete    → surface-action fill, foreground-action stroke + check icon
+ *
+ * Motion: the `processing` spinner rotation is suppressed under reduced motion
+ * via BOTH the OS `prefers-reduced-motion` media query AND the Storybook
+ * toolbar's `[data-reduced-motion='reduce']` attribute on <html>.
+ */
+
+[data-part='root'][data-status] {
+  --stepper-indicator-size: 1.5rem; /* 24px — Helios hardcodes this, not a token */
+  --stepper-indicator-icon-size: 0.75rem; /* 12px */
+
+  position: relative;
+
+  display: inline flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--stepper-indicator-size);
+  block-size: var(--stepper-indicator-size);
+
+  font-family: var(--token-typography-font-stack-text);
+}
+
+/* ─── Hexagon (the shape) ──────────────────────────────────────────────────── */
+
+[data-part='root'][data-status] [data-part='hexagon'] {
+  inline-size: 100%;
+  block-size: 100%;
+
+  path {
+    stroke-width: var(--token-form-control-border-width);
+  }
+}
+
+/* ─── Status overlay (centered number or icon) ─────────────────────────────── */
+
+[data-part='root'][data-status] [data-part='status'] {
+  position: absolute;
+  inset: 0;
+
+  display: block flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-part='root'][data-status] [data-part='text'] {
+  user-select: none;
+  font-size: var(--token-typography-body-100-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-part='root'][data-status] [data-part='icon'] {
+  inline-size: var(--stepper-indicator-icon-size);
+  block-size: var(--stepper-indicator-icon-size);
+}
+
+/* ─── Status: incomplete (outlined, neutral) ───────────────────────────────── */
+
+[data-part='root'][data-status='incomplete'] [data-part='hexagon'] path {
+  fill: var(--token-color-surface-primary);
+  stroke: var(--token-color-border-strong);
+}
+
+[data-part='root'][data-status='incomplete'] [data-part='status'] {
+  color: var(--token-color-foreground-primary);
+}
+
+/* ─── Status: progress (current; filled action) ────────────────────────────── */
+
+[data-part='root'][data-status='progress'] [data-part='hexagon'] path {
+  fill: var(--token-color-foreground-action);
+  stroke: var(--token-color-foreground-action);
+}
+
+[data-part='root'][data-status='progress'] [data-part='status'] {
+  color: var(--token-color-foreground-high-contrast);
+}
+
+/* ─── Status: processing (current + async work) ────────────────────────────── */
+
+[data-part='root'][data-status='processing'] [data-part='hexagon'] path {
+  fill: var(--token-color-foreground-action);
+  stroke: var(--token-color-foreground-action);
+}
+
+[data-part='root'][data-status='processing'] [data-part='status'] {
+  color: var(--token-color-foreground-high-contrast);
+}
+
+[data-part='root'][data-status='processing'] [data-part='icon'][data-spinner] {
+  transform-origin: center;
+
+  /* Literal 0.6s spin duration matches the Button loading-spinner precedent
+     (Button.css) — there is no Helios spin-duration token. */
+  animation: stepper-indicator-spin 0.6s linear infinite;
+}
+
+/* ─── Status: complete (faint action fill, check icon) ─────────────────────── */
+
+[data-part='root'][data-status='complete'] [data-part='hexagon'] path {
+  fill: var(--token-color-surface-action);
+  stroke: var(--token-color-foreground-action);
+}
+
+[data-part='root'][data-status='complete'] [data-part='status'] {
+  color: var(--token-color-foreground-action);
+}
+
+/* ─── Spinner keyframes + reduced-motion suppression ───────────────────────── */
+
+@keyframes stepper-indicator-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+[data-reduced-motion='reduce']
+  [data-part='root'][data-status='processing']
+  [data-part='icon'][data-spinner] {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-part='root'][data-status='processing'] [data-part='icon'][data-spinner] {
+    animation: none;
+  }
+}

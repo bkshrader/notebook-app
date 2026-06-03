@@ -1,0 +1,425 @@
+/**
+ * Dropdown — token-styled Ark UI Menu, built to the Helios Dropdown spec
+ * (https://helios.hashicorp.design/components/dropdown).
+ *
+ * A Helios Dropdown is a menu-button (toggle + popover List of actions / links /
+ * checkable options). It is built on Ark's `menu` primitive (per the
+ * unstyled-primitives-ark ADR) and styles Ark's `data-scope`/`data-part`
+ * attributes — no class names. Every value resolves to a Helios semantic
+ * `--token-*` custom property (no raw literals, no `--token-color-palette-*`).
+ *
+ * Anatomy / parts (verified against mcp__ark-ui__styling_guide for `menu` and
+ * get_component_props, NOT assumed — comments here are claims, the guide is the
+ * authority):
+ *   - trigger        — native <button> (Ark `Trigger → HTMLButtonElement`).
+ *     Real attrs: data-state="open|closed", data-placement, data-side. There is
+ *     NO data-focus-visible and NO data-disabled on the trigger; keyboard focus
+ *     uses the native :focus-visible pseudo. Helios omits a disabled Dropdown
+ *     toggle, so no :disabled treatment is styled.
+ *   - trigger-label  — OUR wrapper <span> around the visible label (a custom part
+ *     rendered by Dropdown.tsx, not an Ark part).
+ *   - indicator      — the chevron (Ark `Indicator`); carries data-state and is
+ *     rotated 180deg when open.
+ *   - content        — the List (Ark `Content`); data-state="open|closed",
+ *     portalled, floats above the page.
+ *   - item           — an action ListItem; carries data-highlighted (active
+ *     descendant) and data-disabled (Ark Item attrs).
+ *   - option-item    — a checkable ListItem (Ark CheckboxItem / RadioItem);
+ *     carries data-state="checked|unchecked", data-highlighted, data-disabled.
+ *   - item-indicator — the checkmark / radio dot (Ark `ItemIndicator`); only
+ *     present in the DOM when its option-item is checked.
+ *   - item-text      — the option-item label (Ark `ItemText`).
+ *   - item-group-label — a group heading (Ark `ItemGroupLabel`).
+ *   - separator      — native <hr> (Ark `Separator → HTMLHRElement`).
+ *
+ * Toggle visual language mirrors the Button: a per-`[data-color]` block sets the
+ * base / hover / active / open fill, paired with the keyboard `:focus-visible`
+ * ring. Helios reaches for `--token-color-palette-*`; this project forbids
+ * palette tokens, so the same semantic mappings the Button uses are reused here.
+ *
+ * Sizing: a per-`[data-size]` block on trigger/content sets local `--dropdown-*`
+ * custom properties (typography scale + toggle box metrics), consumed by the
+ * parts — mirroring the Menu/Button size-matrix pattern.
+ *
+ * Reduced motion: every animated selector suppresses motion via BOTH the OS
+ * `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute, with the resets NESTED inside each
+ * animated selector (per csstools/use-nesting) so each owns its own pair.
+ *
+ * Tier B overlay: z-index is set on the Content part; Ark propagates it to the
+ * Positioner via --layer-index (per the Ark styling guide).
+ */
+
+/* ── Size scale (local custom properties; consumed by trigger + content) ───── */
+
+[data-scope='menu'][data-part='trigger'][data-size='small'],
+[data-scope='menu'][data-part='content'][data-size='small'] {
+  --dropdown-font-size: var(--token-typography-body-100-font-size);
+  --dropdown-line-height: var(--token-typography-body-100-line-height);
+  --dropdown-toggle-min-block-size: 1.75rem;
+  --dropdown-toggle-padding-block: 0.375rem;
+  --dropdown-toggle-padding-inline: 0.6875rem;
+}
+
+[data-scope='menu'][data-part='trigger'][data-size='medium'],
+[data-scope='menu'][data-part='content'][data-size='medium'] {
+  --dropdown-font-size: var(--token-typography-body-200-font-size);
+  --dropdown-line-height: var(--token-typography-body-200-line-height);
+  --dropdown-toggle-min-block-size: 2.25rem;
+  --dropdown-toggle-padding-block: 0.5625rem;
+  --dropdown-toggle-padding-inline: 0.9375rem;
+}
+
+/* ── Toggle (Ark Trigger; native <button>) ─────────────────────────────────
+   Reuses the Button visual language. The 1px transparent base border keeps the
+   filled and ghost colors the same box size. */
+
+[data-scope='menu'][data-part='trigger'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: inline flex;
+  gap: 0.375rem;
+  align-items: center;
+  justify-content: center;
+
+  min-block-size: var(--dropdown-toggle-min-block-size, 2.25rem);
+  padding-block: var(--dropdown-toggle-padding-block, 0.5625rem);
+  padding-inline: var(--dropdown-toggle-padding-inline, 0.9375rem);
+  border: 1px solid transparent;
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--dropdown-font-size, var(--token-typography-body-200-font-size));
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--dropdown-line-height, var(--token-typography-body-200-line-height));
+  text-decoration: none;
+  white-space: nowrap;
+
+  transition:
+    color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    background-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    box-shadow var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+  /* Reduced-motion reset via the Storybook toolbar attribute (lowest
+     specificity; the OS @media reset is at the end of this block). */
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  /* Keyboard focus ring only — Ark emits no data-focus-visible on the trigger,
+     so the ring uses the native :focus-visible pseudo (WCAG 2.4.7). */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  /* OS reduced-motion reset — @media blocks ordered after style rules. */
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* ── Toggle color variants (Button visual language) ─────────────────────────
+   Per color: base → open/hover/focus → active. `:hover` is paired with `:focus`
+   in one rule (keyboard parity; the stylelint a11y rule requires the pairing).
+   `data-state='open'` reads as a held-open affordance, grouped with hover. */
+
+/* Primary — high-emphasis filled. */
+[data-scope='menu'][data-part='trigger'][data-color='primary'] {
+  color: var(--token-color-foreground-high-contrast);
+  background-color: var(--token-color-foreground-action);
+  box-shadow: var(--token-elevation-low-box-shadow);
+
+  &:hover,
+  &:focus,
+  &[data-state='open'] {
+    background-color: var(--token-color-foreground-action-hover);
+  }
+
+  &:active {
+    background-color: var(--token-color-foreground-action-active);
+    box-shadow: none;
+  }
+}
+
+/* Secondary — bordered, neutral surface (the Helios default toggle). */
+[data-scope='menu'][data-part='trigger'][data-color='secondary'] {
+  border-color: var(--token-color-border-strong);
+  color: var(--token-color-foreground-primary);
+  background-color: var(--token-color-surface-faint);
+  box-shadow: var(--token-elevation-low-box-shadow);
+
+  &:hover,
+  &:focus,
+  &[data-state='open'] {
+    background-color: var(--token-color-surface-interactive-hover);
+  }
+
+  &:active {
+    background-color: var(--token-color-surface-interactive-active);
+    box-shadow: none;
+  }
+}
+
+/* Tertiary — ghost / low-emphasis. */
+[data-scope='menu'][data-part='trigger'][data-color='tertiary'] {
+  color: var(--token-color-foreground-action);
+  background-color: transparent;
+
+  &:hover,
+  &:focus,
+  &[data-state='open'] {
+    color: var(--token-color-foreground-action-hover);
+    background-color: var(--token-color-surface-interactive-hover);
+  }
+
+  &:active {
+    color: var(--token-color-foreground-action-active);
+    background-color: var(--token-color-surface-interactive-active);
+  }
+}
+
+/* Critical — high-emphasis destructive filled. White-on-#960005 clears AA; no
+   darker saturated critical token exists, so hover/active use elevation. */
+[data-scope='menu'][data-part='trigger'][data-color='critical'] {
+  color: var(--token-color-foreground-high-contrast);
+  background-color: var(--token-color-foreground-critical-on-surface);
+  box-shadow: var(--token-elevation-low-box-shadow);
+
+  /* Critical uses the critical-tuned focus ring (overriding the action ring on
+     the shared :focus-visible rule). Declared first to satisfy
+     no-descending-specificity. */
+  &:focus-visible {
+    box-shadow: var(--token-focus-ring-critical-box-shadow);
+  }
+
+  &:hover,
+  &:focus,
+  &[data-state='open'] {
+    box-shadow: var(--token-elevation-mid-box-shadow);
+  }
+
+  &:active {
+    box-shadow: none;
+  }
+}
+
+/* ── Toggle label + chevron indicator ──────────────────────────────────────── */
+
+[data-scope='menu'][data-part='trigger-label'] {
+  display: block flow;
+}
+
+[data-scope='menu'][data-part='indicator'] {
+  display: block flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: 1rem;
+  block-size: 1rem;
+
+  transition: transform var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  > svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  /* Open: flip the chevron to point up. */
+  &[data-state='open'] {
+    transform: rotate(180deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* ── Content (the List; portalled, floats above page) ──────────────────────── */
+
+[data-scope='menu'][data-part='content'] {
+  transform-origin: var(--transform-origin);
+
+  display: block flex;
+  flex-direction: column;
+
+  min-inline-size: 11rem;
+  padding-block: var(--token-border-radius-x-small);
+  padding-inline: var(--token-border-radius-x-small);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--dropdown-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--dropdown-line-height, var(--token-typography-body-200-line-height));
+
+  background: var(--token-color-surface-primary);
+  outline: none;
+  box-shadow: var(--token-elevation-overlay-box-shadow);
+
+  animation-duration: var(--token-form-toggle-transition-duration);
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+
+  &[data-state='open'] {
+    animation-name: nb-dropdown-scale-in;
+
+    [data-reduced-motion='reduce'] & {
+      animation: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
+
+  &[data-state='closed'] {
+    animation-name: nb-dropdown-scale-out;
+    animation-timing-function: ease-in;
+
+    [data-reduced-motion='reduce'] & {
+      animation: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
+}
+
+/* ── ListItems (action `item` + checkable `option-item`) ───────────────────── */
+
+[data-scope='menu'][data-part='item'],
+[data-scope='menu'][data-part='option-item'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: block flex;
+  gap: var(--token-border-radius-small);
+  align-items: center;
+
+  min-block-size: 2rem;
+  padding-block: var(--token-border-radius-x-small);
+  padding-inline: var(--token-form-control-padding);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: var(--token-color-foreground-primary);
+  text-decoration: none;
+
+  outline: none;
+
+  /* data-highlighted is the Ark active-descendant attr (keyboard navigation). */
+  &[data-highlighted] {
+    /* foreground-strong clears 4.5:1 on any light surface (foreground-action
+       fails on the grey interactive-hover surface). */
+    color: var(--token-color-foreground-strong);
+    background: var(--token-color-surface-interactive-hover);
+  }
+
+  /* data-disabled is the Ark Item/OptionItem disabled attr. */
+  &[data-disabled] {
+    cursor: not-allowed;
+
+    /* foreground-faint passes ~5.7:1 on white; signal disabled via opacity too. */
+    color: var(--token-color-foreground-faint);
+    opacity: 0.6;
+  }
+}
+
+/* Critical ListItem — destructive action (Helios `--color-critical`). Helios
+   requires an icon on critical items; here the foreground red carries the
+   intent. foreground-critical (#b5000a light) clears AA on the resting surface. */
+[data-scope='menu'][data-part='item'][data-color='critical'] {
+  color: var(--token-color-foreground-critical);
+
+  &[data-highlighted] {
+    color: var(--token-color-foreground-critical-on-surface);
+    background: var(--token-color-surface-critical);
+  }
+}
+
+/* ── Item indicator (checkmark / radio dot) + text ─────────────────────────── */
+
+[data-scope='menu'][data-part='item-indicator'] {
+  display: block flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: 1rem;
+  block-size: 1rem;
+
+  color: var(--token-color-foreground-action);
+
+  > svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+}
+
+[data-scope='menu'][data-part='item-text'] {
+  display: block flow;
+  flex: 1 1 auto;
+}
+
+/* ── Item group label ───────────────────────────────────────────────────────
+   Doubles as the Helios List "Header" heading. */
+
+[data-scope='menu'][data-part='item-group-label'] {
+  padding-block: var(--token-border-radius-x-small);
+  padding-inline: var(--token-form-control-padding);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-100-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-color-foreground-faint);
+}
+
+/* ── Separator (native <hr>) ───────────────────────────────────────────────── */
+
+[data-scope='menu'][data-part='separator'] {
+  block-size: var(--token-form-control-border-width);
+  margin-block: var(--token-border-radius-x-small);
+  border: none;
+  background: var(--token-color-border-faint);
+}
+
+/* ── Enter / exit keyframes ─────────────────────────────────────────────────── */
+
+@keyframes nb-dropdown-scale-in {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes nb-dropdown-scale-out {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  to {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+}

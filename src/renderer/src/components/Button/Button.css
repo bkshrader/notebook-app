@@ -1,0 +1,302 @@
+/**
+ * Button — token-styled presentational component, built to the Helios Button
+ * specification (https://helios.hashicorp.design/components/button).
+ *
+ * A button is a button: there is no Ark UI primitive, so per the
+ * unstyled-primitives-ark ADR scope clarification it is built on a native
+ * `<button>`. The wrapper sets its own `data-part` attributes
+ * (`root`/`text`/`icon`/`spinner`) and `data-color`/`data-size` modifiers, and
+ * the CSS styles THOSE attribute selectors — keeping the project's
+ * attribute-selector convention with no class names.
+ *
+ * Every value resolves to a Helios semantic `--token-*` custom property. Helios'
+ * own Button CSS reaches for `--token-color-palette-*` directly for the
+ * primary/critical filled surfaces; this project forbids palette tokens
+ * (semantic only), so they are mapped to the closest semantic equivalents that
+ * preserve the saturated-fill / white-text look AND clear WCAG 2.1 AA contrast:
+ *   - primary filled   → surface = foreground-action (#1060ff), text = high-contrast
+ *                        (white) → 5.07:1; hover/active step to the action-hover/
+ *                        action-active brand blues (5.96 / 7.51).
+ *   - secondary        → surface-faint + border-strong + foreground-primary (10.4:1).
+ *   - tertiary (ghost) → transparent, foreground-action; hover paints a faint
+ *                        interactive surface (matches Helios tertiary).
+ *   - critical filled  → surface = foreground-critical-on-surface (#c00005),
+ *                        text = high-contrast (white) → 6.47:1 (AA/AAA). The
+ *                        on-surface critical token is the only saturated critical
+ *                        red that clears 4.5:1 on white text, so hover/active are
+ *                        conveyed via elevation (shadow) rather than a darker
+ *                        fill (no darker semantic critical token exists).
+ *
+ * The per-size box metrics (min-block-size, padding, icon dimension) and the
+ * 1px transparent border (which keeps every variant the same box size) mirror
+ * the Helios spec exactly; Helios hardcodes these (they are not design tokens),
+ * so the icon box is a local `--button-icon-size` custom property, mirroring
+ * Avatar's `--avatar-size` pattern.
+ *
+ * Focus ring: applied ONLY on keyboard focus via the native `:focus-visible`
+ * pseudo (paired with `outline: none`), never on bare `:focus` — so a mouse
+ * click never leaves a stuck ring (WCAG 2.4.7).
+ *
+ * Disabled: the native `disabled` attribute (in the a11y tree). `:disabled`
+ * neutralizes the fill to surface-faint / foreground-disabled.
+ *
+ * Reduced motion: the only animation is the loading spinner and the
+ * hover/background transition; both are suppressed under BOTH the OS
+ * `prefers-reduced-motion: reduce` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute. Each animated selector gets its
+ * own dedicated reset (the stylelint a11y rule matches per-selector).
+ *
+ * Logical properties/units throughout (inline-size, padding-block, min-block-size).
+ */
+
+/* ─── Size scale ─────────────────────────────────────────────────────────────
+   Each size sets min-block-size, padding, the local icon box dimension, and the
+   body-typography tokens the label consumes. Values mirror the Helios spec. */
+
+[data-scope='button'][data-part='root'][data-size='small'] {
+  --button-icon-size: 0.75rem;
+
+  min-block-size: 1.75rem;
+  padding-block: 0.375rem;
+  padding-inline: 0.6875rem;
+
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-scope='button'][data-part='root'][data-size='medium'] {
+  --button-icon-size: 1rem;
+
+  min-block-size: 2.25rem;
+  padding-block: 0.5625rem;
+  padding-inline: 0.9375rem;
+
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+}
+
+[data-scope='button'][data-part='root'][data-size='large'] {
+  --button-icon-size: 1.5rem;
+
+  min-block-size: 3rem;
+  padding-block: 0.6875rem;
+  padding-inline: 1.1875rem;
+
+  font-size: var(--token-typography-body-300-font-size);
+  line-height: var(--token-typography-body-300-line-height);
+}
+
+/* Icon-only buttons get symmetric (square-ish) padding so the icon centers. */
+[data-scope='button'][data-part='root'][data-size='small'][data-icon-only] {
+  padding-inline: 0.375rem;
+}
+
+[data-scope='button'][data-part='root'][data-size='medium'][data-icon-only] {
+  padding-inline: 0.5625rem;
+}
+
+[data-scope='button'][data-part='root'][data-size='large'][data-icon-only] {
+  padding-inline: 0.6875rem;
+}
+
+/* ─── Root (the native <button>) ─────────────────────────────────────────────
+   Inline flex row: [leading icon] [text] [trailing icon], centered. The 1px
+   transparent border keeps filled and ghost variants the same box size. */
+
+[data-scope='button'][data-part='root'] {
+  cursor: pointer;
+
+  display: inline flex;
+  flex-shrink: 0;
+  gap: 0.375rem;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: auto;
+  border: 1px solid transparent;
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-weight: var(--token-typography-font-weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+
+  transition:
+    color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    background-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    box-shadow var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* Keyboard focus only — never decorate mouse focus. The <button> is native, so
+   the ring uses the native :focus-visible pseudo (not a data-attribute). */
+[data-scope='button'][data-part='root']:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Full-width: fill the inline size of the container (Helios isFullWidth). */
+[data-scope='button'][data-part='root'][data-full-width] {
+  inline-size: 100%;
+  max-inline-size: 100%;
+}
+
+/* ─── Label + icons ──────────────────────────────────────────────────────── */
+
+[data-scope='button'][data-part='text'] {
+  display: block flow;
+}
+
+[data-scope='button'][data-part='icon'] {
+  display: block flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--button-icon-size, 1rem);
+  block-size: var(--button-icon-size, 1rem);
+
+  > svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+}
+
+/* ─── Loading spinner ──────────────────────────────────────────────────────
+   A token-bordered ring with one transparent edge, spun via @keyframes. */
+
+[data-scope='button'][data-part='spinner'] {
+  display: block flow;
+  flex: 0 0 auto;
+
+  inline-size: var(--button-icon-size, 1rem);
+  block-size: var(--button-icon-size, 1rem);
+  border: 2px solid currentcolor;
+  border-block-start-color: transparent;
+  border-radius: var(--token-border-radius-large);
+
+  animation: button-spin 0.6s linear infinite;
+
+  [data-reduced-motion='reduce'] & {
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ─── Color variants ──────────────────────────────────────────────────────
+   Per color: base → hover/focus → active. `:hover` is paired with `:focus` in
+   one rule (keyboard parity; the stylelint a11y rule requires the pairing) and
+   both are guarded with `:not(:disabled)` so the disabled rule below always
+   wins. Active state drops the elevation to read as "pressed". */
+
+/* Primary — high-emphasis filled. */
+[data-scope='button'][data-part='root'][data-color='primary'] {
+  color: var(--token-color-foreground-high-contrast);
+  background-color: var(--token-color-foreground-action);
+  box-shadow: var(--token-elevation-low-box-shadow);
+
+  &:hover:not(:disabled),
+  &:focus:not(:disabled) {
+    background-color: var(--token-color-foreground-action-hover);
+  }
+
+  &:active:not(:disabled) {
+    background-color: var(--token-color-foreground-action-active);
+    box-shadow: none;
+  }
+}
+
+/* Secondary — bordered, neutral surface. */
+[data-scope='button'][data-part='root'][data-color='secondary'] {
+  border-color: var(--token-color-border-strong);
+  color: var(--token-color-foreground-primary);
+  background-color: var(--token-color-surface-faint);
+  box-shadow: var(--token-elevation-low-box-shadow);
+
+  &:hover:not(:disabled),
+  &:focus:not(:disabled) {
+    background-color: var(--token-color-surface-interactive-hover);
+  }
+
+  &:active:not(:disabled) {
+    background-color: var(--token-color-surface-interactive-active);
+    box-shadow: none;
+  }
+}
+
+/* Tertiary — ghost / low-emphasis. */
+[data-scope='button'][data-part='root'][data-color='tertiary'] {
+  color: var(--token-color-foreground-action);
+  background-color: transparent;
+
+  &:hover:not(:disabled),
+  &:focus:not(:disabled) {
+    color: var(--token-color-foreground-action-hover);
+    background-color: var(--token-color-surface-interactive-hover);
+  }
+
+  &:active:not(:disabled) {
+    color: var(--token-color-foreground-action-active);
+    background-color: var(--token-color-surface-interactive-active);
+  }
+}
+
+/* Critical — high-emphasis destructive filled. No darker saturated critical
+   token exists in the semantic set, so hover/active are conveyed via elevation
+   (mid shadow / no shadow) rather than a darker fill; the white-on-#c00005 text
+   stays at 6.47:1 (AA/AAA) in every state. */
+[data-scope='button'][data-part='root'][data-color='critical'] {
+  color: var(--token-color-foreground-high-contrast);
+  background-color: var(--token-color-foreground-critical-on-surface);
+  box-shadow: var(--token-elevation-low-box-shadow);
+
+  /* The critical color uses the critical-tuned focus ring (overriding the
+     action ring set on the shared :focus-visible rule above). Declared first so
+     its specificity ordering satisfies no-descending-specificity. */
+  &:focus-visible {
+    box-shadow: var(--token-focus-ring-critical-box-shadow);
+  }
+
+  &:hover:not(:disabled),
+  &:focus:not(:disabled) {
+    box-shadow: var(--token-elevation-mid-box-shadow);
+  }
+
+  &:active:not(:disabled) {
+    box-shadow: none;
+  }
+}
+
+/* ─── Disabled (native attribute) ──────────────────────────────────────────
+   Neutralized for every color; placed last so it wins over the color rules.
+   Also covers the loading state (the wrapper sets `disabled` while loading). */
+
+[data-scope='button'][data-part='root']:disabled {
+  cursor: not-allowed;
+
+  border-color: transparent;
+
+  color: var(--token-color-foreground-disabled);
+
+  background-color: var(--token-color-surface-faint);
+  box-shadow: none;
+}

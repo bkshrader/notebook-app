@@ -1,0 +1,45 @@
+/**
+ * Time — token-styled, presentational wrapper over the native <time> element.
+ *
+ * Built to the Helios Time specification. The Helios component CSS is
+ * deliberately minimal — a single Time inherits the surrounding text's
+ * typography and color (it is meant to drop inline into running text), and the
+ * range variant is the only laid-out part:
+ *
+ *   .hds-time--range { display: inline-flex; gap: 2px; }
+ *
+ * We mirror that here, styling our own `[data-part]` attributes (set by the
+ * React wrapper) rather than class names — keeping the attribute-selector
+ * convention the Ark-backed components use, and avoiding selector-class-pattern
+ * rejections. Every visual value resolves to a Helios `--token-*` custom
+ * property; no raw colors, no `--token-color-palette-*` references.
+ *
+ * Time is purely presentational and non-interactive: it has no focus, hover,
+ * disabled, or toggle states, and no transitions or animations — so it needs no
+ * focus ring and no reduced-motion resets. (A relative Time is paired with a
+ * Tooltip at the call site to reveal the absolute value; that hover/focus
+ * affordance belongs to the Tooltip component, not here.)
+ */
+
+/* Single instant: a bare <time> that inherits the host text's typography and
+   color so it composes inline. We pin font-family/color to the body tokens so a
+   standalone Time (outside styled prose) still resolves the design-system look
+   rather than the UA default. */
+[data-part='root'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+}
+
+/* Range variant: two <time> elements with a separator, laid out inline. */
+[data-part='root'][data-range] {
+  display: inline flex;
+  gap: var(--token-border-radius-x-small);
+  align-items: baseline;
+}
+
+[data-part='separator'] {
+  color: var(--token-color-foreground-faint);
+}

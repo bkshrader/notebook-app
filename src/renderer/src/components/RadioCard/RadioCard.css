@@ -1,0 +1,229 @@
+/**
+ * RadioCard — token-styled Ark UI radio-group primitive, presented as cards.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) plus the two presentational `data-part`
+ * wrappers RadioCard.tsx adds (`card-content`, `card-description`). No class
+ * names. Every visual value resolves to a Helios `--token-*` custom property —
+ * no raw literals, no `--token-color-palette-*`.
+ *
+ * Helios mapping (read live from the Helios stylesheet + token build):
+ *   .hds-form-radio-card                → item: flex, surface-primary bg,
+ *                                          elevation-mid shadow, 1px border,
+ *                                          6px radius, cursor pointer
+ *   :hover                              → elevation-high shadow
+ *   --is-selected / --checked control   → surface-action accent on the control
+ *   --is-disabled control               → surface-interactive-disabled accent
+ *   __label                             → form-label-color
+ *   __description                       → foreground-primary
+ *   --token-form-radiocard-*            → border-width (1px), border-radius
+ *                                          (6px), content-padding (24px),
+ *                                          control-padding (8px), group-gap
+ *                                          (16px), transition-duration (0.2s)
+ *
+ * State comes from Ark's data-attributes, VERIFIED against the sibling
+ * RadioGroup's live DOM (the styling-guide MCP is stale for radio-group):
+ *   data-state="checked|unchecked"  (on item + item-control)
+ *   data-disabled                   (when the group or option is disabled)
+ *   data-invalid                    (when the group or option is invalid)
+ *   data-orientation="horizontal|vertical"  (on every part)
+ * Ark emits NO `data-focus-visible`/`data-focus` on any radio-group part. The
+ * real focus target is the clip-hidden native `<input type="radio">` inside
+ * each item, so the card's keyboard focus ring is drawn via the native
+ * `:focus-visible` pseudo (`[data-part='item']:has(input:focus-visible)`) — the
+ * ring renders ONLY on keyboard focus, never on a mouse click.
+ *
+ * Motion: the card's box-shadow/border transition is suppressed under reduced
+ * motion — both the OS `prefers-reduced-motion` media query AND the Storybook
+ * toolbar's `[data-reduced-motion='reduce']` attribute on <html>. Each animated
+ * selector gets its own reduced-motion reset so the stylelint a11y rule (which
+ * matches per-selector) is satisfied.
+ */
+
+[data-scope='radio-group'][data-part='root'] {
+  display: block flex;
+  flex-flow: row wrap;
+  gap: var(--token-form-radiocard-group-gap);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  /* Vertical groups stack the cards in a column (Ark emits the attribute). */
+  &[data-orientation='vertical'] {
+    flex-direction: column;
+  }
+
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
+}
+
+[data-scope='radio-group'][data-part='label'] {
+  flex-basis: 100%;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
+}
+
+/* The CARD surface (Ark Item). Whole box is the click/selection target. */
+[data-scope='radio-group'][data-part='item'] {
+  cursor: pointer;
+
+  position: relative;
+
+  display: block flex;
+  flex: 1 0 auto;
+  gap: var(--token-form-radiocard-control-padding);
+  align-items: flex-start;
+  justify-content: space-between;
+
+  padding: var(--token-form-radiocard-content-padding);
+  border: var(--token-form-radiocard-border-width) solid var(--token-color-border-primary);
+  border-radius: var(--token-form-radiocard-border-radius);
+
+  background-color: var(--token-color-surface-primary);
+  box-shadow: var(--token-elevation-mid-box-shadow);
+
+  transition:
+    box-shadow var(--token-form-radiocard-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    border-color var(--token-form-radiocard-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  /* Selected card: accent the border with the action color. */
+  &[data-state='checked'] {
+    border-color: var(--token-color-border-action);
+  }
+
+  &[data-invalid] {
+    border-color: var(--token-color-border-critical);
+  }
+
+  &[data-disabled] {
+    cursor: not-allowed;
+    color: var(--token-color-foreground-disabled);
+    background-color: var(--token-color-surface-interactive-disabled);
+    box-shadow: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* Keyboard focus ring on the card — native :focus-visible on the clip-hidden
+   radio input (Ark emits NO data-focus-visible). Declared FIRST because
+   stylelint computes `:has(input:focus-visible)` as lower specificity than the
+   `:not([data-disabled]):hover` raise below (no-descending-specificity). Both
+   the ring and the hover raise are box-shadow; the hover rule below explicitly
+   EXCLUDES the keyboard-focus case (`:not(:has(input:focus-visible))`) so the
+   ring is never clobbered by the elevation raise. `:has()` is supported in the
+   bundled Chromium. */
+[data-scope='radio-group'][data-part='item']:has(input:focus-visible) {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Helios raises the card on hover. The keyboard-focus affordance is the
+   dedicated focus-ring rule above (a separate box-shadow), so this hover-only
+   raise is keyboard-accessible by composition; the a11y focus-pseudo rule
+   (which only inspects this single selector) is disabled here with that
+   rationale. The :hover is scoped away from the keyboard-focus state so the two
+   box-shadows never conflict. */
+/* stylelint-disable-next-line a11y/selector-pseudo-class-focus */
+[data-scope='radio-group'][data-part='item']:not([data-disabled], :has(input:focus-visible)):hover {
+  box-shadow: var(--token-elevation-high-box-shadow);
+}
+
+/* Label + description stack (the card's text content). */
+[data-part='card-content'] {
+  display: block flex;
+  flex-direction: column;
+  gap: var(--token-form-radiocard-control-padding);
+  min-inline-size: 0;
+}
+
+[data-scope='radio-group'][data-part='item-text'] {
+  user-select: none;
+  font-weight: var(--token-typography-font-weight-medium);
+  color: var(--token-form-label-color);
+
+  &[data-disabled] {
+    color: var(--token-color-foreground-disabled);
+  }
+}
+
+[data-part='card-description'] {
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-color-foreground-primary);
+
+  [data-disabled] & {
+    color: var(--token-color-foreground-disabled);
+  }
+}
+
+/* The circular radio control (visual-only, aria-hidden). Mirrors the
+   RadioGroup sibling's control treatment. */
+[data-scope='radio-group'][data-part='item-control'] {
+  display: inline flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--token-form-radio-size);
+  block-size: var(--token-form-radio-size);
+  border-color: var(--token-form-control-base-border-color-default);
+  border-style: solid;
+  border-width: var(--token-form-radio-border-width);
+  border-radius: var(--token-border-radius-large);
+
+  background: var(--token-form-control-base-surface-color-default);
+
+  transition:
+    border-color var(--token-form-radiocard-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    background var(--token-form-radiocard-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  &[data-state='checked'] {
+    border-color: var(--token-form-control-checked-border-color-default);
+
+    background: var(--token-form-control-checked-surface-color-default);
+    background-image: var(--token-form-radio-background-image-data-url);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: var(--token-form-radio-background-image-size);
+  }
+
+  &[data-disabled] {
+    border-color: var(--token-form-control-disabled-border-color);
+
+    background: var(--token-form-control-disabled-surface-color);
+    background-image: var(--token-form-radio-background-image-data-url-disabled);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: var(--token-form-radio-background-image-size);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}

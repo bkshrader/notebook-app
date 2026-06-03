@@ -1,0 +1,180 @@
+/* Textarea — token-styled Ark UI Field primitive in its multi-line form
+ * (Helios Textarea parity: https://helios.hashicorp.design/components/form/textarea).
+ *
+ * Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property — the one exception is
+ * the 36px min-block-size, which Helios itself hardcodes (no sizing token
+ * exists). No raw colors, no --token-color-palette-*.
+ *
+ * Ark contract (verified against @ark-ui/react/field + the field anatomy, NOT
+ * assumed from comments):
+ *   - Field.Textarea renders a native <textarea> emitted as
+ *     [data-scope='field'][data-part='textarea']. Native form controls expose
+ *     the keyboard focus ring via the native :focus-visible pseudo-class — Ark
+ *     emits NO data-focus-visible attribute. The focus ring therefore lives on
+ *     :focus-visible, not a data-attribute selector.
+ *   - data-invalid is emitted on the textarea; disabled/readonly arrive as the
+ *     NATIVE disabled/readonly attributes (a [data-disabled]/[data-readonly]
+ *     selector on the textarea would be dead), so the CSS matches the native
+ *     :disabled / :read-only pseudos.
+ *
+ * Helios values mirrored from the live `hds-form-textarea` stylesheet:
+ *   - resize: vertical; min-block-size: 36px; padding: --token-form-control-padding.
+ *   - default inset shadow (--token-elevation-inset-box-shadow), removed for
+ *     read-only and disabled.
+ *   - focus recolors the border to --token-color-focus-action-internal AND adds
+ *     a 3px --token-color-focus-action-external outline; invalid focus swaps the
+ *     border to --token-color-focus-critical-internal.
+ *
+ * Motion: the border/box-shadow transition is suppressed under reduced motion
+ * via BOTH the prefers-reduced-motion media query AND the Storybook toolbar's
+ * [data-reduced-motion='reduce'] attribute. Each animated selector gets its OWN
+ * reduced-motion reset (the stylelint a11y rule matches per-selector, so
+ * comma-grouped resets fail).
+ */
+
+[data-scope='field'][data-part='root'] {
+  /* Two-value display notation (CSS Display L3); stylelint display-notation
+   * enforces this over the single-value `flex`. */
+  display: block flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+  align-items: start;
+
+  inline-size: 100%;
+}
+
+[data-scope='field'][data-part='label'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+
+  [data-scope='field'][data-part='root'][data-disabled] & {
+    /* foreground-disabled (#8c909c) fails WCAG AA contrast on white (3.18:1).
+     * Use foreground-faint (#656a76, 5.74:1) instead; disabled state is
+     * communicated via cursor/opacity on the control chrome. */
+    color: var(--token-color-foreground-faint);
+  }
+}
+
+[data-scope='field'][data-part='textarea'] {
+  /* Multi-line affordance: Helios lets the user drag the bottom edge. `block` is
+   * the logical equivalent of `vertical` (logical-css rule). */
+  resize: block;
+
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+
+  /* Helios sets min-height: 36px as a raw literal on .hds-form-textarea — there
+   * is no --token-form-control-* sizing token for it, so this is the faithful
+   * (non-color) literal match. It keeps an empty textarea aligned with the
+   * single-line control height. */
+  min-block-size: 36px;
+  padding: var(--token-form-control-padding);
+  border-color: var(--token-form-control-base-border-color-default);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background-color: var(--token-form-control-base-surface-color-default);
+  outline: none;
+  box-shadow: var(--token-elevation-inset-box-shadow);
+
+  transition:
+    border-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    box-shadow var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+  &::placeholder {
+    color: var(--token-form-control-base-foreground-placeholder-color);
+  }
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  /* Hover / non-keyboard focus: tint the border (Helios hover). */
+  &:hover,
+  &:focus {
+    border-color: var(--token-form-control-base-border-color-hover);
+  }
+
+  /* Keyboard focus ring — native :focus-visible on the <textarea> (Ark exposes
+   * NO data-focus-visible attribute). MUST render for WCAG 2.4.7. Helios draws
+   * an internal border recolor plus a 3px external outline. */
+  &:focus-visible {
+    border-color: var(--token-color-focus-action-internal);
+    outline: 3px solid var(--token-color-focus-action-external);
+    outline-offset: 0;
+  }
+
+  &[data-invalid] {
+    border-color: var(--token-form-control-invalid-border-color-default);
+  }
+
+  &[data-invalid]:hover,
+  &[data-invalid]:focus {
+    border-color: var(--token-form-control-invalid-border-color-hover);
+  }
+
+  /* Invalid keyboard focus swaps the focus border to the critical color while
+   * keeping the action-external outline (Helios invalid-focus rule). */
+  &[data-invalid]:focus-visible {
+    border-color: var(--token-color-focus-critical-internal);
+  }
+
+  /* Disabled/read-only: Ark sets the NATIVE disabled/readonly attributes on the
+   * <textarea> (a [data-disabled]/[data-readonly] selector would be dead). The
+   * inset shadow is dropped in both states per Helios. */
+  &:disabled {
+    cursor: not-allowed;
+
+    border-color: var(--token-form-control-disabled-border-color);
+
+    color: var(--token-form-control-disabled-foreground-color);
+
+    background-color: var(--token-form-control-disabled-surface-color);
+    box-shadow: none;
+  }
+
+  /* A disabled textarea ALSO matches :read-only, so exclude it — disabled
+   * styling wins. (A normal editable textarea is :read-write.) */
+  &:read-only:not(:disabled) {
+    border-color: var(--token-form-control-readonly-border-color);
+    color: var(--token-form-control-readonly-foreground-color);
+    background-color: var(--token-form-control-readonly-surface-color);
+    box-shadow: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+[data-scope='field'][data-part='helper-text'] {
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-form-helper-text-color);
+}
+
+[data-scope='field'][data-part='error-text'] {
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-form-error-color);
+}
+
+[data-scope='field'][data-part='required-indicator'] {
+  color: var(--token-form-error-color);
+}

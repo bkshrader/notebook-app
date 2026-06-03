@@ -1,0 +1,158 @@
+/* TextInput — token-styled Ark UI Field primitive rendering the bare Helios
+ * Text Input control (https://helios.hashicorp.design/components/form/text-input).
+ *
+ * Styling targets Ark's data-scope/data-part attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios --token-* custom property. No raw literals, no
+ * --token-color-palette-*.
+ *
+ * Helios `.hds-form-text-input` spec (read from the live page stylesheet):
+ *   base:     padding --token-form-control-padding; color value-color;
+ *             background surface-default; border width solid base-border-default;
+ *             border-radius form-control-border-radius;
+ *             box-shadow --token-elevation-inset-box-shadow.
+ *   ::placeholder color base-foreground-placeholder.
+ *   hover:    border-color base-border-hover.
+ *   focus:    border-color --token-color-focus-action-internal;
+ *             outline --token-color-focus-action-external; outline-offset 0.
+ *   invalid:  border-color invalid-border-default; invalid hover → invalid-hover;
+ *             invalid focus → critical-internal border + critical-external outline.
+ *   read-only:readonly fg/surface/border + box-shadow none.
+ *   disabled: disabled fg/surface/border + box-shadow none + cursor not-allowed.
+ *
+ * Ark contract (verified against the live Field DOM, NOT assumed from comments):
+ *   - Field.Input is a native <input>; Ark emits NO data-focus-visible. The
+ *     keyboard focus ring uses native :focus-visible.
+ *   - disabled/readonly land as the NATIVE `disabled`/`readonly` attributes on
+ *     the input → match :disabled / :read-only, NOT data-disabled/data-readonly.
+ *     (A disabled input also matches :read-only, so exclude it so disabled wins.)
+ *   - data-invalid IS emitted on the input → matched directly.
+ *
+ * Size scale: [data-size] on the root sets local --text-input-* custom
+ * properties (padding/typography). Custom properties inherit, so the input part
+ * reads them from the root without a descendant selector (which would trip
+ * stylelint's use-nesting rule).
+ *
+ * Motion: the border/box-shadow transition is suppressed under reduced motion
+ * via BOTH the prefers-reduced-motion media query AND the Storybook toolbar's
+ * [data-reduced-motion='reduce'] attribute. Each animated selector gets its OWN
+ * reduced-motion reset (the stylelint a11y rule matches per-selector).
+ */
+
+[data-scope='field'][data-part='root'][data-size] {
+  /* Per-size defaults (medium). Overridden by the size blocks below. */
+  --text-input-padding-block: var(--token-form-control-padding);
+  --text-input-padding-inline: var(--token-form-control-padding);
+  --text-input-font-size: var(--token-typography-body-200-font-size);
+  --text-input-line-height: var(--token-typography-body-200-line-height);
+
+  display: block flow;
+  inline-size: 100%;
+
+  &[data-size='small'] {
+    --text-input-padding-block: calc(var(--token-form-control-padding) - 3px);
+    --text-input-padding-inline: calc(var(--token-form-control-padding) - 1px);
+    --text-input-font-size: var(--token-typography-body-100-font-size);
+    --text-input-line-height: var(--token-typography-body-100-line-height);
+  }
+
+  &[data-size='large'] {
+    --text-input-padding-block: calc(var(--token-form-control-padding) + 4px);
+    --text-input-padding-inline: calc(var(--token-form-control-padding) + 4px);
+    --text-input-font-size: var(--token-typography-body-300-font-size);
+    --text-input-line-height: var(--token-typography-body-300-line-height);
+  }
+}
+
+[data-scope='field'][data-part='input'] {
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  padding: var(--text-input-padding-block) var(--text-input-padding-inline);
+  border-color: var(--token-form-control-base-border-color-default);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--text-input-font-size);
+  line-height: var(--text-input-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background-color: var(--token-form-control-base-surface-color-default);
+  outline: none;
+
+  /* Helios renders an inset elevation on the resting control. */
+  box-shadow: var(--token-elevation-inset-box-shadow);
+
+  transition:
+    border-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    box-shadow var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+  &::placeholder {
+    color: var(--token-form-control-base-foreground-placeholder-color);
+  }
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  /* Hover / non-keyboard focus: tint the border (Helios hover). */
+  &:hover,
+  &:focus {
+    border-color: var(--token-form-control-base-border-color-hover);
+  }
+
+  /* Keyboard focus ring — native :focus-visible on the <input> (Ark exposes NO
+   * data-focus-visible attribute). Helios draws a two-part ring: an internal
+   * border tint + an external outline at offset 0. MUST render for WCAG 2.4.7. */
+  &:focus-visible {
+    border-color: var(--token-color-focus-action-internal);
+    outline: 2px solid var(--token-color-focus-action-external);
+    outline-offset: 0;
+  }
+
+  /* Invalid: critical border. */
+  &[data-invalid] {
+    border-color: var(--token-form-control-invalid-border-color-default);
+  }
+
+  &[data-invalid]:hover,
+  &[data-invalid]:focus {
+    border-color: var(--token-form-control-invalid-border-color-hover);
+  }
+
+  /* Invalid keyboard focus: critical-toned two-part ring. */
+  &[data-invalid]:focus-visible {
+    border-color: var(--token-color-focus-critical-internal);
+    outline-color: var(--token-color-focus-critical-external);
+  }
+
+  /* Disabled — native attribute on the <input>. Placed before :read-only (lower
+   * specificity first, per no-descending-specificity). */
+  &:disabled {
+    cursor: not-allowed;
+
+    border-color: var(--token-form-control-disabled-border-color);
+
+    color: var(--token-form-control-disabled-foreground-color);
+
+    background-color: var(--token-form-control-disabled-surface-color);
+    box-shadow: none;
+  }
+
+  /* Read-only (a normal editable input is :read-write, so this only hits
+   * readonly). Exclude :disabled so the disabled treatment wins. */
+  &:read-only:not(:disabled) {
+    border-color: var(--token-form-control-readonly-border-color);
+    color: var(--token-form-control-readonly-foreground-color);
+    background-color: var(--token-form-control-readonly-surface-color);
+    box-shadow: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}

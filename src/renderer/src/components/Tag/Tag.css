@@ -1,0 +1,189 @@
+/**
+ * Tag — token-styled plain-HTML primitive, built to the Helios Tag
+ * specification (https://helios.hashicorp.design/components/tag).
+ *
+ * Helios has no Ark/Zag primitive for Tag and it is presentational (a label,
+ * optionally a link and/or a dismiss button), so per the unstyled-primitives-ark
+ * ADR's scope clarification it is built on semantic HTML and styled via the
+ * wrapper's OWN `data-part` attributes (set by the React component) rather than
+ * Ark `data-scope`/`data-part` or class names. Selectors are scoped under the
+ * root's `[data-component='tag']` so the generic `[data-part]` names cannot
+ * collide with Ark-backed components.
+ *
+ * Every visual value resolves to a Helios `--token-*` custom property. No raw
+ * literals, no `--token-color-palette-*` palette tokens. The only bare values
+ * are the per-Helios geometry (pill radius, dismiss-icon box, line clamp) that
+ * Helios itself hardcodes — they are not design tokens.
+ *
+ * Logical properties/units are used throughout (inline-size, padding-block,
+ * padding-inline) per the stylelint-plugin-logical-css rule.
+ *
+ * The link and dismiss parts are the only interactive surfaces. They take the
+ * keyboard focus ring ONLY on `:focus-visible` (never bare `:focus`, which would
+ * decorate a mouse click), paired with `outline: none` on the same selector. The
+ * hover/focus background transition is suppressed under reduced motion via BOTH
+ * the `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute, each as a per-selector reset (the
+ * stylelint a11y rule matches per-selector).
+ */
+
+/* ─── Root (the pill container) ─────────────────────────────────────────────── */
+
+[data-component='tag'][data-part='root'] {
+  display: inline flex;
+  align-items: stretch;
+
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  border: var(--token-form-control-border-width) solid var(--token-color-border-strong);
+
+  /* Helios hardcodes a 50px pill radius (not a design token). */
+  border-radius: 50px;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  vertical-align: middle;
+
+  background: var(--token-color-surface-interactive);
+}
+
+/* ─── Label: shared text/link box ───────────────────────────────────────────── */
+
+[data-component='tag'] [data-part='text'],
+[data-component='tag'] [data-part='link'] {
+  flex: 1 0 0;
+
+  max-inline-size: 166px;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-radius: inherit;
+
+  color: var(--token-color-foreground-primary);
+  text-decoration: none;
+
+  background: var(--token-color-surface-interactive);
+}
+
+/* The single-line truncation container (Helios clamps the label to one line). */
+[data-component='tag'] [data-part='text-container'] {
+  overflow: hidden;
+  display: block flow;
+
+  line-height: var(--token-typography-body-200-line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Link variant (interactive label) ──────────────────────────────────────── */
+
+[data-component='tag'] [data-part='link'] {
+  cursor: pointer;
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+[data-component='tag'] [data-part='link'][data-reduced-motion='reduce'],
+[data-reduced-motion='reduce'] [data-component='tag'] [data-part='link'] {
+  transition: none;
+}
+
+/* Color modifier styles the link label color only (matches Helios). */
+[data-component='tag'][data-color='primary'] [data-part='link'] {
+  color: var(--token-color-foreground-action);
+}
+
+[data-component='tag'][data-color='secondary'] [data-part='link'] {
+  color: var(--token-color-foreground-strong);
+}
+
+/* Hover affordance, with keyboard parity via :focus-visible (NOT bare :focus,
+   which would leave the tint stuck after a mouse click). */
+[data-component='tag'] [data-part='link']:hover,
+[data-component='tag'] [data-part='link']:focus-visible {
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-component='tag'] [data-part='link']:active {
+  background: var(--token-color-surface-interactive-active);
+}
+
+/* Keyboard focus ring only — never decorate mouse focus. */
+[data-component='tag'] [data-part='link']:focus-visible {
+  z-index: 1;
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ─── Dismiss button (leading control) ──────────────────────────────────────── */
+
+[data-component='tag'] [data-part='dismiss'] {
+  cursor: pointer;
+
+  display: inline flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: none;
+
+  /* Round only the leading edge so it nests inside the pill (Helios). */
+  border-start-start-radius: inherit;
+  border-start-end-radius: 0;
+  border-end-start-radius: inherit;
+  border-end-end-radius: 0;
+
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-interactive);
+
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+[data-component='tag'] [data-part='dismiss'][data-reduced-motion='reduce'],
+[data-reduced-motion='reduce'] [data-component='tag'] [data-part='dismiss'] {
+  transition: none;
+}
+
+/* Hover affordance, with keyboard parity via :focus-visible. */
+[data-component='tag'] [data-part='dismiss']:hover,
+[data-component='tag'] [data-part='dismiss']:focus-visible {
+  background: var(--token-color-surface-interactive-hover);
+}
+
+[data-component='tag'] [data-part='dismiss']:active {
+  background: var(--token-color-surface-interactive-active);
+}
+
+/* Keyboard focus ring only — never decorate mouse focus. */
+[data-component='tag'] [data-part='dismiss']:focus-visible {
+  z-index: 1;
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* When a dismiss button precedes the label, square off the label's leading edge
+   so the two parts meet flush (Helios). */
+[data-component='tag'] [data-part='dismiss'] ~ [data-part='text'],
+[data-component='tag'] [data-part='dismiss'] ~ [data-part='link'] {
+  max-inline-size: 160px;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+/* Helios hardcodes a 12px dismiss-icon box (not a design token). */
+[data-component='tag'] [data-part='dismiss-icon'] {
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+}

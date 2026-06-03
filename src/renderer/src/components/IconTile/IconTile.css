@@ -1,0 +1,155 @@
+/**
+ * IconTile — token-styled presentational tile, built to the Helios Icon Tile
+ * specification (https://helios.hashicorp.design/components/icon-tile).
+ *
+ * There is no Ark UI primitive for Icon Tile (it is purely presentational, with
+ * no focus / keyboard / open / selection state), so per the unstyled-primitives
+ * ADR's "presentational → plain HTML" clarification this styles our OWN
+ * `data-part` attributes set on a semantic `<div>` (no class names, keeping the
+ * attribute-selector convention). Every value resolves to a Helios `--token-*`
+ * custom property; the only bare values are the per-size box / glyph dimensions
+ * and corner radii, which Helios itself hardcodes (they are not design tokens) —
+ * replicated here as local `--icon-tile-*` properties.
+ *
+ * Parts (our wrapper's own elements):
+ *   data-part="root"        — the DIV container.
+ *   data-part="icon"        — the primary icon glyph, centered via auto margins.
+ *   data-part="extra"       — the optional secondary-icon badge (bottom-right).
+ *   data-part="extra-icon"  — the glyph inside the secondary badge.
+ *
+ * IconTile is non-interactive (no focusable control, no hover/disabled/open
+ * state), so there is no focus-ring, hover, or state-toggle styling — and no
+ * transition/animation, hence nothing to suppress under reduced motion.
+ */
+
+/* ─── Size scale ───────────────────────────────────────────────────────────────
+   Helios hardcodes the box, glyph, badge, and radius per size (not design
+   tokens). One source of truth: [data-size] on the root sets a local
+   --icon-tile-* set the parts consume. */
+
+[data-component='icon-tile'][data-part='root'][data-size='small'] {
+  --icon-tile-size: 1.75rem; /* 28px */
+  --icon-tile-radius: 5px;
+  --icon-tile-icon-size: 1rem; /* 16px */
+  --icon-tile-extra-size: 1.125rem; /* 18px */
+  --icon-tile-extra-radius: 4px;
+  --icon-tile-extra-icon-size: 0.75rem; /* 12px */
+}
+
+[data-component='icon-tile'][data-part='root'][data-size='medium'] {
+  --icon-tile-size: 2.5rem; /* 40px */
+  --icon-tile-radius: var(--token-border-radius-medium); /* 6px */
+  --icon-tile-icon-size: 1.5rem; /* 24px */
+  --icon-tile-extra-size: 1.25rem; /* 20px */
+  --icon-tile-extra-radius: 5px;
+  --icon-tile-extra-icon-size: 0.75rem; /* 12px */
+}
+
+[data-component='icon-tile'][data-part='root'][data-size='large'] {
+  --icon-tile-size: 3rem; /* 48px */
+  --icon-tile-radius: var(--token-border-radius-medium); /* 6px */
+  --icon-tile-icon-size: 1.5rem; /* 24px */
+  --icon-tile-extra-size: 1.5rem; /* 24px */
+  --icon-tile-extra-radius: 5px;
+  --icon-tile-extra-icon-size: 1rem; /* 16px */
+}
+
+/* ─── Color (tone) scale ───────────────────────────────────────────────────────
+   Each tone is a surface (tile background) + foreground (icon) token pair.
+   `neutral` matches Helios's neutral exactly; the remaining tones map to our
+   semantic tone families (Helios's per-product brand palettes are not part of
+   our semantic token set). Each pair satisfies WCAG 1.4.11 non-text contrast. */
+
+[data-component='icon-tile'][data-part='root'][data-color='neutral'] {
+  color: var(--token-color-foreground-faint);
+  background-color: var(--token-color-surface-strong);
+}
+
+[data-component='icon-tile'][data-part='root'][data-color='action'] {
+  color: var(--token-color-foreground-action);
+  background-color: var(--token-color-surface-action);
+}
+
+[data-component='icon-tile'][data-part='root'][data-color='highlight'] {
+  color: var(--token-color-foreground-highlight);
+  background-color: var(--token-color-surface-highlight);
+}
+
+[data-component='icon-tile'][data-part='root'][data-color='critical'] {
+  color: var(--token-color-foreground-critical);
+  background-color: var(--token-color-surface-critical);
+}
+
+[data-component='icon-tile'][data-part='root'][data-color='warning'] {
+  color: var(--token-color-foreground-warning);
+  background-color: var(--token-color-surface-warning);
+}
+
+[data-component='icon-tile'][data-part='root'][data-color='success'] {
+  color: var(--token-color-foreground-success);
+  background-color: var(--token-color-surface-success);
+}
+
+/* ─── Root (container) ──────────────────────────────────────────────────────── */
+
+[data-component='icon-tile'][data-part='root'] {
+  position: relative;
+
+  display: inline flex;
+  flex-shrink: 0;
+
+  /* Fall back to medium if no data-size is set (defensive; the wrapper always
+     sets one). */
+  inline-size: var(--icon-tile-size, 2.5rem);
+  block-size: var(--icon-tile-size, 2.5rem);
+  border: var(--token-border-width-primary) solid transparent;
+  border-radius: var(--icon-tile-radius, var(--token-border-radius-medium));
+}
+
+/* ─── Icon (primary glyph) ──────────────────────────────────────────────────── */
+
+[data-component='icon-tile'][data-part='icon'] {
+  display: inline flex;
+  inline-size: var(--icon-tile-icon-size, 1.5rem);
+  block-size: var(--icon-tile-icon-size, 1.5rem);
+
+  /* Helios centers the glyph with auto margins inside the flex container. */
+  margin: auto;
+
+  /* The glyph (SVG or img) fills the icon slot and inherits the tone color. */
+  > * {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+}
+
+/* ─── Secondary icon (bottom-right badge) ───────────────────────────────────── */
+
+[data-component='icon-tile'][data-part='extra'] {
+  position: absolute;
+  inset-block-end: -0.375rem; /* -6px */
+  inset-inline-end: -0.375rem; /* -6px */
+
+  display: inline flex;
+
+  inline-size: var(--icon-tile-extra-size, 1.25rem);
+  block-size: var(--icon-tile-extra-size, 1.25rem);
+  border: var(--token-border-width-primary) solid var(--token-color-border-primary);
+  border-radius: var(--icon-tile-extra-radius, 5px);
+
+  color: var(--token-color-foreground-strong);
+
+  background-color: var(--token-color-surface-primary);
+}
+
+[data-component='icon-tile'][data-part='extra-icon'] {
+  display: inline flex;
+  inline-size: var(--icon-tile-extra-icon-size, 0.75rem);
+  block-size: var(--icon-tile-extra-icon-size, 0.75rem);
+  margin: auto;
+
+  > * {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+}

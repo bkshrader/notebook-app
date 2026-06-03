@@ -55,7 +55,11 @@ export async function assertOverlayKeyboardCycle(
 
   await step(`focus moves into the ${noun}`, async () => {
     const panel = body.getByRole(panelRole);
-    await expect(panel).toContainElement(document.activeElement as HTMLElement);
+    // Ark moves focus into the panel asynchronously after mount; retry until it
+    // lands rather than asserting on the first frame (otherwise flaky).
+    await waitFor(async () => {
+      await expect(panel).toContainElement(document.activeElement as HTMLElement);
+    });
   });
 
   await step(`Escape closes the ${noun}`, async () => {
@@ -67,6 +71,9 @@ export async function assertOverlayKeyboardCycle(
   });
 
   await step('focus returns to the trigger after close', async () => {
-    await expect(trigger).toHaveFocus();
+    // Focus restoration runs after unmount; retry until it settles.
+    await waitFor(async () => {
+      await expect(trigger).toHaveFocus();
+    });
   });
 }

@@ -1,0 +1,115 @@
+/**
+ * Icon — token-styled plain-HTML primitive, built to the Helios `FlightIcon`
+ * specification (https://helios.hashicorp.design/icons/library).
+ *
+ * Icon has no Ark primitive (it is presentational/static per the
+ * unstyled-primitives-ark ADR scope clarification), so it sets its OWN
+ * data-scope/data-part attributes on the <svg> wrapper and styles THOSE —
+ * keeping the attribute-selector convention with no class names.
+ *
+ * Helios contract replicated here (read from the live page stylesheet):
+ *   - `.hds-icon { display: block; }` — the SVG is a block.
+ *   - Sizes are the 16px and 24px boxes (the width/height SVG attributes; the
+ *     CSS box is pinned to match so layout is correct even before the glyph
+ *     paints), set here via [data-size].
+ *   - Color is `fill: currentColor` — the icon inherits the surrounding text
+ *     color. The optional [data-tone] selectors override `color` with a Helios
+ *     `--token-color-foreground-*` value, which `currentColor` then resolves.
+ *   - The loading/running state is a 9s linear infinite 360deg rotation
+ *     (`@keyframes hds-icon-animation-rotation`), applied via [data-spin].
+ *
+ * Every color-bearing value resolves to a Helios `--token-*` custom property or
+ * to `currentColor`; no raw colors, no `--token-color-palette-*`. The 9s spin
+ * duration is not a color and matches Helios's own hardcoded value (Helios does
+ * not tokenize it).
+ *
+ * Reduced motion: the single animated selector ([data-spin]) gets its OWN reset
+ * under BOTH the prefers-reduced-motion media query AND the
+ * [data-reduced-motion='reduce'] attribute the Storybook toolbar sets (the a11y
+ * rule matches per-selector, so comma-grouped resets fail).
+ */
+
+[data-scope='icon'][data-part='root'] {
+  display: block flow;
+
+  /* The box matches the rendered glyph size so surrounding layout is stable
+     even before/while the SVG paints. */
+  flex-shrink: 0;
+
+  /* The glyph color is bound to `currentColor` via the SVG's own
+     `fill="currentColor"` ATTRIBUTE (set in Icon.tsx), not a CSS `fill`
+     declaration — so it inherits the surrounding text color by default and
+     follows the `color` that [data-tone] sets below. Keeping `fill` out of the
+     CSS avoids the value-keyword-case ↔ declaration-strict-value conflict on
+     the `currentcolor` keyword (no inline lint suppression needed). */
+}
+
+/* ─── Size scale (Helios 16 / 24) ────────────────────────────────────────── */
+
+[data-scope='icon'][data-part='root'][data-size='16'] {
+  inline-size: 1rem; /* 16px */
+  block-size: 1rem;
+}
+
+[data-scope='icon'][data-part='root'][data-size='24'] {
+  inline-size: 1.5rem; /* 24px */
+  block-size: 1.5rem;
+}
+
+/* ─── Tone (semantic foreground colors) ──────────────────────────────────────
+   `inherit` is the default and needs no rule — `fill: currentColor` on the root
+   already inherits the surrounding text color. Each tone sets `color`, which
+   `currentColor` (the root's fill) resolves to. */
+
+[data-scope='icon'][data-part='root'][data-tone='primary'] {
+  color: var(--token-color-foreground-primary);
+}
+
+[data-scope='icon'][data-part='root'][data-tone='faint'] {
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='icon'][data-part='root'][data-tone='disabled'] {
+  color: var(--token-color-foreground-disabled);
+}
+
+[data-scope='icon'][data-part='root'][data-tone='action'] {
+  color: var(--token-color-foreground-action);
+}
+
+[data-scope='icon'][data-part='root'][data-tone='highlight'] {
+  color: var(--token-color-foreground-highlight);
+}
+
+[data-scope='icon'][data-part='root'][data-tone='success'] {
+  color: var(--token-color-foreground-success);
+}
+
+[data-scope='icon'][data-part='root'][data-tone='warning'] {
+  color: var(--token-color-foreground-warning);
+}
+
+[data-scope='icon'][data-part='root'][data-tone='critical'] {
+  color: var(--token-color-foreground-critical);
+}
+
+/* ─── Loading / running spin ─────────────────────────────────────────────────
+   Helios: 9s linear infinite full rotation. */
+
+[data-scope='icon'][data-part='root'][data-spin='true'] {
+  animation: 9s linear infinite icon-spin;
+
+  [data-reduced-motion='reduce'] & {
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,83 @@
+/**
+ * ButtonSet — token-styled layout container that arranges multiple Buttons with
+ * consistent Helios spacing, built to the Helios Button Set specification
+ * (https://helios.hashicorp.design/components/button-set).
+ *
+ * ButtonSet is presentational/static (no Ark primitive, no focus/keyboard/open/
+ * selection state) so it is built on a plain `<div role="group">`. Having no Ark
+ * scope/part, it styles its OWN `data-part` attribute set by the wrapper (per the
+ * unstyled-primitives-ark ADR scope clarification) — keeping the
+ * attribute-selector convention and avoiding class-name styling.
+ *
+ * Authoritative Helios mapping (read live from the Helios stylesheet):
+ *   .hds-button-set { display: flex; gap: 16px; }       → row, default gap
+ *   .hds-dropdown__footer > .hds-button-set { gap: 8px } → compact gap
+ *   (dialog-footer tertiary `margin-left:auto`)          → generalised as align=between
+ *
+ * Helios hardcodes the gap as a px value (16px / 8px), NOT a design token, so it
+ * is replicated as a local `--button-set-gap` custom property set per
+ * `data-spacing` — the same pattern Avatar/Separator use for Helios's
+ * hardcoded-px values. Every OTHER value resolves to a Helios `--token-*`.
+ *
+ * The container is inert (no focusable affordance of its own): each child Button
+ * owns its focus ring and keyboard behaviour, so ButtonSet carries no
+ * `:focus-visible` styling. It has no transitions/animations either, so there is
+ * no motion to suppress under reduced motion.
+ */
+
+/* ─── Spacing scale ──────────────────────────────────────────────────────────
+   Helios's two gaps. `gap` is a layout property (not color-bearing), so the
+   literal px values are permitted; they are encapsulated in a local property so
+   the row/column rule below stays single-sourced. */
+
+[data-part='button-set'][data-spacing='default'] {
+  --button-set-gap: 16px;
+}
+
+[data-part='button-set'][data-spacing='compact'] {
+  --button-set-gap: 8px;
+}
+
+/* ─── Root (group container) ─────────────────────────────────────────────────
+   A flexbox row of Buttons with the Helios gap. Logical alignment so the layout
+   tracks the writing mode. `flex-wrap: wrap` keeps the row from overflowing a
+   narrow surface (the Buttons reflow rather than clip). */
+
+[data-part='button-set'] {
+  display: block flex;
+  flex-wrap: wrap;
+
+  /* Fallback to the default 16px gap if no data-spacing is set (defensive; the
+     wrapper always sets one). */
+  gap: var(--button-set-gap, 16px);
+  align-items: center;
+}
+
+/* ─── Orientation ────────────────────────────────────────────────────────────
+   Horizontal is the Helios single-row layout; vertical stacks the Buttons and
+   stretches them to a common inline-size for a tidy column. */
+
+[data-part='button-set'][data-orientation='horizontal'] {
+  flex-direction: row;
+}
+
+[data-part='button-set'][data-orientation='vertical'] {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* ─── Main-axis alignment ────────────────────────────────────────────────────
+   start / end pack the Buttons to one edge; between pushes the first and last
+   apart (the dialog-footer affordance Helios builds with `margin-left:auto`). */
+
+[data-part='button-set'][data-align='start'] {
+  justify-content: flex-start;
+}
+
+[data-part='button-set'][data-align='end'] {
+  justify-content: flex-end;
+}
+
+[data-part='button-set'][data-align='between'] {
+  justify-content: space-between;
+}

@@ -1,0 +1,257 @@
+/**
+ * Toast — token-styled Ark UI primitive (Tier E, provider-shaped: createToaster
+ * + a Toaster host), built to the Helios Toast specification
+ * (https://helios.hashicorp.design/components/toast).
+ *
+ * Toast IS an Ark/Zag interactive primitive (keyboard-focusable, Escape-
+ * dismissible, auto-timeout), so per the unstyled-primitives-ark ADR it wraps
+ * Ark and styles Ark's `data-scope`/`data-part` attributes — no class names.
+ * Every visual value resolves to a Helios `--token-*` custom property; the only
+ * bare values are the layout dimensions Helios itself hardcodes (icon box,
+ * paddings, gaps, the 360–500px width range, and the slide-in offset), which are
+ * not design tokens.
+ *
+ * Parts (verified against the live Zag connect + anatomy, not just docs):
+ *   data-part="group"       — the Toaster host. Ark sets role="region" +
+ *                             aria-live="polite": the actual LIVE REGION (this is
+ *                             the WCAG 4.1.3 fix the ADR flags Radix for — Radix
+ *                             hardcodes aria-live="off"; Ark does not).
+ *   data-part="root"        — one toast. Ark sets role="status", aria-atomic,
+ *                             tabIndex=0, an Escape keydown→dismiss handler, and
+ *                             data-state="open|closed" / data-type / data-mounted.
+ *                             We mirror the tone to data-color for the color CSS.
+ *   data-part="text"        — OUR custom wrapper (set in Toast.tsx) stacking the
+ *                             title + description.
+ *   data-part="title"       — heading line; aria-labelledby target.
+ *   data-part="description" — body copy; aria-describedby target.
+ *   data-part="icon"        — OUR custom leading status glyph (aria-hidden).
+ *   data-part="close-trigger" — native <button> dismiss control.
+ *
+ * Visually a Helios Toast is a Helios Alert (inline tone treatment: tinted
+ * surface, 1px tone border, radius-medium) lifted off the page with
+ * `--token-elevation-higher-box-shadow`. The color tokens match Alert exactly.
+ *
+ * Motion: toasts slide/fade in on mount. The enter transition is suppressed
+ * under reduced motion via BOTH the `prefers-reduced-motion` media query AND the
+ * Storybook `[data-reduced-motion='reduce']` attribute (each animated selector
+ * gets its own reset, per the stylelint a11y rule).
+ */
+
+/* ─── Group (the live-region host) ───────────────────────────────────────────
+   Ark fixes the host to the viewport via inline styles (placement-driven). We
+   add only the toast-to-toast gap and the Helios viewport margins (bottom 32px,
+   right 24px). */
+
+[data-scope='toast'][data-part='group'] {
+  display: block flex;
+  flex-direction: column;
+  gap: 0.75rem; /* 12px between stacked toasts */
+
+  inline-size: max-content;
+  max-inline-size: 100vi;
+  margin-block-end: 2rem; /* 32px from viewport bottom (Helios) */
+  margin-inline-end: 1.5rem; /* 24px from viewport right (Helios) */
+}
+
+/* ─── Root (one toast) ───────────────────────────────────────────────────────
+   Helios: Alert inline treatment + elevation. flex row, align-items flex-start,
+   16px padding, 1px tone border, radius-medium, higher elevation shadow. Width
+   clamped to the Helios 360–500px range. */
+
+[data-scope='toast'][data-part='root'] {
+  display: block flex;
+  align-items: flex-start;
+
+  box-sizing: border-box;
+  inline-size: 23.4375rem; /* 375px — within the Helios 360–500px range */
+  min-inline-size: 22.5rem; /* 360px (Helios floor) */
+  max-inline-size: 31.25rem; /* 500px (Helios ceiling) */
+  padding: 1rem; /* 16px */
+  border-style: solid;
+  border-width: 1px;
+  border-radius: var(--token-border-radius-medium);
+
+  box-shadow: var(--token-elevation-higher-box-shadow);
+
+  /* Enter/exit motion: toasts fade + slide up on mount; Ark toggles data-state
+     between "open" and "closed". Kept subtle (ADHD-first: no flair). */
+  transition:
+    opacity 200ms ease,
+    translate 200ms ease;
+
+  /* Keyboard focus ring (Ark sets tabIndex=0). Native :focus-visible only —
+     drawn on keyboard focus, never on pointer. */
+  &:focus-visible {
+    outline: 2px solid var(--token-color-focus-action-internal);
+    outline-offset: 2px;
+  }
+
+  &[data-state='closed'] {
+    translate: 0 1rem;
+    opacity: 0;
+  }
+
+  &[data-state='open'] {
+    translate: 0 0;
+    opacity: 1;
+  }
+}
+
+/* ─── Icon ─────────────────────────────────────────────────────────────────── */
+
+[data-scope='toast'][data-part='icon'] {
+  flex: 0 0 auto;
+  inline-size: 1.25rem; /* 20px — Helios hardcodes; not a token */
+  block-size: 1.25rem;
+  margin-inline-end: 0.75rem; /* 12px */
+
+  > svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+}
+
+/* ─── Text (title + description stack) ───────────────────────────────────────
+   Helios (from Alert): flex column; gap 4px; justify-content center; takes the
+   remaining row width. */
+
+[data-scope='toast'][data-part='text'] {
+  display: block flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.25rem; /* 4px */
+  justify-content: center;
+}
+
+/* ─── Title ──────────────────────────────────────────────────────────────────
+   Helios: typography-body-200 + font-weight-semibold; color set per tone below. */
+
+[data-scope='toast'][data-part='title'] {
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-200-line-height);
+}
+
+/* ─── Description ────────────────────────────────────────────────────────────
+   Helios: typography-body-200 regular; foreground-primary; wraps long words. */
+
+[data-scope='toast'][data-part='description'] {
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-regular);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+  overflow-wrap: break-word;
+}
+
+/* ─── Close trigger ──────────────────────────────────────────────────────────
+   Native <button>. Helios dismiss sits top-end with a 16px gap. Inherits the
+   tone color so the glyph matches the toast. */
+
+[data-scope='toast'][data-part='close-trigger'] {
+  cursor: pointer;
+
+  flex: 0 0 auto;
+
+  margin-block-start: 0.125rem; /* 2px */
+  margin-inline-start: 1rem; /* 16px */
+  padding: 0;
+  border: none;
+  border-radius: var(--token-border-radius-small);
+
+  color: inherit;
+
+  background: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--token-color-focus-action-internal);
+    outline-offset: 2px;
+  }
+}
+
+/* ─── Color: neutral ─────────────────────────────────────────────────────────
+   Mirrors the Helios Alert inline tone treatment. */
+
+[data-scope='toast'][data-part='root'][data-color='neutral'] {
+  border-color: var(--token-color-border-strong);
+  background-color: var(--token-color-surface-faint);
+
+  [data-part='icon'] {
+    color: var(--token-color-foreground-faint);
+  }
+
+  [data-part='title'] {
+    color: var(--token-color-foreground-primary);
+  }
+}
+
+/* ─── Color: highlight ───────────────────────────────────────────────────────── */
+
+[data-scope='toast'][data-part='root'][data-color='highlight'] {
+  border-color: var(--token-color-border-highlight);
+  background-color: var(--token-color-surface-highlight);
+
+  [data-part='icon'],
+  [data-part='title'] {
+    color: var(--token-color-foreground-highlight-on-surface);
+  }
+}
+
+/* ─── Color: success ─────────────────────────────────────────────────────────── */
+
+[data-scope='toast'][data-part='root'][data-color='success'] {
+  border-color: var(--token-color-border-success);
+  background-color: var(--token-color-surface-success);
+
+  [data-part='icon'],
+  [data-part='title'] {
+    color: var(--token-color-foreground-success-on-surface);
+  }
+}
+
+/* ─── Color: warning ─────────────────────────────────────────────────────────── */
+
+[data-scope='toast'][data-part='root'][data-color='warning'] {
+  border-color: var(--token-color-border-warning);
+  background-color: var(--token-color-surface-warning);
+
+  [data-part='icon'],
+  [data-part='title'] {
+    color: var(--token-color-foreground-warning-on-surface);
+  }
+}
+
+/* ─── Color: critical ────────────────────────────────────────────────────────── */
+
+[data-scope='toast'][data-part='root'][data-color='critical'] {
+  border-color: var(--token-color-border-critical);
+  background-color: var(--token-color-surface-critical);
+
+  [data-part='icon'],
+  [data-part='title'] {
+    color: var(--token-color-foreground-critical-on-surface);
+  }
+}
+
+/* ─── Reduced motion ──────────────────────────────────────────────────────────
+   The toast enter/exit transition (declared on the root above) is suppressed
+   under reduced motion via BOTH the media query and the Storybook toolbar
+   attribute, each resetting the animated selectors. */
+@media (prefers-reduced-motion: reduce) {
+  [data-scope='toast'][data-part='root'] {
+    transition: none;
+
+    &[data-state='closed'] {
+      translate: none;
+    }
+  }
+}
+
+[data-reduced-motion='reduce'] [data-scope='toast'][data-part='root'] {
+  transition: none;
+
+  &[data-state='closed'] {
+    translate: none;
+  }
+}

@@ -1,0 +1,193 @@
+/**
+ * Breadcrumb — token-styled plain-HTML secondary navigation, built to the
+ * Helios Breadcrumb specification
+ * (https://helios.hashicorp.design/components/breadcrumb).
+ *
+ * Presentational/structural component (`<nav> > <ol> > <li>` with anchor links
+ * and a non-interactive current page), so per the unstyled-primitives-ark ADR's
+ * scope clarification it has no Ark scope/part. We style our own `[data-part]`
+ * attributes (set by the wrapper) rather than class names, keeping the
+ * attribute-selector convention.
+ *
+ * Helios ground truth (from the live page stylesheet):
+ *   .hds-breadcrumb__list  { display:flex; margin:0; padding:0; list-style:none }
+ *   .hds-breadcrumb__item  { display:flex; align-items:center; min-width:0 }
+ *   .hds-breadcrumb__list > .hds-breadcrumb__item:not(:last-child)::after
+ *                          { padding:0 8px; content:"/"; color: <neutral-300> }
+ *   .hds-breadcrumb__link  { display:flex; align-items:center; margin:0 -4px;
+ *                            padding:0 4px; color: foreground-faint;
+ *                            border-radius: small; text-decoration-color:
+ *                            transparent; cursor:pointer }
+ *   :hover                 { color: <neutral-600>; text underlines }
+ *   :focus-visible         { box-shadow: focus-ring-action-box-shadow }
+ *   :active                { color: foreground-secondary }
+ *   .hds-breadcrumb__current { color: foreground-strong }
+ *   .hds-breadcrumb__icon  { width:13px; height:13px; margin-right:6px }
+ *   .hds-breadcrumb__text  { padding: calc(14px - 0.5rem) 0; font-size:0.8125rem;
+ *                            line-height:1rem; white-space:nowrap; ellipsis;
+ *                            text-decoration: underline transparent }
+ *
+ * Token substitutions (Helios uses raw palette tokens we are forbidden from
+ * consuming — semantic `--token-*` only): the separator's
+ * `--token-color-palette-neutral-300` and the link-hover's
+ * `--token-color-palette-neutral-600` are mapped to the nearest SEMANTIC
+ * foreground tokens (`-disabled` for the muted separator, `-strong` for the
+ * brighten-on-hover). The `:active` color uses `-primary` because Helios's
+ * `foreground-secondary` is not a token in our semantic set. Geometry values
+ * Helios hardcodes (the 13px icon box, the 8px / 4px insets, the 0.8125rem font
+ * size, the text padding) are not design tokens; they are replicated as bare
+ * values mirroring how Avatar/Separator replicate Helios's hardcoded sizes.
+ *
+ * Logical properties/units throughout so the trail tracks the writing mode.
+ *
+ * Non-interactive except for the anchor links, which use the NATIVE
+ * `:focus-visible` pseudo (no Ark data-attribute exists) so the keyboard focus
+ * ring renders for keyboard users but not on mouse focus. There is no
+ * transition/animation, so there is no motion to suppress under reduced motion.
+ */
+
+/* ─── Root (the <nav> landmark) ──────────────────────────────────────────── */
+
+[data-part='root'] {
+  position: relative;
+}
+
+/* ─── List (the <ol>) ────────────────────────────────────────────────────── */
+
+[data-part='list'] {
+  display: block flex;
+  flex-direction: row;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+
+  &[data-can-wrap='true'] {
+    flex-wrap: wrap;
+  }
+}
+
+/* ─── Item (the <li>) ────────────────────────────────────────────────────── */
+
+[data-part='item'] {
+  display: block flex;
+  flex-direction: row;
+  align-items: center;
+  min-inline-size: 0;
+}
+
+/* Decorative "/" separator after every item except the last. The slash is a
+   purely visual divider with EMPTY alternative text (`'/' / ''`), so assistive
+   tech ignores it and never announces it (matches Helios's ::after slash). The
+   a11y/content-property-no-static-value rule forbids meaningful generated text;
+   here the content is explicitly decorative (empty alt), which is the accepted
+   accessible pattern, so the rule is disabled for this one rule. */
+/* stylelint-disable-next-line a11y/content-property-no-static-value -- decorative slash, empty alt text */
+[data-part='list'] > [data-part='item']:not(:last-child)::after {
+  content: '/' / '';
+  padding-inline: 0.5rem; /* 8px — Helios hardcodes this inset */
+  color: var(--token-color-foreground-disabled);
+}
+
+/* ─── Text label ─────────────────────────────────────────────────────────── */
+
+[data-part='text'] {
+  overflow: hidden;
+
+  padding-block: calc(0.875rem - 0.5rem); /* Helios 14px hit-area minus slack */
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: 0.8125rem; /* 13px — Helios hardcodes the breadcrumb type size */
+  line-height: 1rem;
+  text-decoration: underline transparent;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Link (interactive entries: <a>) ───────────────────────────────────────
+   Negative inline margin + matching inline padding gives the focus ring room
+   to breathe without shifting the text baseline (Helios margin:0 -4px / pad:0 4px). */
+
+[data-part='link'] {
+  cursor: pointer;
+
+  display: block flex;
+  flex-direction: row;
+  align-items: center;
+
+  min-inline-size: 0;
+  margin-inline: -0.25rem; /* -4px — Helios hardcodes this */
+  padding-inline: 0.25rem; /* 4px */
+  border-radius: var(--token-border-radius-small);
+
+  color: var(--token-color-foreground-faint);
+  text-decoration-color: transparent;
+
+  /* Transparent solid outline keeps layout stable when the focus ring (a
+     box-shadow) appears; the visible ring is the :focus-visible rule below. */
+  outline-color: transparent;
+  outline-style: solid;
+
+  /* Hover/focus brighten the label and reveal its underline. Paired so the
+     keyboard focus affordance matches the hover affordance (a11y). */
+  &:hover,
+  &:focus-visible {
+    color: var(--token-color-foreground-strong);
+
+    /* Reveal the label's underline in the same token as the brightened text
+       (equivalent to currentColor, but a token satisfies strict-value). */
+    > [data-part='text'] {
+      text-decoration-color: var(--token-color-foreground-strong);
+    }
+  }
+
+  /* Keyboard focus ring ONLY on keyboard focus (native :focus-visible). No Ark
+     data-attribute exists for a plain anchor, so the native pseudo is correct
+     (WCAG 2.4.7). */
+  &:focus-visible {
+    outline-color: transparent;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  &:active {
+    color: var(--token-color-foreground-primary);
+
+    > [data-part='text'] {
+      text-decoration-color: var(--token-color-foreground-primary);
+    }
+  }
+}
+
+/* ─── Current page (the last entry: non-interactive text) ────────────────── */
+
+[data-part='current'] {
+  display: block flex;
+  flex-direction: row;
+  align-items: center;
+
+  min-inline-size: 0;
+  margin-inline: -0.25rem; /* -4px — aligns with link inset */
+  padding-inline: 0.25rem; /* 4px */
+
+  color: var(--token-color-foreground-strong);
+}
+
+/* ─── Leading icon ───────────────────────────────────────────────────────── */
+
+[data-part='icon'] {
+  display: block flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+
+  /* 13px square box + 6px gap — Helios hardcodes these (not design tokens). */
+  inline-size: 0.8125rem;
+  block-size: 0.8125rem;
+  margin-inline-end: 0.375rem;
+
+  > svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+}

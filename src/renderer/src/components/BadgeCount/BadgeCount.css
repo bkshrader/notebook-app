@@ -1,0 +1,93 @@
+/**
+ * BadgeCount — token-styled, built to the Helios Badge Count specification
+ * (https://helios.hashicorp.design/components/badge-count).
+ *
+ * BadgeCount is NOT an Ark primitive (none exists, and it is purely
+ * presentational), so it has no `data-scope`/`data-part` Ark contract. The
+ * wrapper `<span>` sets its OWN attributes — `data-part="root"`, `data-type`,
+ * `data-size` — and this stylesheet targets those (keeping the
+ * attribute-selector convention per the unstyled-primitives-ark ADR scope
+ * clarification, and avoiding class-name styling). The `[data-type]` qualifier
+ * keeps the root selector specific to BadgeCount so it never collides with
+ * another component's `[data-part='root']`.
+ *
+ * Helios sizing geometry (min-height, padding, pill radius) is component-local
+ * — Helios hardcodes these rem values rather than exposing them as design
+ * tokens (like Avatar's box dimensions), so they are replicated here as literal
+ * rems. Every COLOR resolves to a semantic `--token-color-*` (never a raw
+ * literal, never `--token-color-palette-*`); the type scale and weight resolve
+ * to Helios typography tokens.
+ *
+ * BadgeCount is non-interactive: no focus, hover, open, or disabled state, and
+ * therefore no focus ring and no motion to suppress under reduced motion.
+ */
+
+/* ─── Root (the badge box) ─────────────────────────────────────────────────── */
+
+[data-part='root'][data-type] {
+  display: inline flex;
+  align-items: center;
+
+  max-inline-size: 100%;
+  border: 1px solid transparent;
+
+  font-family: var(--token-typography-font-stack-text);
+  font-weight: var(--token-typography-font-weight-medium);
+}
+
+/* ─── Size scale ───────────────────────────────────────────────────────────── */
+
+/* Pill radius = half the min-height; component-local geometry (Helios hardcodes
+   it, not a design token). Padding offsets the 1px border so the box height is
+   stable across types (Helios: `calc(-1px + …)`). */
+
+[data-part='root'][data-size='small'] {
+  min-block-size: 1.25rem;
+  padding-block: calc(0.125rem - 1px);
+  padding-inline: calc(0.5rem - 1px);
+  border-radius: 0.625rem;
+
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-part='root'][data-size='medium'] {
+  min-block-size: 1.5rem;
+  padding-block: calc(0.25rem - 1px);
+  padding-inline: calc(0.75rem - 1px);
+  border-radius: 0.75rem;
+
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-part='root'][data-size='large'] {
+  min-block-size: 2rem;
+  padding-block: calc(0.25rem - 1px);
+  padding-inline: calc(0.875rem - 1px);
+  border-radius: 1rem;
+
+  font-size: var(--token-typography-body-300-font-size);
+  line-height: var(--token-typography-body-300-line-height);
+}
+
+/* ─── Color treatment (Helios `type` axis, `neutral` color) ────────────────── */
+
+/* Helios maps these to raw neutral palette steps; we use the theme-adaptive
+   semantic equivalents so the badge follows light/dark centrally. */
+
+[data-part='root'][data-type='filled'] {
+  color: var(--token-color-foreground-primary);
+  background: var(--token-color-surface-strong);
+}
+
+[data-part='root'][data-type='inverted'] {
+  color: var(--token-color-foreground-strong);
+  background: var(--token-color-surface-faint);
+}
+
+[data-part='root'][data-type='outlined'] {
+  border-color: var(--token-color-border-strong);
+  color: var(--token-color-foreground-primary);
+  background: transparent;
+}

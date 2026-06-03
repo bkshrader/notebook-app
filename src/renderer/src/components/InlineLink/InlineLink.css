@@ -1,0 +1,120 @@
+/**
+ * InlineLink — token-styled presentational component, built to the Helios Inline
+ * Link specification (https://helios.hashicorp.design/components/link/inline).
+ *
+ * Inline Link has no Ark UI primitive (it is a plain in-text anchor whose only
+ * states are the native anchor pseudo-classes), so per the unstyled-primitives-ark
+ * ADR scope clarification it is built on a plain `<a>`. The wrapper sets its own
+ * `data-part` attributes (`root`/`icon`) and a `data-color` modifier, and the CSS
+ * styles THOSE attribute selectors — keeping the project's attribute-selector
+ * convention with no class names.
+ *
+ * Every value resolves to a Helios semantic `--token-*` custom property. Mapped
+ * straight from the live Helios `.hds-link-inline` stylesheet:
+ *   - root border-radius        → --token-border-radius-x-small (Helios: 2px)
+ *   - color=primary             → foreground-action / -hover / -active
+ *   - color=secondary           → foreground-strong → -primary (hover) → -faint (active)
+ *   - focus-visible             → outline 2px solid --token-color-focus-action-internal,
+ *                                 offset 1px, and text-decoration removed (Helios exact)
+ *   - icon box                  → 1em square, vertical-align text-bottom
+ *   - leading/trailing icon gap → 0.25em margin on the appropriate inline side
+ *
+ * The underline is the link's affordance (color is never the sole signal — WCAG
+ * 1.4.1); Helios removes it on focus because the outline takes over. There is no
+ * transition or animation on this component, so there is nothing to suppress
+ * under reduced motion. The focus ring is applied ONLY on keyboard focus via the
+ * native `:focus-visible` pseudo (never bare `:focus`, which would also ring a
+ * mouse click).
+ */
+
+/* ─── Root (the anchor) ──────────────────────────────────────────────────────
+   An inline element that flows with the surrounding text; underlined, with a
+   small radius so the focus outline has rounded corners (Helios). */
+
+[data-scope='inline-link'][data-part='root'] {
+  border-radius: var(--token-border-radius-x-small);
+
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  text-decoration: underline;
+}
+
+/* ─── Color variants ──────────────────────────────────────────────────────────
+   The hover color shift is given keyboard parity via :focus-visible (so a Tab
+   user sees the same affordance a mouse user does); :active uses the native
+   anchor pseudo. Both variants keep the underline (color is never the sole
+   affordance — WCAG 1.4.1). */
+
+/* Primary — the default; the action foreground for more important links. */
+[data-scope='inline-link'][data-part='root'][data-color='primary'] {
+  color: var(--token-color-foreground-action);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--token-color-foreground-action-hover);
+  }
+
+  &:active {
+    color: var(--token-color-foreground-action-active);
+  }
+}
+
+/* Secondary — quieter treatment for less important links. */
+[data-scope='inline-link'][data-part='root'][data-color='secondary'] {
+  color: var(--token-color-foreground-strong);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--token-color-foreground-primary);
+  }
+
+  &:active {
+    color: var(--token-color-foreground-faint);
+  }
+}
+
+/* ─── Keyboard focus ring ─────────────────────────────────────────────────────
+   Helios drops the underline on focus and shows a 2px action-internal outline at
+   a 1px offset. Applied ONLY on keyboard focus (`:focus-visible`), never on a
+   mouse click. */
+
+[data-scope='inline-link'][data-part='root']:focus-visible {
+  text-decoration: none;
+  outline: 2px solid var(--token-color-focus-action-internal);
+  outline-offset: 1px;
+}
+
+/* ─── Icon (optional, decorative) ────────────────────────────────────────────
+   A 1em square that aligns with the text baseline; the inline-side margin
+   creates the gap to the label (Helios: 0.25em on the side facing the text).
+   The SVG is sized directly in `em` (not `100%`, which fails to resolve against
+   an auto-height inline-block and lets a viewBox-only glyph stretch the line
+   box). The wrapping span is inline-block so the margin/alignment apply. */
+
+[data-scope='inline-link'] [data-part='icon'] {
+  overflow: clip;
+  display: inline flow-root;
+
+  inline-size: 1em;
+  block-size: 1em;
+
+  vertical-align: text-bottom;
+
+  > svg {
+    display: block flow;
+
+    /* aspect-ratio forces the square from the width even when a viewBox-only
+       SVG would otherwise resolve its block-size from intrinsic content. */
+    aspect-ratio: 1;
+    inline-size: 1em;
+  }
+}
+
+[data-scope='inline-link'][data-part='root'][data-icon-position='leading'] > [data-part='icon'] {
+  margin-inline-end: 0.25em;
+}
+
+[data-scope='inline-link'][data-part='root'][data-icon-position='trailing'] > [data-part='icon'] {
+  margin-inline-start: 0.25em;
+}
