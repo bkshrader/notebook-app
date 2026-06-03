@@ -1,0 +1,193 @@
+/**
+ * CopySnippet — token-styled Ark UI Clipboard wrapper, built to the Helios Copy
+ * Snippet specification (https://helios.hashicorp.design/components/copy/snippet).
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw color literals,
+ * no `--token-color-palette-*` palette tokens.
+ *
+ * Helios mapping (from the live Helios stylesheet, the authoritative source):
+ *   .hds-copy-snippet            → [data-part='trigger'] (the whole clickable row)
+ *   .hds-copy-snippet__text      → [data-part='text']
+ *   .hds-copy-snippet__icon      → [data-part='indicator']
+ *   --color-primary/-secondary   → [data-color='primary'|'secondary']
+ *   --width-full                 → [data-full-width]
+ *   --is-truncated               → [data-truncated]
+ *   --status-success (copied)    → Ark's [data-copied] (set on every part)
+ * Helios builds the snippet as a single button; we render the Trigger as that
+ * button and the Root as a transparent layout wrapper.
+ *
+ * State surfaces through Ark data-attributes (verified against the Ark
+ * `clipboard` styling guide — do NOT assume attributes Ark doesn't emit):
+ *   data-copied — present on EVERY part once the value has been copied.
+ * Ark exposes NO data-focus-visible on the Trigger; the Trigger is a native
+ * <button>, so keyboard focus styling uses the native :focus-visible pseudo —
+ * applied ONLY on keyboard focus, never on every :focus (which would leave the
+ * ring stuck after a mouse click). The action focus-ring token is an
+ * inset+outset box-shadow applied directly to the button (it is not clipped by
+ * the row border, so no separate ::before layer is needed).
+ *
+ * Reduced motion: the trigger's color/background transition is suppressed under
+ * BOTH the OS `prefers-reduced-motion: reduce` media query AND the Storybook
+ * toolbar's `[data-reduced-motion='reduce']` attribute. Each animated selector
+ * gets its own dedicated reset (the stylelint a11y rule matches per-selector).
+ *
+ * Logical properties/units are used throughout (inline-size, padding-block,
+ * padding-inline) per the stylelint-plugin-logical-css rule.
+ */
+
+/* ─── Root (transparent layout wrapper) ─────────────────────────────────────── */
+
+[data-scope='clipboard'][data-part='root'] {
+  display: inline flex;
+
+  &[data-full-width],
+  &[data-truncated] {
+    display: block flex;
+    inline-size: 100%;
+    max-inline-size: 100%;
+  }
+}
+
+/* ─── Trigger (the whole clickable snippet) ─────────────────────────────────── */
+
+[data-scope='clipboard'][data-part='trigger'] {
+  cursor: pointer;
+
+  position: relative;
+
+  display: block flex;
+  flex: 1;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+  justify-content: space-between;
+
+  inline-size: 100%;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid transparent;
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-font-stack-code);
+  font-size: var(--token-typography-code-200-font-size);
+  line-height: var(--token-typography-code-200-line-height);
+  text-align: start;
+
+  background: transparent;
+
+  transition:
+    color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    background-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    border-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+  /* Keyboard focus only — native :focus-visible, since Ark emits no
+     data-focus-visible on the Trigger button. The visible ring is the action
+     focus-ring box-shadow (an inset + outset shadow, so it is not clipped by
+     the row border); the UA outline is replaced by it in the same block. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* ─── Color: primary ─────────────────────────────────────────────────────────
+   Action-colored text + icon; on hover/keyboard-focus the row gains an
+   interactive surface tint and a strong border (matches the Helios primary
+   rules). :hover is paired with :focus-visible so the affordance has keyboard
+   parity (WCAG) without sticking after a mouse click. */
+
+[data-color='primary'] [data-part='trigger'] {
+  color: var(--token-color-foreground-action);
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--token-color-border-strong);
+    color: var(--token-color-foreground-action-hover);
+    background: var(--token-color-surface-interactive);
+  }
+
+  &:active {
+    border-color: var(--token-color-border-strong);
+    color: var(--token-color-foreground-action-active);
+    background: var(--token-color-surface-interactive-active);
+  }
+}
+
+/* ─── Color: secondary ───────────────────────────────────────────────────────
+   Primary-colored text with an action-colored icon; less prominent body, used
+   when many snippets share a page (matches the Helios secondary rules). */
+
+[data-color='secondary'] [data-part='trigger'] {
+  color: var(--token-color-foreground-primary);
+
+  [data-part='indicator'] {
+    color: var(--token-color-foreground-action);
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--token-color-border-strong);
+    background: var(--token-color-surface-interactive);
+
+    [data-part='indicator'] {
+      color: var(--token-color-foreground-action-hover);
+    }
+  }
+
+  &:active {
+    border-color: var(--token-color-border-strong);
+    background: var(--token-color-surface-interactive-active);
+
+    [data-part='indicator'] {
+      color: var(--token-color-foreground-action-active);
+    }
+  }
+}
+
+/* ─── Copied (success) state ─────────────────────────────────────────────────
+   Ark sets data-copied on every part. Helios tints the row with an interactive
+   surface and turns the icon success-green (matches --status-success). */
+
+[data-scope='clipboard'][data-part='trigger'][data-copied] {
+  background: var(--token-color-surface-interactive);
+
+  [data-part='indicator'] {
+    color: var(--token-color-foreground-success);
+  }
+}
+
+/* ─── Text ───────────────────────────────────────────────────────────────────
+   Grows to fill; truncates to one ellipsized line under [data-truncated]. */
+
+[data-scope='clipboard'][data-part='trigger'] [data-part='text'] {
+  flex: 1 0 0;
+  min-inline-size: 0;
+}
+
+[data-truncated] [data-part='trigger'] [data-part='text'] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Indicator (icon) ───────────────────────────────────────────────────────
+   Fixed-size trailing glyph; never shrinks. */
+
+[data-scope='clipboard'][data-part='indicator'] {
+  display: inline flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}

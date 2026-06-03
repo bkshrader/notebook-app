@@ -1,0 +1,227 @@
+/**
+ * StandaloneLink — token-styled plain-HTML component, built to the Helios
+ * Standalone Link specification
+ * (https://helios.hashicorp.design/components/link/standalone).
+ *
+ * StandaloneLink has no Ark UI primitive (it is a native navigation anchor with
+ * no interaction state machine), so per the unstyled-primitives-ark ADR scope
+ * clarification it is built on a plain `<a>`. The wrapper sets its OWN
+ * `data-part` attributes (`root`/`icon`/`text`) plus `data-color`/`data-size`
+ * modifiers, and the CSS styles THOSE attribute selectors — keeping the
+ * project's attribute-selector convention with no class names.
+ *
+ * Helios contract replicated here (read from the live page stylesheet):
+ *   - Root `.hds-link-standalone`: a flex row, `gap: 0.375rem`, `width:
+ *     fit-content`, `padding-block: 4px`, transparent background + 1px
+ *     transparent border, regular weight, text font stack. `position: relative`
+ *     + `isolation: isolate` so the active-surface `::before` can sit at
+ *     z-index -1 behind the content.
+ *   - `__icon`: a block box; per-size dimensions (small 0.75rem, medium 1rem,
+ *     large 1.5rem).
+ *   - `__text`: the visible label; `flex: 1 0 0`; an initially-transparent
+ *     underline that animates in on hover/active via `text-decoration-color`.
+ *   - color-primary: `--token-color-foreground-action`, hover `-action-hover`,
+ *     active `-action-active`. color-secondary: `--token-color-foreground-strong`.
+ *   - active state paints a faint surface behind the link via `::before`.
+ *   - focus ring: native `:focus-visible` on the anchor paints the Helios action
+ *     focus-ring box-shadow (`--token-focus-ring-action-box-shadow`), with the UA
+ *     `outline` removed in the same rule (the a11y rule requires a co-located
+ *     replacement). Helios anchors the ring on a `::before`; we put it on the
+ *     anchor itself so the `outline`/replacement pair stays in one rule.
+ *
+ * Token mapping: Helios's own rules reach for hardcoded `rgb(...)`
+ * text-decoration-colors (raw palette values this project forbids). The
+ * underline simply echoes the link's foreground color, so each color variant's
+ * underline resolves to the SAME semantic `--token-color-foreground-*` token as
+ * its text — no raw colors, no `--token-color-palette-*`. The `1px solid
+ * transparent` border matches Helios exactly; there is no semantic border-width
+ * token for it (only component-scoped ones), so the literal `1px` stays, as it
+ * does in Badge.
+ *
+ * Selector order: each color variant nests its states under the base selector
+ * (`&:focus-visible`, `&:hover`, `&:active`) so specificity is monotonic and the
+ * states read top-to-bottom. `:hover` is always grouped with `:focus-visible`
+ * (the a11y rule requires `:hover` to be accompanied by a focus pseudo).
+ *
+ * Reduced motion: the only animated property is the `__text` underline
+ * transition; its selector gets its OWN reset under BOTH the
+ * prefers-reduced-motion media query AND the [data-reduced-motion='reduce']
+ * attribute the Storybook toolbar sets (the a11y rule matches per-selector).
+ */
+
+/* ─── Root (the anchor) ──────────────────────────────────────────────────────
+   A standalone, content-sized flex row. `isolation: isolate` establishes a
+   stacking context so the focus-ring `::before` (z-index -1) renders behind the
+   content but above the page. */
+
+[data-scope='standalone-link'][data-part='root'] {
+  isolation: isolate;
+  position: relative;
+
+  display: inline flex;
+  gap: var(--token-spacing-03); /* 0.375rem */
+  align-items: center;
+  justify-content: center;
+
+  inline-size: fit-content;
+  padding-block: var(--token-spacing-02); /* 4px */
+  padding-inline: 0;
+
+  /* 1px matches the Helios spec exactly; there is no semantic border-width token
+     for a standalone-link border (only component-scoped ones). The transparent
+     border preserves box size and is the Helios baseline. */
+  border: 1px solid transparent;
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-weight: var(--token-typography-font-weight-regular);
+
+  background-color: transparent;
+}
+
+/* The active-surface layer. Sits behind the content (z-index -1) and extends
+   slightly past the inline edges (Helios `inset: 0 -5px`); the active-state
+   rules below paint its background. */
+[data-scope='standalone-link'][data-part='root']::before {
+  content: '';
+
+  position: absolute;
+  z-index: -1;
+  inset: 0 -5px;
+
+  border-radius: var(--token-border-radius-small);
+}
+
+/* ─── Icon (optional, decorative) ────────────────────────────────────────── */
+
+[data-scope='standalone-link'][data-part='icon'] {
+  display: block flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--standalone-link-icon-size, 1rem);
+  block-size: var(--standalone-link-icon-size, 1rem);
+
+  > svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+}
+
+/* ─── Text (the accessible name + animated underline) ─────────────────────────
+   The underline is present but transparent at rest, and animates to visible on
+   hover/active by transitioning `text-decoration-color`. */
+
+[data-scope='standalone-link'][data-part='text'] {
+  flex: 1 0 0;
+
+  font-size: var(--standalone-link-font-size, 0.875rem);
+  line-height: var(--standalone-link-line-height, 1.143);
+  text-decoration-color: transparent;
+  text-decoration-line: underline;
+
+  transition: text-decoration-color 0.25s ease-in;
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* ─── Size scale ──────────────────────────────────────────────────────────────
+   Each size sets the local icon box dimension and the text typography. Helios
+   hardcodes these per-size values (they are not design tokens), mirrored here as
+   local custom properties (cf. Avatar's `--avatar-size`, Badge's
+   `--badge-icon-size`). */
+
+[data-scope='standalone-link'][data-part='root'][data-size='small'] {
+  --standalone-link-icon-size: 0.75rem;
+  --standalone-link-font-size: 0.8125rem;
+  --standalone-link-line-height: 1.231;
+}
+
+[data-scope='standalone-link'][data-part='root'][data-size='medium'] {
+  --standalone-link-icon-size: 1rem;
+  --standalone-link-font-size: 0.875rem;
+  --standalone-link-line-height: 1.143;
+}
+
+[data-scope='standalone-link'][data-part='root'][data-size='large'] {
+  --standalone-link-icon-size: 1.5rem;
+  --standalone-link-font-size: 1rem;
+  --standalone-link-line-height: 1.5;
+}
+
+/* ─── Color: primary ──────────────────────────────────────────────────────────
+   Action-blue link. The underline echoes the foreground color (Helios uses raw
+   palette rgb()s here; this project maps them to the matching semantic token). */
+
+[data-scope='standalone-link'][data-part='root'][data-color='primary'] {
+  color: var(--token-color-foreground-action);
+
+  /* Keyboard focus only — never decorate pointer focus. This is a native <a>,
+     so use the native :focus-visible pseudo. `outline: none` removes the UA
+     outline; its replacement is the Helios action focus-ring box-shadow in the
+     same rule (the a11y rule requires the alternative to be co-located). */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  /* hover and focus share the link's interactive treatment (the a11y rule
+     requires :hover to be accompanied by a focus pseudo). */
+  &:hover,
+  &:focus-visible {
+    color: var(--token-color-foreground-action-hover);
+
+    [data-part='text'] {
+      text-decoration-color: var(--token-color-foreground-action-hover);
+    }
+  }
+
+  &:active {
+    color: var(--token-color-foreground-action-active);
+
+    &::before {
+      background-color: var(--token-color-surface-action);
+    }
+
+    [data-part='text'] {
+      text-decoration-color: var(--token-color-foreground-action-active);
+    }
+  }
+}
+
+/* ─── Color: secondary ────────────────────────────────────────────────────────
+   Lower-emphasis neutral link. Helios uses `foreground-strong`; the underline
+   echoes it (raw palette rgb()s in Helios map to the same semantic token). */
+
+[data-scope='standalone-link'][data-part='root'][data-color='secondary'] {
+  color: var(--token-color-foreground-strong);
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  &:hover,
+  &:focus-visible {
+    [data-part='text'] {
+      text-decoration-color: var(--token-color-foreground-strong);
+    }
+  }
+
+  &:active {
+    &::before {
+      background-color: var(--token-color-surface-interactive-active);
+    }
+
+    [data-part='text'] {
+      text-decoration-color: var(--token-color-foreground-strong);
+    }
+  }
+}

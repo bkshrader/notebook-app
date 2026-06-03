@@ -1,15 +1,27 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
 
 import { Timer } from './Timer';
 
+/**
+ * Visual / documentation stories for the Timer (Tier A-Display).
+ *
+ * These stories are pristine: none has a `play` that mutates timer state, so the
+ * docs gallery never animates or auto-runs on load. Interaction and a11y
+ * regression guards live in `Timer.spec.stories.tsx` per the `*.spec.stories.tsx`
+ * convention.
+ */
 const meta: Meta<typeof Timer> = {
   title: 'Components/Display/Timer',
   component: Timer,
   args: {
     label: 'Elapsed time',
+    size: 'medium',
   },
   argTypes: {
+    size: {
+      control: 'inline-radio',
+      options: ['small', 'medium', 'large'],
+    },
     countdown: { control: 'boolean' },
     autoStart: { control: 'boolean' },
     startMs: { control: 'number' },
@@ -42,70 +54,13 @@ export const AutoStart: Story = {
   },
 };
 
-/**
- * ARIA contract for the Timer (Tier A-Display).
- *
- * The timer area is labelled by the `label` prop (via `translations.areaLabel`),
- * which Ark/Zag wires as `aria-label` on the `[data-part="area"]` element.
- *
- * Ark's Timer state machine conditionally hides action-trigger buttons that are
- * not applicable in the current state — only the contextually correct button(s)
- * are visible at any given time. We test each button in the state where it is
- * exposed: Start in idle, Pause while running, Resume while paused.
- *
- * The axe pass runs automatically (preview's `a11y.test: 'error'`), so this
- * play function asserts only the structural ARIA contract and button focusability.
- */
-export const AriaContract: Story = {
-  args: {
-    label: 'Elapsed time',
-  },
-  play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
-
-    await step('timer area has accessible label', async () => {
-      const area = canvasElement.querySelector<HTMLElement>(
-        '[data-scope="timer"][data-part="area"]',
-      );
-      await expect(area).not.toBeNull();
-      // Ark/Zag wires translations.areaLabel as aria-label on the area element.
-      await expect(area).toHaveAttribute('aria-label', 'Elapsed time');
-    });
-
-    await step('time item segments are present in the area', async () => {
-      // The timer renders three digit segments (hours, minutes, seconds).
-      const items = canvasElement.querySelectorAll('[data-scope="timer"][data-part="item"]');
-      await expect(items.length).toBeGreaterThanOrEqual(3);
-    });
-
-    await step('start button is present and focusable in idle state', async () => {
-      // In idle state only the Start button is visible; Pause/Resume/Reset are
-      // hidden by Ark's state machine (hidden attribute) until the timer runs.
-      const startBtn = canvas.getByRole('button', { name: /start/i });
-      await expect(startBtn).not.toHaveAttribute('tabindex', '-1');
-      startBtn.focus();
-      await expect(startBtn).toHaveFocus();
-    });
-
-    await step('clicking start reveals the pause button (running state)', async () => {
-      const startBtn = canvas.getByRole('button', { name: /start/i });
-      await userEvent.click(startBtn);
-
-      // After starting, Ark shows Pause and hides Start.
-      const pauseBtn = canvas.getByRole('button', { name: /pause/i });
-      await expect(pauseBtn).not.toHaveAttribute('tabindex', '-1');
-    });
-
-    await step('clicking pause reveals the resume button (paused state)', async () => {
-      const pauseBtn = canvas.getByRole('button', { name: /pause/i });
-      await userEvent.click(pauseBtn);
-
-      // After pausing, Ark shows Resume (and Reset) and hides Pause.
-      const resumeBtn = canvas.getByRole('button', { name: /resume/i });
-      await expect(resumeBtn).not.toHaveAttribute('tabindex', '-1');
-
-      const resetBtn = canvas.getByRole('button', { name: /reset/i });
-      await expect(resetBtn).not.toHaveAttribute('tabindex', '-1');
-    });
-  },
+/** The three sizes side by side: segment padding and inter-element gaps scale. */
+export const Sizes: Story = {
+  render: (args) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'flex-start' }}>
+      <Timer {...args} size="small" label="Small timer" />
+      <Timer {...args} size="medium" label="Medium timer" />
+      <Timer {...args} size="large" label="Large timer" />
+    </div>
+  ),
 };

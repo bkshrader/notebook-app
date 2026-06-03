@@ -1,0 +1,215 @@
+/**
+ * Carousel — token-styled Ark UI primitive.
+ *
+ * There is no dedicated Helios Carousel page; this matches the closest Helios
+ * visual language — control buttons mirror the Helios Pagination nav controls,
+ * the slide surface mirrors a Helios Card, and every visual value resolves to a
+ * Helios `--token-*` custom property. No raw literals, no `--token-color-palette-*`.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Parts (kebab-cased
+ * from the Ark anatomy, verified against the live Zag connect output):
+ *   data-part="root"            — region landmark wrapper.
+ *   data-part="item-group"      — the horizontal scroll-snap track.
+ *   data-part="item"            — a slide; data-inview on the visible one(s).
+ *   data-part="control"         — the prev/next button row.
+ *   data-part="prev-trigger"    — native <button>, native :disabled at the start edge.
+ *   data-part="next-trigger"    — native <button>, native :disabled at the end edge.
+ *   data-part="indicator-group" — the dot row.
+ *   data-part="indicator"       — native <button>, data-current on the active dot.
+ *
+ * Ark exposes NO data-focus-visible attribute on any carousel part; every
+ * trigger/indicator is a native <button>, so the keyboard focus ring uses the
+ * native :focus-visible pseudo-class (fires on keyboard focus, not mouse focus).
+ *
+ * Motion: the scroll track animates via smooth scroll-snap. Under reduced motion
+ * we remove the smooth behavior AND the wrapper force-disables autoplay (see
+ * Carousel.tsx). Both the `@media (prefers-reduced-motion: reduce)` query and the
+ * `[data-reduced-motion='reduce']` attribute (set by the wrapper) suppress motion
+ * on every animated selector.
+ */
+
+/* ─── Root (region landmark) ───────────────────────────────────────────────── */
+
+[data-scope='carousel'][data-part='root'] {
+  display: block flex;
+  flex-direction: column;
+  gap: var(--token-space-12);
+  inline-size: 100%;
+}
+
+/* ─── Item group (scroll-snap track) ───────────────────────────────────────── */
+
+[data-scope='carousel'][data-part='item-group'] {
+  scroll-behavior: smooth;
+
+  overflow: hidden;
+  display: block flex;
+  gap: var(--token-space-12);
+
+  border-radius: var(--token-border-radius-medium);
+
+  [data-reduced-motion='reduce'] & {
+    scroll-behavior: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    scroll-behavior: auto;
+  }
+}
+
+/* ─── Item (slide surface, Card-like) ──────────────────────────────────────── */
+
+[data-scope='carousel'][data-part='item'] {
+  display: block flow;
+
+  box-sizing: border-box;
+  padding-block: var(--token-space-24);
+  padding-inline: var(--token-space-24);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-primary);
+}
+
+/* ─── Control row ──────────────────────────────────────────────────────────── */
+
+[data-scope='carousel'][data-part='control'] {
+  display: block flex;
+  gap: var(--token-space-12);
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── Prev / Next triggers (Helios Pagination nav-control language) ────────── */
+
+[data-scope='carousel'][data-part='prev-trigger'],
+[data-scope='carousel'][data-part='next-trigger'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: inline flex;
+  align-items: center;
+  justify-content: center;
+
+  min-inline-size: var(--token-pagination-nav-control-height);
+  block-size: var(--token-pagination-nav-control-height);
+  padding-inline: var(--token-pagination-nav-control-padding-horizontal);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-300-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-primary);
+
+  transition:
+    background-color var(--token-form-radiocard-transition-duration) ease,
+    border-color var(--token-form-radiocard-transition-duration) ease,
+    color var(--token-form-radiocard-transition-duration) ease;
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* Keyboard focus ring (native :focus-visible) — declared before hover/disabled
+   so the higher-specificity rules can override the tint without tripping
+   stylelint's no-descending-specificity. */
+[data-scope='carousel'][data-part='prev-trigger']:focus-visible,
+[data-scope='carousel'][data-part='next-trigger']:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Disabled edge state. Ark drives this via the native `disabled` attribute
+   (verified against the Zag connect output — there is NO data-disabled on these
+   triggers). Declared before the lower-specificity hover/focus rules to satisfy
+   stylelint's no-descending-specificity. */
+[data-scope='carousel'][data-part='prev-trigger']:disabled,
+[data-scope='carousel'][data-part='next-trigger']:disabled {
+  cursor: not-allowed;
+  border-color: var(--token-color-border-faint);
+  color: var(--token-color-foreground-disabled);
+  background: var(--token-color-surface-interactive-disabled);
+}
+
+/* Hover / keyboard-focus tint (enabled only). Bare :focus is avoided so the
+   tint never appears on mouse focus. */
+[data-scope='carousel'][data-part='prev-trigger']:hover:not(:disabled),
+[data-scope='carousel'][data-part='prev-trigger']:focus-visible:not(:disabled),
+[data-scope='carousel'][data-part='next-trigger']:hover:not(:disabled),
+[data-scope='carousel'][data-part='next-trigger']:focus-visible:not(:disabled) {
+  border-color: var(--token-color-border-strong);
+  color: var(--token-color-foreground-strong);
+  background: var(--token-color-surface-interactive-hover);
+}
+
+/* ─── Indicator group ──────────────────────────────────────────────────────── */
+
+[data-scope='carousel'][data-part='indicator-group'] {
+  display: block flex;
+  gap: var(--token-space-8);
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── Indicator dots ───────────────────────────────────────────────────────── */
+
+[data-scope='carousel'][data-part='indicator'] {
+  cursor: pointer;
+
+  display: inline flow;
+
+  box-sizing: border-box;
+  inline-size: var(--token-space-12);
+  block-size: var(--token-space-12);
+  padding: 0;
+  border: var(--token-form-control-border-width) solid var(--token-color-border-strong);
+  border-radius: var(--token-border-radius-full);
+
+  background: var(--token-color-surface-primary);
+
+  transition:
+    background-color var(--token-form-radiocard-transition-duration) ease,
+    border-color var(--token-form-radiocard-transition-duration) ease;
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  /* Keyboard focus ring (native :focus-visible). */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  /* Hover / keyboard-focus tint on inactive dots. */
+  &:hover:not([data-current]),
+  &:focus-visible:not([data-current]) {
+    border-color: var(--token-color-border-action);
+    background: var(--token-color-surface-interactive-hover);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* Active dot — filled with the action surface (matches Helios selected-page). */
+[data-scope='carousel'][data-part='indicator'][data-current] {
+  border-color: var(--token-color-border-action);
+  background: var(--token-color-surface-action);
+}

@@ -3,13 +3,19 @@
  *
  * Styling targets Ark's `data-scope`/`data-part` attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
- * value resolves to a Helios `--token-*` custom property. No raw literals,
- * no `--token-color-palette-*`.
+ * value resolves to a Helios `--token-*` custom property, except the per-size
+ * star/gap px values, which Helios does not tokenize (it ships no RatingGroup);
+ * those live as local `--rating-group-*` custom properties set by `data-size`.
+ * No raw color literals, no `--token-color-palette-*`.
  *
- * State comes from Ark's data-attributes:
+ * State comes from Ark's data-attributes (verified against the Ark styling
+ * guide for scope `rating-group`):
  *   data-disabled, data-readonly on root/control/label
- *   data-checked, data-highlighted on item
- *   data-focus-visible on item (keyboard focus only)
+ *   data-checked, data-highlighted, data-readonly, data-half on item
+ *
+ * Ark does NOT expose `data-focus-visible` on the Item part. Keyboard focus
+ * styling therefore uses the native `:focus-visible` pseudo-class so the ring
+ * actually renders (and only for keyboard focus, never mouse).
  *
  * The [data-part='item-indicator'] span is our own wrapper (not an Ark part);
  * it carries data-highlighted to drive the foreground star clip-path.
@@ -21,9 +27,15 @@
  */
 
 [data-scope='rating-group'][data-part='root'] {
+  /* Per-size scale defaults (medium). `data-size` overrides these below.
+     Helios ships no RatingGroup, so the star dimension and inter-star gap
+     are local custom properties rather than borrowed cross-component tokens. */
+  --rating-group-item-size: 20px;
+  --rating-group-item-gap: 4px;
+
   display: block flex;
   flex-direction: column;
-  gap: var(--token-form-toggle-border-width);
+  gap: var(--token-border-radius-x-small);
 
   font-family: var(--token-typography-body-200-font-family);
   font-size: var(--token-typography-body-200-font-size);
@@ -50,12 +62,30 @@
 
 [data-scope='rating-group'][data-part='control'] {
   display: inline flex;
-  gap: var(--token-border-radius-x-small);
+  gap: var(--rating-group-item-gap);
   align-items: center;
 
   &[data-disabled] {
     cursor: not-allowed;
   }
+}
+
+/* Per-size scale. Helios ships no RatingGroup, so the star dimension and the
+   inter-star gap are local custom properties (mirrors Accordion's pattern of
+   hoisting Helios' non-tokenized per-size px values into `--component-*`). */
+[data-scope='rating-group'][data-part='root'][data-size='small'] {
+  --rating-group-item-size: 16px;
+  --rating-group-item-gap: 2px;
+}
+
+[data-scope='rating-group'][data-part='root'][data-size='medium'] {
+  --rating-group-item-size: 20px;
+  --rating-group-item-gap: 4px;
+}
+
+[data-scope='rating-group'][data-part='root'][data-size='large'] {
+  --rating-group-item-size: 24px;
+  --rating-group-item-gap: 4px;
 }
 
 [data-scope='rating-group'][data-part='item'] {
@@ -65,16 +95,12 @@
   align-items: center;
   justify-content: center;
 
-  inline-size: var(--token-form-checkbox-size);
-  block-size: var(--token-form-checkbox-size);
+  inline-size: var(--rating-group-item-size);
+  block-size: var(--rating-group-item-size);
 
   color: var(--token-color-foreground-faint);
 
-  transition: color var(--token-form-radiocard-transition-duration) ease;
-
-  [data-reduced-motion='reduce'] & {
-    transition: none;
-  }
+  transition: color var(--token-form-toggle-transition-duration) ease;
 
   &[data-highlighted] {
     color: var(--token-color-foreground-warning);
@@ -89,13 +115,23 @@
     color: var(--token-color-foreground-disabled);
   }
 
+  &[data-readonly] {
+    cursor: default;
+  }
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
 }
 
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='rating-group'][data-part='item'][data-focus-visible] {
+/* Keyboard focus only — never decorate mouse focus. Ark exposes NO
+   data-focus-visible on the Item part, so the ring hangs off the native
+   :focus-visible pseudo (verified via the Ark styling guide). */
+[data-scope='rating-group'][data-part='item']:focus-visible {
   border-radius: var(--token-border-radius-x-small);
   outline: none;
   box-shadow: var(--token-focus-ring-action-box-shadow);
@@ -105,8 +141,8 @@
 [data-scope='rating-group'][data-part='item'] [data-part='item-indicator'] {
   position: relative;
   display: inline flex;
-  inline-size: var(--token-form-checkbox-size);
-  block-size: var(--token-form-checkbox-size);
+  inline-size: var(--rating-group-item-size);
+  block-size: var(--rating-group-item-size);
 
   svg {
     position: absolute;
@@ -130,7 +166,7 @@
 
   /* stylelint-disable-next-line scale-unlimited/declaration-strict-value */
   fill: currentcolor;
-  transition: clip-path var(--token-form-radiocard-transition-duration) ease;
+  transition: clip-path var(--token-form-toggle-transition-duration) ease;
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;

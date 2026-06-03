@@ -8,8 +8,13 @@
  * No raw literals, no `--token-color-palette-*`.
  *
  * State comes from Ark's data-attributes (data-state="checked|unchecked|indeterminate",
- * data-disabled, data-focus-visible). The focus ring is applied ONLY on
- * keyboard focus (data-focus-visible), never on every focus.
+ * data-disabled, data-hover). Ark's Checkbox does NOT emit a `data-focus-visible`
+ * attribute on any part (verified against the live DOM: focus toggles only
+ * `data-focus`, which is "focused at all", not "keyboard-focused"). The keyboard
+ * focus ring is therefore driven by the native `:focus-visible` pseudo on the
+ * visually-hidden `<input type="checkbox">`, projected onto the Control via
+ * `:has(input:focus-visible)` — so the ring renders ONLY on keyboard focus,
+ * never on pointer focus.
  *
  * Motion: any transition is suppressed under reduced-motion — both the OS
  * `prefers-reduced-motion` media query AND the Storybook toolbar's
@@ -22,7 +27,7 @@
   cursor: pointer;
 
   display: inline flex;
-  gap: var(--token-form-checkbox-border-radius);
+  gap: var(--token-form-control-padding);
   align-items: center;
 
   font-family: var(--token-typography-body-200-font-family);
@@ -92,8 +97,13 @@
   }
 }
 
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='checkbox'][data-part='control'][data-focus-visible] {
+/* Keyboard focus only — never decorate pointer focus.
+   The focusable element is the visually-hidden native <input>; Ark emits no
+   `data-focus-visible`, so the ring is keyed off the input's native
+   `:focus-visible` and projected onto the (aria-hidden, presentational)
+   Control via `:has()`. */
+[data-scope='checkbox'][data-part='root']:has(input:focus-visible)
+  [data-scope='checkbox'][data-part='control'] {
   outline: none;
   box-shadow: var(--token-focus-ring-action-box-shadow);
 }

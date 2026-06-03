@@ -58,6 +58,17 @@ There is no adapter layer, no Tailwind dependency, no token-renaming, and no sty
 
 **Upgrade model.** Ark UI is a conventional npm package — `pnpm up` for fixes, semver-managed breakages. shadcn's `shadcn add --overwrite` flow plus an experimental `diff` command is a real recurring tax compared to a versioned dependency.
 
+### Scope clarification: Ark primitives **and** plain HTML primitives (amended 2026-06-02)
+
+Ark UI is the unstyled-primitives layer **for interactive primitives that need state-machine-backed behavior** (focus management, keyboard handling, ARIA wiring). Not every component in the Component Library has — or needs — an Ark primitive. The library is therefore precisely: **a thin, token-styled, accessible wrapper around an Ark UI primitive where one exists, and around a plain semantic HTML element where none does.**
+
+- **Interactive / stateful → wrap Ark.** Anything with focus, keyboard, open/close, selection, or roving-tabindex semantics MUST be built on the corresponding Ark/Zag primitive (the whole reason for this ADR). Do not hand-roll interaction logic Ark already provides.
+- **Presentational / static → wrap plain HTML.** Components that are pure markup + token styling and have no Ark primitive (Badge, Card, Tag, Text, Separator (a styled `<hr>`), Alert, Icon, and the like) are built directly on the appropriate semantic element. They still follow the full Component Library contract: token-only CSS, WCAG 2.1 AA, a Storybook story, and an a11y/axe-gated play test. This was always implied by the Negative Consequence above ("Several are CSS one-liners on a `<hr>` or `<label>`"); this amendment makes it explicit so these components are not treated as out-of-scope.
+- **Styling convention.** Ark-backed components style `[data-scope][data-part]` attributes (no class names). Plain-HTML components, having no Ark scope/part, style their own `[data-part]` attributes set by the wrapper (keeping the attribute-selector convention and avoiding class-name styling), or the bare element where a single element suffices.
+- **Composition over hand-rolling interaction.** App-shell composites that Ark lacks (Menubar, Navigation Menu, Context Menu) remain composition over Ark `Menu`/`Popover` per the follow-up below — not from-scratch interaction code.
+
+This does not change the decision (Ark UI remains the interactive-primitives layer); it clarifies that "wrapper over an Ark primitive" reads as "wrapper over an Ark primitive **or** a semantic HTML element" for the presentational subset.
+
 ### Positive Consequences
 
 - Inherit Zag.js's WAI-ARIA-tested state machines for focus management, keyboard handling, and ARIA wiring across ~49 first-party components, including Combobox, Date Picker, Color Picker, Tree View, Carousel, Tags Input, and Pin Input that Radix lacks in core.

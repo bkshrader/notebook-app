@@ -6,140 +6,29 @@
  * value resolves to a Helios `--token-*` custom property. No raw literals,
  * no `--token-color-palette-*`.
  *
- * State comes from Ark's data-attributes (data-state="open|closed",
- * data-disabled, data-focus-visible on the trigger button).
+ * State comes from Ark's data-attributes (verified against the Ark styling
+ * guide — do NOT assume attributes Ark doesn't document):
+ *   data-state="open|closed"  (on Root, Trigger, Indicator, Content)
+ *   data-disabled             (on Trigger, Indicator, Content)
+ * Ark does NOT expose data-focus-visible on the Trigger; the Trigger is a
+ * native <button>, so keyboard-focus styling uses the native :focus-visible
+ * pseudo-class.
  *
- * Motion: open/close animation on the Content is suppressed under
- * reduced-motion — both the OS `prefers-reduced-motion` media query AND the
- * Storybook toolbar's `[data-reduced-motion='reduce']` attribute on <html>.
- * Each animated selector gets its own reduced-motion reset (stylelint a11y
- * rule matches per-selector).
+ * Size scale: `[data-size]` on the Root sets local `--collapsible-*` custom
+ * properties (padding, typography, icon size) consumed by every part, mirroring
+ * the Accordion size-matrix pattern.
+ *
+ * Variant: `[data-variant='card']` is a bordered surface; `[data-variant='ghost']`
+ * drops the border for an inline disclosure.
+ *
+ * Motion: the indicator rotation and the open/close content reveal are
+ * suppressed under reduced-motion — both the OS `prefers-reduced-motion` media
+ * query AND the Storybook toolbar's `[data-reduced-motion='reduce']` attribute
+ * on <html>. Ark injects `--height` / `--collapsed-height` on the Content part
+ * for the height-based expand/collapse keyframes.
  */
 
-[data-scope='collapsible'][data-part='root'] {
-  display: block flex;
-  flex-direction: column;
-  border: solid var(--token-color-border-primary);
-  border-radius: var(--token-border-radius-medium);
-}
-
-[data-scope='collapsible'][data-part='trigger'] {
-  cursor: pointer;
-
-  display: block flex;
-  align-items: center;
-  justify-content: space-between;
-
-  inline-size: 100%;
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
-  border: none;
-  border-radius: var(--token-border-radius-medium);
-
-  font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  font-weight: var(--token-typography-font-weight-medium);
-  line-height: var(--token-typography-body-200-line-height);
-  color: var(--token-color-foreground-primary);
-  text-align: start;
-
-  background: var(--token-color-surface-faint);
-
-  &:hover:not([data-disabled]),
-  &:focus:not([data-disabled]) {
-    color: var(--token-color-foreground-action-hover);
-    background: var(--token-color-surface-interactive-hover);
-  }
-
-  &[data-state='open'] {
-    /* foreground-action (#1060ff) fails on surface-interactive-active (#dedfe3,
-     ~3.8:1). Use foreground-strong (#0c0c0e) which clears 4.5:1 on any surface. */
-    color: var(--token-color-foreground-strong);
-    background: var(--token-color-surface-interactive-active);
-  }
-
-  &[data-disabled] {
-    cursor: not-allowed;
-
-    /* foreground-disabled (#8c909c) fails axe even on near-white surfaces.
-     Use foreground-faint (#656a76, ~5.7:1 on white) for the text; convey
-     disabled state via cursor + the background tint, not by dimming below AA. */
-    color: var(--token-color-foreground-faint);
-    background: var(--token-color-surface-interactive-disabled);
-  }
-}
-
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='collapsible'][data-part='trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
-}
-
-[data-scope='collapsible'][data-part='indicator'] {
-  transform-origin: center;
-
-  display: inline flex;
-  align-items: center;
-  justify-content: center;
-
-  color: var(--token-color-foreground-faint);
-
-  transition: transform var(--token-form-radiocard-transition-duration) ease;
-
-  [data-reduced-motion='reduce'] & {
-    transition: none;
-  }
-
-  &[data-state='open'] {
-    transform: rotate(90deg);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-}
-
-[data-scope='collapsible'][data-part='content'] {
-  overflow: hidden;
-
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
-
-  font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
-  color: var(--token-color-foreground-primary);
-
-  &[data-state='open'] {
-    animation: collapsible-expand var(--token-form-radiocard-transition-duration) ease-out;
-
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='collapsible'][data-part='content'][data-state='open'] {
-    animation: none;
-  }
-}
-
-[data-reduced-motion='reduce'] [data-scope='collapsible'][data-part='content'][data-state='open'] {
-  animation: none;
-}
-
-[data-scope='collapsible'][data-part='content'][data-state='closed'] {
-  animation: collapsible-collapse var(--token-form-radiocard-transition-duration) ease-out;
-
-  [data-reduced-motion='reduce'] & {
-    animation: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-}
+/* ─── Keyframes ─────────────────────────────────────────────────────────────── */
 
 @keyframes collapsible-expand {
   from {
@@ -158,5 +47,184 @@
 
   to {
     block-size: var(--collapsed-height, 0);
+  }
+}
+
+/* ─── Size scale ────────────────────────────────────────────────────────────────
+   Spacing/icon px values per size (Helios hardcodes these; they are not design
+   tokens), replicated as local custom properties consumed by the parts below. */
+
+[data-scope='collapsible'][data-part='root'][data-size='small'] {
+  --collapsible-padding: 8px;
+  --collapsible-icon-size: 16px;
+  --collapsible-font-size: var(--token-typography-body-100-font-size);
+  --collapsible-line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-scope='collapsible'][data-part='root'][data-size='medium'] {
+  --collapsible-padding: var(--token-form-control-padding);
+  --collapsible-icon-size: 20px;
+  --collapsible-font-size: var(--token-typography-body-200-font-size);
+  --collapsible-line-height: var(--token-typography-body-200-line-height);
+}
+
+[data-scope='collapsible'][data-part='root'][data-size='large'] {
+  --collapsible-padding: 16px;
+  --collapsible-icon-size: 24px;
+  --collapsible-font-size: var(--token-typography-body-300-font-size);
+  --collapsible-line-height: var(--token-typography-body-300-line-height);
+}
+
+/* ─── Root ─────────────────────────────────────────────────────────────────── */
+
+[data-scope='collapsible'][data-part='root'] {
+  display: block flex;
+  flex-direction: column;
+
+  /* Card variant: bordered, rounded surface. */
+  &[data-variant='card'] {
+    border: 1px solid var(--token-color-border-primary);
+    border-radius: var(--token-border-radius-medium);
+  }
+}
+
+/* ─── Trigger (native <button>) ────────────────────────────────────────────── */
+
+[data-scope='collapsible'][data-part='trigger'] {
+  cursor: pointer;
+
+  display: block flex;
+  gap: var(--collapsible-padding);
+  align-items: center;
+  justify-content: space-between;
+
+  inline-size: 100%;
+  padding-block: var(--collapsible-padding);
+  padding-inline: var(--collapsible-padding);
+  border: none;
+  border-radius: var(--token-border-radius-medium);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--collapsible-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--collapsible-line-height);
+  color: var(--token-color-foreground-primary);
+  text-align: start;
+
+  background: var(--token-color-surface-faint);
+
+  &[data-state='open'] {
+    /* foreground-action (#1060ff) fails on surface-interactive-active (#dedfe3,
+       ~3.8:1). Use foreground-strong (#0c0c0e) which clears 4.5:1 on any surface. */
+    color: var(--token-color-foreground-strong);
+    background: var(--token-color-surface-interactive-active);
+  }
+
+  &[data-disabled] {
+    cursor: not-allowed;
+
+    /* foreground-disabled (#8c909c) fails axe even on near-white surfaces.
+       Use foreground-faint (#656a76, ~5.7:1 on white) for the text; convey
+       disabled state via cursor + the background tint, not by dimming below AA. */
+    color: var(--token-color-foreground-faint);
+    background: var(--token-color-surface-interactive-disabled);
+  }
+}
+
+/* Keyboard focus only — Ark exposes NO data-focus-visible on the trigger (its
+   attrs are data-scope/data-part/data-state/data-disabled). The trigger is a
+   native <button>, so the native :focus-visible pseudo draws the ring; never
+   decorate mouse focus. Declared before the hover tint so the lower-specificity
+   focus-ring rule precedes the higher-specificity :not() tint (stylelint
+   no-descending-specificity). */
+[data-scope='collapsible'][data-part='trigger']:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Hover/active tint — keyboard parity: focus-visible gets the same affordance as
+   hover. Kept off disabled and off the open state (which carries its own bg). */
+[data-scope='collapsible'][data-part='trigger']:not([data-disabled], [data-state='open']) {
+  &:hover,
+  &:focus-visible {
+    color: var(--token-color-foreground-action-hover);
+    background: var(--token-color-surface-interactive-hover);
+  }
+}
+
+/* ─── Indicator (chevron) ──────────────────────────────────────────────────── */
+
+[data-scope='collapsible'][data-part='indicator'] {
+  transform-origin: center;
+
+  display: inline flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--collapsible-icon-size);
+  block-size: var(--collapsible-icon-size);
+
+  color: var(--token-color-foreground-faint);
+
+  transition: transform var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  &[data-state='open'] {
+    transform: rotate(90deg);
+  }
+
+  &[data-disabled] {
+    color: var(--token-color-foreground-faint);
+  }
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* ─── Content ──────────────────────────────────────────────────────────────── */
+
+[data-scope='collapsible'][data-part='content'] {
+  overflow: hidden;
+
+  padding-block: var(--collapsible-padding);
+  padding-inline: var(--collapsible-padding);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--collapsible-font-size);
+  line-height: var(--collapsible-line-height);
+  color: var(--token-color-foreground-primary);
+
+  &[data-state='open'] {
+    animation-name: collapsible-expand;
+    animation-duration: var(--token-form-toggle-transition-duration);
+    animation-timing-function: var(--token-form-toggle-transition-timing-function);
+
+    [data-reduced-motion='reduce'] & {
+      animation-name: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      animation-name: none;
+    }
+  }
+
+  &[data-state='closed'] {
+    animation-name: collapsible-collapse;
+    animation-duration: var(--token-form-toggle-transition-duration);
+    animation-timing-function: var(--token-form-toggle-transition-timing-function);
+
+    [data-reduced-motion='reduce'] & {
+      animation-name: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      animation-name: none;
+    }
   }
 }

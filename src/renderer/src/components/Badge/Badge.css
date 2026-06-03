@@ -1,0 +1,183 @@
+/**
+ * Badge — token-styled presentational component, built to the Helios Badge
+ * specification (https://helios.hashicorp.design/components/badge).
+ *
+ * Badge has no Ark UI primitive (it is a non-interactive metadata label), so
+ * per the unstyled-primitives-ark ADR scope clarification it is built on a
+ * plain `<span>`. The wrapper sets its own `data-part` attributes
+ * (`root`/`icon`/`text`) and `data-color`/`data-variant`/`data-size` modifiers,
+ * and the CSS styles THOSE attribute selectors — keeping the project's
+ * attribute-selector convention with no class names.
+ *
+ * Every value resolves to a Helios semantic `--token-*` custom property. Helios'
+ * own Badge CSS reaches for `--token-color-palette-*` directly; this project
+ * forbids palette tokens (semantic only), so the palette references are mapped
+ * to their semantic equivalents:
+ *   - neutral filled    → surface-strong / foreground-primary
+ *   - neutral outlined  → border-strong  / foreground-primary
+ *   - {status} filled   → surface-{status} / foreground-{status}-on-surface
+ *   - {status} outlined → border-{status}  / foreground-{status}
+ * The semantic token set already swaps per color-mode, so a single `neutral`
+ * color covers Helios' separate `neutral` / `neutral-dark-mode` colors.
+ *
+ * The per-size icon box dimension is a local `--badge-icon-size` custom property
+ * (Helios hardcodes it; it is not a design token), mirroring Avatar's
+ * `--avatar-size` pattern. The text typography maps to the Helios body
+ * typography tokens.
+ *
+ * Badge is fully static: no focus ring, no hover/open/disabled state, and no
+ * transition or animation — so there is nothing to suppress under reduced
+ * motion.
+ */
+
+/* ─── Size scale ─────────────────────────────────────────────────────────────
+   Each size sets gap, min-block-size, padding, the local icon box dimension,
+   and the body-typography tokens the text consumes. */
+
+[data-scope='badge'][data-part='root'][data-size='small'] {
+  --badge-icon-size: 0.75rem;
+  --badge-font-size: var(--token-typography-body-200-font-size);
+  --badge-line-height: var(--token-typography-body-200-line-height);
+
+  gap: var(--token-spacing-02);
+  min-block-size: 1.25rem;
+  padding-block: calc(0.125rem - 1px);
+  padding-inline: calc(0.375rem - 1px);
+}
+
+[data-scope='badge'][data-part='root'][data-size='medium'] {
+  --badge-icon-size: 1rem;
+  --badge-font-size: var(--token-typography-body-200-font-size);
+  --badge-line-height: var(--token-typography-body-200-line-height);
+
+  gap: var(--token-spacing-02);
+  min-block-size: 1.5rem;
+  padding-block: calc(0.25rem - 1px);
+  padding-inline: calc(0.5rem - 1px);
+}
+
+[data-scope='badge'][data-part='root'][data-size='large'] {
+  --badge-icon-size: 1rem;
+  --badge-font-size: var(--token-typography-body-300-font-size);
+  --badge-line-height: var(--token-typography-body-300-line-height);
+
+  gap: var(--token-spacing-03);
+  min-block-size: 2rem;
+  padding-block: calc(0.25rem - 1px);
+  padding-inline: calc(0.5rem - 1px);
+}
+
+/* ─── Root (container) ───────────────────────────────────────────────────────
+   Inline pill that flows with surrounding text. The transparent 1px border
+   keeps filled and outlined variants the same box size. */
+
+[data-scope='badge'][data-part='root'] {
+  display: inline flex;
+  align-items: center;
+
+  max-inline-size: 100%;
+
+  /* 1px matches the Helios Badge spec exactly; there is no semantic
+     border-width token in the Helios token surface (only component-scoped ones
+     like --token-form-control-border-width). The transparent border keeps the
+     filled and outlined variants the same box size. */
+  border: 1px solid transparent;
+  border-radius: var(--token-border-radius-small);
+
+  vertical-align: middle;
+}
+
+/* ─── Icon (optional, decorative) ────────────────────────────────────────── */
+
+[data-scope='badge'][data-part='icon'] {
+  display: block flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--badge-icon-size, 1rem);
+  block-size: var(--badge-icon-size, 1rem);
+
+  > svg {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+}
+
+/* ─── Text (the accessible name) ─────────────────────────────────────────── */
+
+[data-scope='badge'][data-part='text'] {
+  overflow: hidden;
+  flex: 1 0 0;
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--badge-font-size, var(--token-typography-body-200-font-size));
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--badge-line-height, var(--token-typography-body-200-line-height));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Color × variant ────────────────────────────────────────────────────────
+   filled  = tinted surface, transparent border.
+   outlined = transparent surface, semantic border + stronger foreground. */
+
+/* Neutral */
+[data-scope='badge'][data-part='root'][data-color='neutral'][data-variant='filled'] {
+  color: var(--token-color-foreground-primary);
+  background-color: var(--token-color-surface-strong);
+}
+
+[data-scope='badge'][data-part='root'][data-color='neutral'][data-variant='outlined'] {
+  border-color: var(--token-color-border-strong);
+  color: var(--token-color-foreground-primary);
+  background-color: transparent;
+}
+
+/* Highlight */
+[data-scope='badge'][data-part='root'][data-color='highlight'][data-variant='filled'] {
+  color: var(--token-color-foreground-highlight-on-surface);
+  background-color: var(--token-color-surface-highlight);
+}
+
+[data-scope='badge'][data-part='root'][data-color='highlight'][data-variant='outlined'] {
+  border-color: var(--token-color-border-highlight);
+  color: var(--token-color-foreground-highlight);
+  background-color: transparent;
+}
+
+/* Success */
+[data-scope='badge'][data-part='root'][data-color='success'][data-variant='filled'] {
+  color: var(--token-color-foreground-success-on-surface);
+  background-color: var(--token-color-surface-success);
+}
+
+[data-scope='badge'][data-part='root'][data-color='success'][data-variant='outlined'] {
+  border-color: var(--token-color-border-success);
+  color: var(--token-color-foreground-success);
+  background-color: transparent;
+}
+
+/* Warning */
+[data-scope='badge'][data-part='root'][data-color='warning'][data-variant='filled'] {
+  color: var(--token-color-foreground-warning-on-surface);
+  background-color: var(--token-color-surface-warning);
+}
+
+[data-scope='badge'][data-part='root'][data-color='warning'][data-variant='outlined'] {
+  border-color: var(--token-color-border-warning);
+  color: var(--token-color-foreground-warning);
+  background-color: transparent;
+}
+
+/* Critical */
+[data-scope='badge'][data-part='root'][data-color='critical'][data-variant='filled'] {
+  color: var(--token-color-foreground-critical-on-surface);
+  background-color: var(--token-color-surface-critical);
+}
+
+[data-scope='badge'][data-part='root'][data-color='critical'][data-variant='outlined'] {
+  border-color: var(--token-color-border-critical);
+  color: var(--token-color-foreground-critical);
+  background-color: transparent;
+}

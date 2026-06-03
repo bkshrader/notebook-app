@@ -26,7 +26,13 @@ export interface PinInputProps extends PinInputRootProps {
  *
  * Styling is attached to Ark's `data-scope` / `data-part` attributes (see
  * PinInput.css) per the unstyled-primitives-ark ADR — no custom class names.
- * Focus ring is applied only on `data-focus-visible` (keyboard focus).
+ * Ark exposes NO `data-focus-visible` attribute on the Input part, so the
+ * keyboard focus ring is drawn with the native `:focus-visible` pseudo.
+ *
+ * Ark Root props pass through, including `invalid`, `disabled`, `readOnly`, and
+ * `required` — Ark reflects each onto its parts (e.g. `data-readonly` on the
+ * Root + Label, `data-required` on the Label, `data-invalid`/`data-disabled` on
+ * the Input) and PinInput.css styles them.
  */
 export const PinInput = forwardRef<HTMLDivElement, PinInputProps>(function PinInput(
   { label, length = 4, children, ...rootProps },
@@ -34,7 +40,14 @@ export const PinInput = forwardRef<HTMLDivElement, PinInputProps>(function PinIn
 ) {
   return (
     <ArkPinInput.Root ref={ref} {...rootProps}>
-      <ArkPinInput.Label>{label}</ArkPinInput.Label>
+      <ArkPinInput.Label>
+        {label}
+        {rootProps.required ? (
+          <span data-scope="pin-input" data-part="required-indicator" aria-hidden="true">
+            {' *'}
+          </span>
+        ) : null}
+      </ArkPinInput.Label>
       <ArkPinInput.Control>
         {Array.from({ length }, (_, index) => (
           <ArkPinInput.Input key={index} index={index} />

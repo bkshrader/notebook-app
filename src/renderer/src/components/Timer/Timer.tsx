@@ -4,6 +4,9 @@ import { Timer as ArkTimer, type TimerRootProps } from '@ark-ui/react/timer';
 
 import './Timer.css';
 
+/** Visual scale of the timer. Drives the per-size `--timer-*` layout vars in Timer.css. */
+export type TimerSize = 'small' | 'medium' | 'large';
+
 export interface TimerProps extends TimerRootProps {
   /**
    * Human-readable label describing the timer's purpose.
@@ -16,28 +19,37 @@ export interface TimerProps extends TimerRootProps {
    * tick by live-region aware ATs; this label provides persistent context.
    */
   label: string;
+
+  /**
+   * Visual scale. Surfaced on the root as `data-size`, which selects a set of
+   * `--timer-*` layout custom properties in Timer.css (segment padding, gaps).
+   *
+   * @default 'medium'
+   */
+  size?: TimerSize;
 }
 
 /**
  * Token-styled wrapper over Ark UI's Timer.
  *
- * Anatomy (from @ark-ui/react/timer): Root > Area > Item (per TimePart) +
- * Separator, plus a Control > ActionTrigger group for start/pause/resume/reset.
- * Ark/Zag own the wiring and ARIA attributes; we style via data-scope/data-part.
+ * Anatomy (DOM-verified against @ark-ui/react/timer): Root > Area > Item (per
+ * TimePart) + Separator, plus a Control > ActionTrigger group for
+ * start/pause/resume/reset. Every node emits `data-scope='timer'` with its
+ * `data-part`; Ark/Zag own the wiring and ARIA attributes, and we style via
+ * those data attributes (see Timer.css) per the unstyled-primitives-ark ADR —
+ * no custom class names.
  *
  * The timer area is a live region announcing elapsed/remaining time — see the
  * `translations.areaLabel` prop above.
- *
- * Styling is attached to Ark's `data-scope`/`data-part` attributes (see
- * Timer.css) per the unstyled-primitives-ark ADR — no custom class names.
  */
 export const Timer = forwardRef<HTMLDivElement, TimerProps>(function Timer(
-  { label, translations, children, ...rootProps },
+  { label, size = 'medium', translations, children, ...rootProps },
   ref,
 ) {
   return (
     <ArkTimer.Root
       ref={ref}
+      data-size={size}
       translations={{
         ...translations,
         areaLabel: translations?.areaLabel ?? (() => label),

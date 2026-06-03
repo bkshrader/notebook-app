@@ -8,3 +8,5 @@ pnpm-lock.yaml
 .claude/worktrees/
 # fallow audit baselines are generated tooling output, not hand-edited source.
 .fallow/
+# Agent scratch space (audit findings, intermediate results) — not source.
+.claude/tmp/

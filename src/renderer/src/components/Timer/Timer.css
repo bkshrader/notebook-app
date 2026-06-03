@@ -2,32 +2,67 @@
  * Timer — token-styled Ark UI primitive.
  *
  * Styling targets Ark's `data-scope`/`data-part` attributes (per the
- * unstyled-primitives-ark ADR) rather than custom class names. Every visual
- * value resolves to a Helios `--token-*` custom property. No raw literals, no
- * `--token-color-palette-*`.
+ * unstyled-primitives-ark ADR) rather than custom class names. The live Ark
+ * Timer DOM emits `data-scope='timer'` with `data-part` on every node we style:
+ * root, area, item, item-label, item-value, separator, control, and
+ * action-trigger (DOM-verified against the running Storybook — the
+ * styling_guide MCP lists only STATE attrs, so a "part not emitted" audit
+ * claim on these structural parts is a false positive). Every visual value
+ * resolves to a Helios `--token-*` custom property (or a per-size local
+ * `--timer-*` layout var); no raw colors, no `--token-color-palette-*`.
  *
  * The timer is a display-only widget (Tier A-Display): no complex keyboard nav,
- * but the action trigger buttons must have a visible focus ring.
+ * but the action-trigger buttons must have a visible keyboard focus ring.
  *
- * Focus ring applied ONLY on [data-focus-visible] (keyboard focus). Motion
- * suppressed via BOTH `prefers-reduced-motion` media query AND
+ * ActionTrigger renders a native <button>. Ark exposes NO `data-focus-visible`
+ * attribute on it (DOM-verified: the only attrs are data-scope, data-part,
+ * type), so the keyboard focus ring uses the native `:focus-visible` pseudo —
+ * never a `[data-focus-visible]` attribute selector (which would never match)
+ * and never plain `:focus` (which would also decorate mouse focus).
+ *
+ * Motion is suppressed via BOTH `prefers-reduced-motion` and
  * `[data-reduced-motion='reduce']` (Storybook toolbar), each animated selector
  * getting its own per-selector reset (stylelint a11y rule requires per-selector).
  * Logical properties used throughout (no width/height/padding-left).
  */
 
 [data-scope='timer'][data-part='root'] {
+  /* Per-size layout scale (medium default); the [data-size] blocks below
+     override these. declaration-strict-value does not gate gap/padding, so
+     layout uses raw px rather than borrowing a semantic color/border token. */
+  --timer-area-gap: 4px;
+  --timer-item-padding-block: 6px;
+  --timer-item-padding-inline: 8px;
+  --timer-control-gap: 8px;
+  --timer-stack-gap: 12px;
+
   display: block flex;
   flex-direction: column;
-  gap: var(--token-form-toggle-background-image-size);
+  gap: var(--timer-stack-gap);
 
   font-family: var(--token-typography-body-200-font-family);
   color: var(--token-color-foreground-primary);
+
+  &[data-size='small'] {
+    --timer-area-gap: 2px;
+    --timer-item-padding-block: 4px;
+    --timer-item-padding-inline: 6px;
+    --timer-control-gap: 6px;
+    --timer-stack-gap: 8px;
+  }
+
+  &[data-size='large'] {
+    --timer-area-gap: 6px;
+    --timer-item-padding-block: 8px;
+    --timer-item-padding-inline: 12px;
+    --timer-control-gap: 12px;
+    --timer-stack-gap: 16px;
+  }
 }
 
 [data-scope='timer'][data-part='area'] {
   display: block flex;
-  gap: var(--token-form-toggle-border-width);
+  gap: var(--timer-area-gap);
   align-items: center;
 }
 
@@ -37,8 +72,8 @@
   align-items: center;
 
   min-inline-size: 2ch;
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--timer-item-padding-block);
+  padding-inline: var(--timer-item-padding-inline);
   border-radius: var(--token-border-radius-medium);
 
   font-family: var(--token-typography-font-stack-code);
@@ -75,7 +110,7 @@
 
 [data-scope='timer'][data-part='control'] {
   display: block flex;
-  gap: var(--token-border-radius-medium);
+  gap: var(--timer-control-gap);
 }
 
 [data-scope='timer'][data-part='action-trigger'] {
@@ -97,15 +132,15 @@
 
   background: var(--token-color-surface-interactive);
 
+  /* form-toggle transition (0.2s) — an interaction-speed duration, unlike the
+     slower tabs-indicator transition (0.6s) some siblings borrowed. */
   transition: background-color var(--token-form-toggle-transition-duration)
     var(--token-form-toggle-transition-timing-function);
 
-  [data-reduced-motion='reduce'] & {
-    transition: none;
-  }
-
+  /* Hover and keyboard focus share the same background affordance (keyboard
+     parity); paired in one rule per the a11y/selector-pseudo-class-focus rule. */
   &:hover,
-  &:focus {
+  &:focus-visible {
     background: var(--token-color-surface-interactive-hover);
   }
 
@@ -113,13 +148,20 @@
     background: var(--token-color-surface-interactive-active);
   }
 
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  /* Keyboard focus ring only — native :focus-visible (Ark exposes NO
+     data-focus-visible attribute on this native <button>, DOM-verified). Never
+     plain :focus, which would also fire on mouse press. The replaced
+     box-shadow is the alternative affordance for the removed outline. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
-}
-
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='timer'][data-part='action-trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
 }

@@ -1,20 +1,76 @@
-/* Styling targets Ark's data-scope/data-part attributes (per the
+/**
+ * Steps — token-styled Ark UI primitive.
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
- * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
- * motion suppressed via BOTH the prefers-reduced-motion media query AND the
- * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
- * selector getting its OWN reduced-motion reset. */
+ * value resolves to a Helios `--token-*` custom property; the only bare values
+ * are the per-size SPACING / indicator px values, which Helios itself hardcodes
+ * (they are not design tokens) — replicated here as local `--steps-*` properties
+ * keyed off `[data-size]`, mirroring the Accordion size-scale pattern.
+ *
+ * State comes from Ark's data-attributes, VERIFIED against the live DOM
+ * (http://localhost:6006/iframe.html?id=components-navigation-steps--default):
+ *   - The step Trigger is a native <button role="tab">. Its only attributes are
+ *     data-state, data-orientation, and one of data-current / data-complete /
+ *     data-incomplete. Ark exposes NO data-focus-visible and NO data-disabled on
+ *     the trigger (unreachable steps are gated with tabindex="-1" +
+ *     data-incomplete, never a disabled attribute), so:
+ *       * keyboard focus styling uses the native :focus-visible pseudo, and
+ *       * there is no trigger-disabled rule (it would be dead).
+ *   - The Indicator carries data-current / data-complete / data-incomplete.
+ *   - The Separator carries data-complete and data-orientation.
+ *   - PrevTrigger / NextTrigger are native <button> elements that carry the
+ *     native `disabled` attribute (matched with :disabled, not data-disabled).
+ *
+ * Motion: the separator fill transition is suppressed under reduced motion —
+ * both the OS `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute on <html>.
+ */
+
+/* ─── Root + size scale ─────────────────────────────────────────────────────────
+   Helios has no generic spacing token scale; these per-size px values are bare
+   (as in Accordion). Set on the root and inherited by every part. */
 
 [data-scope='steps'][data-part='root'] {
+  --steps-gap: 8px;
+  --steps-indicator-size: 2.5rem;
+  --steps-trigger-padding-block: 6px;
+  --steps-content-padding-block: 6px;
+  --steps-separator-margin: 8px;
+  --steps-label-font-size: var(--token-typography-body-200-font-size);
+  --steps-label-line-height: var(--token-typography-body-200-line-height);
+
   display: block flex;
   flex-direction: column;
   inline-size: 100%;
+  font-family: var(--token-typography-font-stack-text);
+
+  &[data-size='small'] {
+    --steps-gap: 6px;
+    --steps-indicator-size: 2rem;
+    --steps-trigger-padding-block: 4px;
+    --steps-content-padding-block: 4px;
+    --steps-separator-margin: 6px;
+    --steps-label-font-size: var(--token-typography-body-100-font-size);
+    --steps-label-line-height: var(--token-typography-body-100-line-height);
+  }
+
+  &[data-size='large'] {
+    --steps-gap: 12px;
+    --steps-indicator-size: 3rem;
+    --steps-trigger-padding-block: 8px;
+    --steps-content-padding-block: 8px;
+    --steps-separator-margin: 12px;
+    --steps-label-font-size: var(--token-typography-body-300-font-size);
+    --steps-label-line-height: var(--token-typography-body-300-line-height);
+  }
 
   &[data-orientation='vertical'] {
     flex-direction: row;
   }
 }
+
+/* ─── List ─────────────────────────────────────────────────────────────────── */
 
 [data-scope='steps'][data-part='list'] {
   display: block flex;
@@ -26,6 +82,8 @@
     align-items: flex-start;
   }
 }
+
+/* ─── Item ─────────────────────────────────────────────────────────────────── */
 
 [data-scope='steps'][data-part='item'] {
   position: relative;
@@ -42,39 +100,48 @@
   }
 }
 
+/* ─── Trigger (native <button role="tab">) ─────────────────────────────────── */
+
 [data-scope='steps'][data-part='trigger'] {
   cursor: pointer;
 
+  position: relative;
+
   display: block flex;
-  gap: var(--token-border-radius-medium);
+  gap: var(--steps-gap);
   align-items: center;
 
-  padding-block: var(--token-border-radius-medium);
+  padding-block: var(--steps-trigger-padding-block);
   padding-inline: 0;
   border: none;
 
   font-family: var(--token-typography-font-stack-text);
-  font-size: var(--token-typography-body-200-font-size);
+  font-size: var(--steps-label-font-size);
   font-weight: var(--token-typography-font-weight-medium);
-  line-height: var(--token-typography-body-200-line-height);
+  line-height: var(--steps-label-line-height);
   color: var(--token-color-foreground-primary);
 
   background: transparent;
 
-  &[data-focus-visible] {
+  /* Keyboard focus only — Ark exposes NO data-focus-visible attribute on the
+     trigger (verified in the live DOM), so the ring must hang off the native
+     :focus-visible pseudo or it never renders. outline:none is paired with the
+     box-shadow ring in the same rule (a11y/no-outline-none alternative). */
+  &:focus-visible {
+    border-radius: var(--token-border-radius-small);
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
-
-  &[data-disabled] {
-    cursor: default;
-
-    /* foreground-disabled (#8c909c) is 3.18:1 on white — fails WCAG AA.
-     Use foreground-faint (#656a76, 4.59:1) for text; communicate disabled
-     state via cursor, data-disabled chrome, and reduced-opacity indicators. */
-    color: var(--token-color-foreground-faint);
-  }
 }
+
+/* ─── Item title (our own label span) ──────────────────────────────────────── */
+
+[data-scope='steps'][data-part='item-title'] {
+  font-size: var(--steps-label-font-size);
+  line-height: var(--steps-label-line-height);
+}
+
+/* ─── Indicator (the numbered circle) ──────────────────────────────────────── */
 
 [data-scope='steps'][data-part='indicator'] {
   display: block flex;
@@ -82,14 +149,14 @@
   align-items: center;
   justify-content: center;
 
-  inline-size: 2.5rem;
-  block-size: 2.5rem;
+  inline-size: var(--steps-indicator-size);
+  block-size: var(--steps-indicator-size);
   border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
   border-radius: var(--token-border-radius-large);
 
-  font-size: var(--token-typography-body-200-font-size);
+  font-size: var(--steps-label-font-size);
   font-weight: var(--token-typography-font-weight-semibold);
-  line-height: var(--token-typography-body-200-line-height);
+  line-height: var(--steps-label-line-height);
   color: var(--token-color-foreground-primary);
 
   background: var(--token-color-surface-primary);
@@ -113,23 +180,23 @@
   }
 }
 
+/* ─── Separator (the connector line) ───────────────────────────────────────── */
+
 [data-scope='steps'][data-part='separator'] {
   flex: 1;
 
   block-size: var(--token-form-control-border-width);
-  margin-inline: var(--token-border-radius-medium);
+  margin-inline: var(--steps-separator-margin);
 
   background: var(--token-color-border-primary);
 
-  transition: background-color var(--token-tabs-indicator-transition-duration)
-    var(--token-tabs-indicator-transition-function);
+  /* Interaction-speed fill, NOT the 0.6s tabs indicator timing (borrowed token
+     was too slow for a step advance). form-toggle ≈ 0.2s. */
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
 
   &[data-complete] {
     background: var(--token-color-border-success);
-  }
-
-  [data-reduced-motion='reduce'] & {
-    transition: none;
   }
 
   &[data-orientation='vertical'] {
@@ -138,17 +205,23 @@
     block-size: 100%;
   }
 
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
 }
 
+/* ─── Content (the step panel) ─────────────────────────────────────────────── */
+
 [data-scope='steps'][data-part='content'] {
-  padding-block: var(--token-border-radius-medium);
+  padding-block: var(--steps-content-padding-block);
   border-radius: var(--token-border-radius-medium);
 
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--steps-label-font-size);
+  line-height: var(--steps-label-line-height);
   color: var(--token-color-foreground-primary);
 
   background: var(--token-color-surface-faint);
@@ -158,9 +231,74 @@
   }
 }
 
+/* ─── Actions (our own Prev/Next row) ──────────────────────────────────────── */
+
 [data-scope='steps'][data-part='actions'] {
   display: block flex;
-  gap: var(--token-border-radius-medium);
+  gap: var(--steps-gap);
   justify-content: flex-end;
-  padding-block-start: var(--token-border-radius-medium);
+  padding-block-start: var(--steps-gap);
+}
+
+/* ─── Prev / Next triggers (native <button>) ───────────────────────────────── */
+
+[data-scope='steps'][data-part='prev-trigger'],
+[data-scope='steps'][data-part='next-trigger'] {
+  cursor: pointer;
+
+  padding-block: var(--steps-trigger-padding-block);
+  padding-inline: var(--token-border-radius-medium);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-action);
+  border-radius: var(--token-border-radius-small);
+
+  font-family: var(--token-typography-font-stack-text);
+  font-size: var(--steps-label-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--steps-label-line-height);
+
+  /* Bordered action button (matches Clipboard): foreground-action on a white
+     surface-interactive — NOT white-on-surface-action (#f2f8ff), which fails
+     contrast. */
+  color: var(--token-color-foreground-action);
+
+  background: var(--token-color-surface-interactive);
+
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  /* Hover affordance with keyboard parity via :focus-visible (NOT bare :focus,
+     which would leave the tint stuck after a mouse click). */
+  &:hover,
+  &:focus-visible {
+    background: var(--token-color-surface-interactive-hover);
+  }
+
+  &:active {
+    background: var(--token-color-surface-interactive-active);
+  }
+
+  /* Keyboard focus only — these are native <button>s; Ark emits no
+     data-focus-visible attribute. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  /* Native disabled attribute (Ark sets `disabled`, not data-disabled, on these
+     action buttons — verified in the live DOM). foreground-disabled (#8c909c)
+     fails AA as text; use foreground-faint and signal via cursor + faint chrome. */
+  &:disabled {
+    cursor: default;
+    border-color: var(--token-color-border-faint);
+    color: var(--token-color-foreground-faint);
+    background: var(--token-color-surface-interactive-disabled);
+  }
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }

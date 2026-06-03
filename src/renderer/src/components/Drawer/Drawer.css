@@ -1,11 +1,14 @@
 /* Styling targets Ark's data-scope/data-part attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
- * motion suppressed via BOTH the prefers-reduced-motion media query AND the
- * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
- * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
- * per-selector, so comma-grouped resets fail). */
+ * --token-color-palette-*. The Trigger and CloseTrigger are native
+ * HTMLButtonElement parts (Ark exposes data-state/data-value/data-current on
+ * them, NOT data-focus-visible), so the keyboard focus ring uses the native
+ * :focus-visible pseudo-class. Reduced motion suppressed via BOTH the
+ * prefers-reduced-motion media query AND the [data-reduced-motion='reduce']
+ * attribute (Storybook toolbar), each animated selector getting its OWN
+ * reduced-motion reset (stylelint a11y rule matches per-selector, so
+ * comma-grouped resets fail). */
 
 /* Backdrop — the scrim behind the drawer panel */
 [data-scope='drawer'][data-part='backdrop'] {
@@ -15,21 +18,21 @@
   background: var(--token-color-surface-strong);
 
   &[data-state='open'] {
-    animation: drawer-backdrop-in var(--token-tabs-indicator-transition-duration)
-      var(--token-tabs-indicator-transition-function);
+    animation: drawer-backdrop-in var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 
   &[data-state='closed'] {
-    animation: drawer-backdrop-out var(--token-tabs-indicator-transition-duration)
-      var(--token-tabs-indicator-transition-function);
+    animation: drawer-backdrop-out var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 }
 
@@ -104,21 +107,21 @@
   }
 
   &[data-state='open'] {
-    animation: drawer-content-in var(--token-tabs-indicator-transition-duration)
-      var(--token-tabs-indicator-transition-function);
+    animation: drawer-content-in var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 
   &[data-state='closed'] {
-    animation: drawer-content-out var(--token-tabs-indicator-transition-duration)
-      var(--token-tabs-indicator-transition-function);
+    animation: drawer-content-out var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 }
 
@@ -174,8 +177,11 @@
   color: var(--token-color-foreground-strong);
 }
 
-/* Trigger button */
+/* Trigger button — a native <button> (Ark renders no data-focus-visible on it),
+   so the keyboard focus ring uses the native :focus-visible pseudo-class. */
 [data-scope='drawer'][data-part='trigger'] {
+  cursor: pointer;
+
   padding-block: var(--token-form-control-padding);
   padding-inline: var(--token-form-control-padding);
   border: var(--token-form-control-border-width) solid var(--token-color-border-action);
@@ -188,14 +194,28 @@
 
   background: var(--token-color-surface-primary);
 
-  &[data-focus-visible] {
+  /* Hover and keyboard-focus share the interactive tint (a11y parity). */
+  &:hover,
+  &:focus-visible {
+    background: var(--token-color-surface-interactive-hover);
+  }
+
+  &:active {
+    background: var(--token-color-surface-interactive-active);
+  }
+
+  /* Keyboard focus ring only — native :focus-visible (Ark exposes no
+     data-focus-visible attribute on this native button). */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 }
 
-/* Close trigger button */
+/* Close trigger button — same native-button rationale as the trigger above. */
 [data-scope='drawer'][data-part='close-trigger'] {
+  cursor: pointer;
+
   padding-block: var(--token-form-control-padding);
   padding-inline: var(--token-form-control-padding);
   border: var(--token-form-control-border-width) solid var(--token-color-border-action);
@@ -208,7 +228,19 @@
 
   background: var(--token-color-surface-primary);
 
-  &[data-focus-visible] {
+  /* Hover and keyboard-focus share the interactive tint (a11y parity). */
+  &:hover,
+  &:focus-visible {
+    background: var(--token-color-surface-interactive-hover);
+  }
+
+  &:active {
+    background: var(--token-color-surface-interactive-active);
+  }
+
+  /* Keyboard focus ring only — native :focus-visible (Ark exposes no
+     data-focus-visible attribute on this native button). */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }

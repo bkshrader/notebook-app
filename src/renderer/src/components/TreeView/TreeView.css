@@ -1,7 +1,10 @@
 /* Styling targets Ark's data-scope/data-part attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
+ * --token-color-palette-*. The keyboard focus ring is drawn via the native
+ * :focus-visible pseudo-class: Ark's BranchControl/Item emit data-focus on ANY
+ * focus (verified against the live DOM), so :focus-visible is what restricts the
+ * ring to keyboard focus per WCAG 2.4.7 (matching the Accordion pattern). Reduced
  * motion suppressed via BOTH the prefers-reduced-motion media query AND the
  * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
  * selector getting its OWN reduced-motion reset. Logical properties used
@@ -98,7 +101,10 @@
     opacity: 0.6;
   }
 
-  &[data-focus-visible] {
+  /* Keyboard focus ring. Ark emits data-focus on any focus (mouse included),
+   * so the native :focus-visible pseudo is what scopes the ring to keyboard
+   * focus per WCAG 2.4.7. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -115,7 +121,8 @@
 
   color: var(--token-app-side-nav-color-foreground-faint);
 
-  transition: transform var(--token-form-radiocard-transition-duration) ease;
+  transition: transform var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
 
   &[data-state='open'] {
     transform: rotate(90deg);
@@ -150,19 +157,19 @@
   overflow: hidden;
 
   &[data-state='open'] {
-    animation: tree-view-slide-down var(--token-form-radiocard-transition-duration) ease-out;
+    animation: tree-view-slide-down var(--token-form-toggle-transition-duration) ease-out;
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 
   &[data-state='closed'] {
-    animation: tree-view-slide-up var(--token-form-radiocard-transition-duration) ease-out;
+    animation: tree-view-slide-up var(--token-form-toggle-transition-duration) ease-out;
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
+    @media screen and (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 }
 
@@ -250,7 +257,10 @@
     opacity: 0.6;
   }
 
-  &[data-focus-visible] {
+  /* Keyboard focus ring. Ark emits data-focus on any focus (mouse included),
+   * so the native :focus-visible pseudo is what scopes the ring to keyboard
+   * focus per WCAG 2.4.7. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }

@@ -1,11 +1,23 @@
 /* Styling targets Ark's data-scope/data-part attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
- * motion suppressed via BOTH the prefers-reduced-motion media query AND the
- * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
- * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
- * per-selector, so comma-grouped resets fail). */
+ * --token-color-palette-*.
+ *
+ * State comes from Ark's data-attributes (DOM-verified against the live
+ * toggle-group story — only these are emitted on the Item button):
+ *   data-scope='toggle-group'  data-part='root'|'item'
+ *   data-orientation           (root + item)
+ *   data-state='on'|'off'      (item, the pressed state)
+ *   data-disabled              (root + item)
+ * Ark emits NO data-focus and NO data-focus-visible on the Item — it renders a
+ * native <button>, so the keyboard focus ring uses the native :focus-visible
+ * pseudo-class. (An earlier [data-focus-visible] selector here was a phantom:
+ * it never matched, so the keyboard ring never rendered.)
+ *
+ * Reduced motion is suppressed via BOTH the prefers-reduced-motion media query
+ * AND the [data-reduced-motion='reduce'] attribute (Storybook toolbar), each
+ * animated selector getting its OWN reduced-motion reset (the stylelint a11y
+ * rule matches per-selector, so comma-grouped resets fail). */
 
 [data-scope='toggle-group'][data-part='root'] {
   display: inline flex;
@@ -47,10 +59,20 @@
 
   background-color: transparent;
 
-  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+  /* toggle-specific timing token (0.2s) — not the borrowed radiocard one. */
+  transition: background-color var(--token-form-toggle-transition-duration) ease;
 
   [data-reduced-motion='reduce'] & {
     transition: none;
+  }
+
+  /* Keyboard focus ring — native :focus-visible (Ark exposes no
+     data-focus-visible on the Item button; the old attribute selector never
+     matched, so this ring never rendered). Declared before the higher-specificity
+     hover/state rules to satisfy no-descending-specificity. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 
   &:hover:not([data-disabled]),
@@ -82,11 +104,6 @@
 
     opacity: 0.6;
     background-color: transparent;
-  }
-
-  &[data-focus-visible] {
-    outline: none;
-    box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 
   @media (prefers-reduced-motion: reduce) {

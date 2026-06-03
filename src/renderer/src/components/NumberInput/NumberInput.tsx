@@ -7,9 +7,14 @@ import {
 
 import './NumberInput.css';
 
+/** Size scale for control padding and typography. Defaults to `medium`. */
+export type NumberInputSize = 'small' | 'medium' | 'large';
+
 export interface NumberInputProps extends NumberInputRootProps {
   /** Visible, screen-reader-announceable label. Required (WCAG 4.1.2). */
   label: React.ReactNode;
+  /** Size scale for control padding and typography. Defaults to `medium`. */
+  size?: NumberInputSize;
 }
 
 /**
@@ -24,13 +29,17 @@ export interface NumberInputProps extends NumberInputRootProps {
  * icon library is required. Styling is attached to Ark's `data-scope`/`data-part`
  * attributes (see NumberInput.css) per the unstyled-primitives-ark ADR — no
  * custom class names.
+ *
+ * `size` (small | medium | large) sets a single `data-size` on the Root; the
+ * CSS reads it once into local custom properties that drive padding and
+ * typography across every part (mirrors the Combobox/Helios size pattern).
  */
 export const NumberInput = forwardRef<HTMLDivElement, NumberInputProps>(function NumberInput(
-  { label, children, ...rootProps },
+  { label, children, size = 'medium', ...rootProps },
   ref,
 ) {
   return (
-    <ArkNumberInput.Root ref={ref} {...rootProps}>
+    <ArkNumberInput.Root ref={ref} data-size={size} {...rootProps}>
       <ArkNumberInput.Label>{label}</ArkNumberInput.Label>
       <ArkNumberInput.Control>
         <ArkNumberInput.Input />

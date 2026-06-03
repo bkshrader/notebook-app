@@ -6,13 +6,17 @@
  * value resolves to a Helios `--token-*` custom property. No raw literals,
  * no `--token-color-palette-*` palette tokens.
  *
- * State surfaces through Ark data-attributes:
- *   data-copied — present when the value has been copied to the clipboard
- *   data-readonly — present on the Input when read-only
- *   data-focus-visible — present on the Trigger on keyboard focus
+ * State surfaces through Ark data-attributes (verified against the Ark styling
+ * guide for `clipboard` — do NOT assume attributes Ark doesn't emit):
+ *   data-copied   — present on EVERY part (root, label, control, input,
+ *                   trigger) when the value has been copied to the clipboard
+ *   data-readonly — present on the Input only, when read-only
+ * Ark exposes NO data-focus-visible (nor data-focus) on the Trigger. The
+ * Trigger is a native <button>, so keyboard focus styling uses the native
+ * :focus-visible pseudo-class.
  *
- * Focus ring: applied ONLY on keyboard focus via [data-focus-visible], never
- * on every :focus or [data-focus].
+ * Focus ring: applied ONLY on keyboard focus via the native :focus-visible
+ * pseudo, never on every :focus.
  *
  * Reduced motion: the trigger transition is suppressed under BOTH the OS
  * `prefers-reduced-motion: reduce` media query AND the Storybook toolbar's
@@ -100,8 +104,10 @@
     transition: none;
   }
 
+  /* Hover affordance, with keyboard parity via :focus-visible (NOT bare :focus,
+     which would leave the tint stuck after a mouse click). */
   &:hover,
-  &:focus {
+  &:focus-visible {
     background: var(--token-color-surface-interactive-hover);
   }
 
@@ -119,8 +125,10 @@
   }
 }
 
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='clipboard'][data-part='trigger'][data-focus-visible] {
+/* Keyboard focus only — never decorate mouse focus. Ark exposes NO
+   data-focus-visible attribute on the Trigger; it is a native <button>, so the
+   keyboard focus ring uses the native :focus-visible pseudo. */
+[data-scope='clipboard'][data-part='trigger']:focus-visible {
   outline: none;
   box-shadow: var(--token-focus-ring-action-box-shadow);
 }

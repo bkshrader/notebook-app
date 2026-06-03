@@ -6,17 +6,21 @@
  * value resolves to a Helios `--token-*` custom property. No raw literals,
  * no `--token-color-palette-*`.
  *
- * State comes from Ark's data-attributes:
- *   - [data-part='item'][data-selected]    — currently active page
- *   - [data-part='prev-trigger'][data-disabled] etc. — first/last page edges
- *
- * Focus ring is applied ONLY on keyboard focus ([data-focus-visible]), never
- * on every focus. Each animated selector gets its own reduced-motion reset
- * (stylelint a11y rule matches per-selector, so comma-grouping animated
- * selectors fails the lint check).
+ * State comes from Ark's data-attributes (verified against the Ark styling
+ * guide — do NOT assume attributes Ark doesn't document):
+ *   data-selected   (on Item — the currently active page)
+ *   data-disabled   (on the *-trigger parts at the first/last page edges)
+ *   data-index      (on Item)
+ * Ark exposes NO data-focus-visible for any pagination part; every part is a
+ * native <button> (the ellipsis is a <div>). The keyboard focus ring therefore
+ * uses the native :focus-visible pseudo-class, never a data-attribute, so that
+ * the ring renders for keyboard users but not on mouse focus.
  */
 
-/* Root nav landmark — flex row wrapping all controls. */
+/* Root nav landmark — flex row wrapping all controls. The two-value `block
+   flex` display notation (block-level outer, flex inner) is required by our
+   stylelint `display-notation` rule; it is equivalent to the single-keyword
+   `flex` and computes to `display: flex`. */
 [data-scope='pagination'][data-part='root'] {
   display: block flex;
   flex-wrap: wrap;
@@ -225,38 +229,65 @@
   }
 }
 
-/* ─── Hover (non-selected, non-disabled) ───────────────────────────────── */
+/* ─── Keyboard focus ring (native :focus-visible only) ─────────────────── */
+
+/* Ark exposes NO data-focus-visible attribute on any pagination part (its parts
+   carry only data-scope/data-part plus data-selected / data-disabled / data-index
+   — confirmed against the Ark styling guide). The previous `[data-focus-visible]`
+   attribute selectors were dead and the ring never rendered. Every part is a
+   native <button>, so the keyboard focus ring uses the native :focus-visible
+   pseudo-class — it fires on keyboard focus but not on mouse focus.
+
+   Declared before the hover/selected/disabled rules so the higher-specificity
+   `:hover:not()` / `[data-*]` rules can still override the tint without
+   tripping stylelint's no-descending-specificity. */
+
+[data-scope='pagination'][data-part='item']:focus-visible,
+[data-scope='pagination'][data-part='prev-trigger']:focus-visible,
+[data-scope='pagination'][data-part='next-trigger']:focus-visible,
+[data-scope='pagination'][data-part='first-trigger']:focus-visible,
+[data-scope='pagination'][data-part='last-trigger']:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* ─── Hover / keyboard-focus tint (non-selected, non-disabled) ──────────── */
+
+/* Helios tints the control background on hover; keyboard parity gives
+   :focus-visible the same affordance. We deliberately do NOT use bare :focus
+   (that would also tint on mouse focus). The keyboard focus *ring* is the
+   separate :focus-visible rule above. */
 
 [data-scope='pagination'][data-part='item']:hover:not([data-selected], [data-disabled]),
-[data-scope='pagination'][data-part='item']:focus:not([data-selected], [data-disabled]) {
+[data-scope='pagination'][data-part='item']:focus-visible:not([data-selected], [data-disabled]) {
   border-color: var(--token-color-border-strong);
   color: var(--token-color-foreground-strong);
   background: var(--token-color-surface-interactive-hover);
 }
 
 [data-scope='pagination'][data-part='prev-trigger']:hover:not([data-disabled]),
-[data-scope='pagination'][data-part='prev-trigger']:focus:not([data-disabled]) {
+[data-scope='pagination'][data-part='prev-trigger']:focus-visible:not([data-disabled]) {
   border-color: var(--token-color-border-strong);
   color: var(--token-color-foreground-strong);
   background: var(--token-color-surface-interactive-hover);
 }
 
 [data-scope='pagination'][data-part='next-trigger']:hover:not([data-disabled]),
-[data-scope='pagination'][data-part='next-trigger']:focus:not([data-disabled]) {
+[data-scope='pagination'][data-part='next-trigger']:focus-visible:not([data-disabled]) {
   border-color: var(--token-color-border-strong);
   color: var(--token-color-foreground-strong);
   background: var(--token-color-surface-interactive-hover);
 }
 
 [data-scope='pagination'][data-part='first-trigger']:hover:not([data-disabled]),
-[data-scope='pagination'][data-part='first-trigger']:focus:not([data-disabled]) {
+[data-scope='pagination'][data-part='first-trigger']:focus-visible:not([data-disabled]) {
   border-color: var(--token-color-border-strong);
   color: var(--token-color-foreground-strong);
   background: var(--token-color-surface-interactive-hover);
 }
 
 [data-scope='pagination'][data-part='last-trigger']:hover:not([data-disabled]),
-[data-scope='pagination'][data-part='last-trigger']:focus:not([data-disabled]) {
+[data-scope='pagination'][data-part='last-trigger']:focus-visible:not([data-disabled]) {
   border-color: var(--token-color-border-strong);
   color: var(--token-color-foreground-strong);
   background: var(--token-color-surface-interactive-hover);
@@ -307,33 +338,6 @@
   border-color: var(--token-color-border-faint);
   color: var(--token-color-foreground-disabled);
   background: var(--token-color-surface-interactive-disabled);
-}
-
-/* ─── Keyboard focus ring (focus-visible only) ─────────────────────────── */
-
-[data-scope='pagination'][data-part='item'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
-}
-
-[data-scope='pagination'][data-part='prev-trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
-}
-
-[data-scope='pagination'][data-part='next-trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
-}
-
-[data-scope='pagination'][data-part='first-trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
-}
-
-[data-scope='pagination'][data-part='last-trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
 }
 
 /* ─── Ellipsis ─────────────────────────────────────────────────────────── */

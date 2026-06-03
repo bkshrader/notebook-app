@@ -1,0 +1,80 @@
+/**
+ * Separator — token-styled plain-HTML divider, built to the Helios Separator
+ * specification (https://helios.hashicorp.design/components/separator).
+ *
+ * Presentational component (a styled `<hr>`), so per the unstyled-primitives-ark
+ * ADR's scope clarification it has no Ark scope/part. We style our own
+ * `[data-part='separator']` attribute (set by the wrapper) rather than a class
+ * name, keeping the attribute-selector convention.
+ *
+ * Helios ground truth (from the live page stylesheet):
+ *   .hds-separator           { border-top: 1px solid var(--token-color-border-primary) }
+ *   .hds-separator--spacing-24 { margin: 24px 0 }   (default)
+ *   .hds-separator--spacing-0  { margin: 0 }
+ *
+ * We render the rule on the appropriate LOGICAL edge so the same component
+ * serves both orientations and tracks the writing mode:
+ *   - horizontal → a block-end-side rule + full inline size (a row divider)
+ *   - vertical   → an inline-end-side rule + full block size (a column divider)
+ *
+ * Every value resolves to a Helios `--token-*` custom property except the 24px
+ * spacing, which Helios itself hardcodes as a px margin (not a design token);
+ * replicated here as a local `--separator-spacing` custom property (1.5rem =
+ * 24px), mirroring how Avatar.css replicates Helios's hardcoded box sizes.
+ *
+ * Non-interactive: no focusable control, no hover/open/disabled state, so there
+ * is no focus ring, no state styling, and no motion to suppress.
+ */
+
+[data-part='separator'] {
+  border: 0 solid var(--token-color-border-primary);
+
+  /* The native <hr> carries UA color/margins; we own both via the rules below. */
+  color: var(--token-color-border-primary);
+}
+
+/* ─── Orientation ──────────────────────────────────────────────────────────── */
+
+[data-part='separator'][data-orientation='horizontal'] {
+  display: block flow;
+  inline-size: 100%;
+  block-size: 0;
+
+  /* The visible 1px rule (Helios draws it as a top border). */
+  border-block-start-width: 1px;
+}
+
+[data-part='separator'][data-orientation='vertical'] {
+  display: inline flow;
+  align-self: stretch;
+
+  inline-size: 0;
+
+  /* Fill the cross axis when no explicit height is given by the parent. */
+  min-block-size: 1rem;
+
+  /* The visible 1px rule on the inline edge for a column divider. */
+  border-inline-start-width: 1px;
+}
+
+/* ─── Spacing ─────────────────────────────────────────────────────────────────
+   Helios offers exactly two options: 24px (default) and 0. Applied on the cross
+   axis relative to the orientation, using logical margins. */
+
+[data-part='separator'][data-spacing='24'] {
+  --separator-spacing: 1.5rem; /* 24px — Helios hardcodes this px margin */
+}
+
+[data-part='separator'][data-spacing='0'] {
+  --separator-spacing: 0;
+}
+
+[data-part='separator'][data-orientation='horizontal'][data-spacing] {
+  margin-block: var(--separator-spacing, 1.5rem);
+  margin-inline: 0;
+}
+
+[data-part='separator'][data-orientation='vertical'][data-spacing] {
+  margin-block: 0;
+  margin-inline: var(--separator-spacing, 1.5rem);
+}

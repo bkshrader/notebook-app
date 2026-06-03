@@ -1,0 +1,418 @@
+/**
+ * SuperSelect — token-styled Ark UI Combobox, built to the Helios Super Select
+ * spec (https://helios.hashicorp.design/components/form/super-select).
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals,
+ * no `--token-color-palette-*`. The only bare values are the per-size SPACING
+ * px values, which Helios itself hardcodes (they are not design tokens) —
+ * replicated as local `--super-select-*` custom properties set by [data-size].
+ *
+ * The selected-chip row is our OWN presentational markup (Ark's combobox has no
+ * chip part), so it carries explicit `data-scope='super-select'` /
+ * `data-part='chip*'` attributes set by the wrapper and is styled here — same
+ * attribute-selector convention, no class names. Chips mirror Helios'
+ * `ember-power-select-multiple-option`: a pill (border-radius 50px) on the
+ * interactive surface with a strong border.
+ *
+ * State comes from Ark's data-attributes (verified against the Ark styling
+ * guide and the live Combobox DOM in this repo):
+ *   data-state='open|closed'  (on Control, Input, Content)
+ *   data-focus                (on Control + Label — present whenever focused,
+ *                              mouse OR keyboard; drives the border color only)
+ *   data-highlighted          (on Item — Ark's keyboard-navigation highlight;
+ *                              items are aria-activedescendant-managed, never
+ *                              take real DOM focus, so this IS their focus state)
+ *   data-state='checked'      (on Item — committed selection)
+ *   data-disabled / data-invalid / data-readonly (per part)
+ *
+ * Ark exposes NO `data-focus-visible` on ANY combobox part. The keyboard-only
+ * focus RING is therefore drawn with the native `:focus-visible` pseudo: the
+ * Control carries it via `:has(input:focus-visible)` (the <input> is focusable,
+ * the ring renders on its bordered parent); the Trigger and chip-remove buttons
+ * use their own `:focus-visible`. Items never receive DOM focus (tabindex=-1,
+ * role=option), so `data-highlighted` is their keyboard-visible affordance.
+ *
+ * Motion: transitions are suppressed under BOTH the OS
+ * `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute on <html>. Each animated selector
+ * gets its own reduced-motion reset (per the stylelint a11y rule).
+ *
+ * Logical properties (inline-size, padding-block, etc.) are used throughout.
+ */
+
+/* ── Size scale ──────────────────────────────────────────────────────────────
+   Helios hardcodes these spacing/icon px values per size (not design tokens);
+   replicated as local custom properties consumed by the parts below. Set once
+   on the root so a single [data-size] drives the whole control. */
+
+[data-scope='combobox'][data-part='root'][data-size='small'] {
+  --super-select-control-padding: 4px;
+  --super-select-icon-size: 16px;
+  --super-select-font-size: var(--token-typography-body-100-font-size);
+  --super-select-line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-scope='combobox'][data-part='root'][data-size='medium'] {
+  --super-select-control-padding: 7px;
+  --super-select-icon-size: 20px;
+  --super-select-font-size: var(--token-typography-body-200-font-size);
+  --super-select-line-height: var(--token-typography-body-200-line-height);
+}
+
+[data-scope='combobox'][data-part='root'][data-size='large'] {
+  --super-select-control-padding: 12px;
+  --super-select-icon-size: 24px;
+  --super-select-font-size: var(--token-typography-body-300-font-size);
+  --super-select-line-height: var(--token-typography-body-300-line-height);
+}
+
+/* ── Root ─────────────────────────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='root'] {
+  display: block flex;
+  flex-direction: column;
+  gap: var(--super-select-control-padding, var(--token-form-control-padding));
+
+  inline-size: 100%;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--super-select-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--super-select-line-height, var(--token-typography-body-200-line-height));
+  color: var(--token-color-foreground-primary);
+}
+
+/* ── Label ────────────────────────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='label'] {
+  user-select: none;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--super-select-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--super-select-line-height, var(--token-typography-body-200-line-height));
+  color: var(--token-form-label-color);
+
+  &[data-disabled] {
+    color: var(--token-color-foreground-faint);
+  }
+
+  &[data-invalid] {
+    color: var(--token-form-error-color);
+  }
+}
+
+/* ── Selected chips (multiple mode — our own presentational markup) ────────── */
+
+[data-scope='super-select'][data-part='chips'] {
+  display: block flex;
+  flex-wrap: wrap;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+}
+
+[data-scope='super-select'][data-part='chip'] {
+  display: inline flex;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+
+  /* Helios multiple-option pill: 3px 10px 5px, body-100, fully rounded. */
+  padding-block: 3px 5px;
+  padding-inline: 10px;
+  border: var(--token-form-control-border-width) solid var(--token-color-border-strong);
+
+  /* Helios hardcodes a 50px pill radius for multiple-option chips (not a token). */
+  border-radius: 50px;
+
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-interactive);
+}
+
+[data-scope='super-select'][data-part='chip-text'] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-scope='super-select'][data-part='chip-remove'] {
+  cursor: pointer;
+
+  display: inline flex;
+  align-items: center;
+  justify-content: center;
+
+  padding-block: 0;
+  padding-inline: 0;
+  border: none;
+  border-radius: var(--token-border-radius-x-small);
+
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-color-foreground-faint);
+
+  background: transparent;
+
+  /* Hover/keyboard-focus recolor (paired per the a11y focus-parity rule). */
+  &:hover,
+  &:focus-visible {
+    color: var(--token-color-foreground-primary);
+  }
+
+  /* Native keyboard focus ring — Ark emits no data-focus-visible attribute. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+}
+
+/* ── Control (wraps input + trigger) ─────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='control'] {
+  position: relative;
+
+  display: block flex;
+  align-items: center;
+
+  /* Helios super-select trigger: min-height 36px. */
+  min-block-size: 36px;
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-base-border-color-default);
+  border-radius: var(--token-form-control-border-radius);
+
+  background: var(--token-form-control-base-surface-color-default);
+
+  /* Form-control interaction timing (0.2s); the combobox has no token family of
+     its own, so we borrow the sibling form-toggle duration. */
+  transition:
+    border-color var(--token-form-toggle-transition-duration) ease,
+    box-shadow var(--token-form-toggle-transition-duration) ease;
+
+  /* Reduced-motion resets first (lowest-relevant specificity), so the
+     interactive-state selectors below stay in ascending specificity order. */
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  /* Hover/focus border affordance. The control is a div; it reacts to focus of
+     its contained <input> via :focus-within (paired with :hover per the a11y
+     focus-parity rule). The keyboard-only focus RING is separate (below). */
+  &:hover,
+  &:focus-within {
+    border-color: var(--token-form-control-base-border-color-hover);
+  }
+
+  /* data-focus is present for mouse OR keyboard focus: tint the border. */
+  &[data-focus] {
+    border-color: var(--token-color-border-action);
+  }
+
+  &[data-disabled] {
+    border-color: var(--token-form-control-disabled-border-color);
+    background: var(--token-form-control-disabled-surface-color);
+  }
+
+  &[data-invalid] {
+    border-color: var(--token-form-control-invalid-border-color-default);
+  }
+
+  &[data-invalid]:hover,
+  &[data-invalid]:focus-within {
+    border-color: var(--token-form-control-invalid-border-color-hover);
+  }
+
+  /* Ark carries data-readonly on the Root (not the Control), so the read-only
+     surface descends from the root rather than hanging off this part. */
+  [data-part='root'][data-readonly] & {
+    border-color: var(--token-form-control-readonly-border-color);
+    background: var(--token-form-control-readonly-surface-color);
+  }
+
+  /* Keyboard-only focus ring. The <input> is the focusable element; Ark emits
+     no data-focus-visible, so we draw the ring on this bordered wrapper when the
+     input matches the native :focus-visible pseudo (mouse focus does not). */
+  &:has([data-part='input']:focus-visible) {
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* ── Input (search field) ─────────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='input'] {
+  flex: 1;
+
+  min-inline-size: 0;
+  padding-block: var(--super-select-control-padding, var(--token-form-control-padding));
+  padding-inline: var(--super-select-control-padding, var(--token-form-control-padding));
+  border: none;
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--super-select-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--super-select-line-height, var(--token-typography-body-200-line-height));
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background: transparent;
+
+  /* The keyboard focus ring lives on the control wrapper (above), driven by
+     this input's :focus-visible — so the input itself shows no outline. */
+  outline: none;
+}
+
+[data-scope='combobox'][data-part='input']::placeholder {
+  color: var(--token-form-control-base-foreground-placeholder-color);
+}
+
+[data-scope='combobox'][data-part='input'][data-disabled] {
+  cursor: not-allowed;
+  color: var(--token-form-control-disabled-foreground-color);
+}
+
+/* data-readonly lives on the Root (per the Ark styling guide), so the read-only
+   text color descends from there rather than from the input part directly. */
+[data-scope='combobox'][data-part='root'][data-readonly]
+  [data-scope='combobox'][data-part='input'] {
+  color: var(--token-form-control-readonly-foreground-color);
+}
+
+/* ── Trigger (toggle button) ──────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='trigger'] {
+  cursor: pointer;
+
+  display: block flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--super-select-icon-size, 20px);
+  padding-inline: var(--token-form-control-padding);
+  border: none;
+
+  color: var(--token-color-foreground-faint);
+
+  background: transparent;
+
+  /* Hover/keyboard-focus recolor (paired per the a11y focus-parity rule). */
+  &:hover,
+  &:focus-visible {
+    color: var(--token-color-foreground-primary);
+  }
+
+  &[data-disabled] {
+    cursor: not-allowed;
+    color: var(--token-color-foreground-disabled);
+  }
+
+  /* Native keyboard focus ring — Ark emits no data-focus-visible attribute. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+}
+
+/* ── Positioner + Content (portal panel) ─────────────────────────────────── */
+
+[data-scope='combobox'][data-part='positioner'] {
+  z-index: var(--z-index, 1000);
+}
+
+[data-scope='combobox'][data-part='content'] {
+  overflow-block: auto;
+  overscroll-behavior: contain;
+  display: block flex;
+  flex-direction: column;
+
+  min-inline-size: var(--reference-width);
+  max-block-size: min(18rem, var(--available-height, 18rem));
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+
+  /* Helios super-select content uses the base control border + radius. */
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-base-border-color-default);
+  border-radius: var(--token-form-control-border-radius);
+
+  background: var(--token-color-surface-primary);
+  outline: none;
+  box-shadow: var(--token-elevation-overlay-box-shadow);
+
+  /* stylelint-disable a11y/no-display-none -- Ark removes the closed
+     listbox from the a11y tree via its state machine. */
+  &[data-state='closed'] {
+    display: none;
+  }
+  /* stylelint-enable a11y/no-display-none */
+}
+
+/* ── Item ─────────────────────────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='item'] {
+  cursor: pointer;
+  user-select: none;
+
+  display: block flex;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+  justify-content: space-between;
+
+  /* Helios option: min-height 36px. */
+  min-block-size: 36px;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-radius: var(--token-border-radius-small);
+
+  color: var(--token-color-foreground-primary);
+
+  outline: none;
+
+  /* data-highlighted is Ark's keyboard-navigation highlight. Items are
+     aria-activedescendant-managed (tabindex=-1) and never receive DOM focus, so
+     this IS the keyboard-visible "focused option" state — no focus ring. */
+  &[data-highlighted] {
+    color: var(--token-color-foreground-action-hover);
+    background: var(--token-color-surface-interactive-hover);
+  }
+
+  &[data-state='checked'] {
+    color: var(--token-color-foreground-action);
+  }
+
+  &[data-disabled] {
+    cursor: not-allowed;
+    color: var(--token-color-foreground-disabled);
+  }
+}
+
+/* ── Item text ────────────────────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='item-text'] {
+  overflow: hidden;
+  flex: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Item indicator (checkmark) ──────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='item-indicator'] {
+  flex-shrink: 0;
+  color: var(--token-color-foreground-action);
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+
+[data-scope='combobox'][data-part='empty'] {
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--super-select-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--super-select-line-height, var(--token-typography-body-200-line-height));
+  color: var(--token-color-foreground-faint);
+}

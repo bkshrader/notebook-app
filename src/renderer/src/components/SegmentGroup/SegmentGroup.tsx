@@ -16,6 +16,9 @@ export interface SegmentGroupOption {
   disabled?: boolean;
 }
 
+/** Size scale for the segment items (height, inline padding, label typography). */
+export type SegmentGroupSize = 'small' | 'medium' | 'large';
+
 export interface SegmentGroupProps extends Omit<SegmentGroupRootProps, 'children'> {
   /**
    * Visible, screen-reader-announceable group label. Required (WCAG 4.1.2).
@@ -24,6 +27,12 @@ export interface SegmentGroupProps extends Omit<SegmentGroupRootProps, 'children
   label: React.ReactNode;
   /** The segments to display. Each needs a unique value. */
   options: SegmentGroupOption[];
+  /**
+   * Item sizing. Drives item height, inline padding, and label typography via
+   * the `--segment-group-*` custom-property scale in the stylesheet.
+   * @default 'medium'
+   */
+  size?: SegmentGroupSize;
 }
 
 /**
@@ -37,15 +46,21 @@ export interface SegmentGroupProps extends Omit<SegmentGroupRootProps, 'children
  * state. The hidden native radio inputs are the operable elements; the
  * visible parts are presentational and use data-scope / data-part for styling.
  *
+ * Each `Item` is rendered by Ark as a non-focusable `<label>` that exposes no
+ * data-focus attribute; the focusable element is the native `<input>` rendered
+ * by `ItemHiddenInput`. The keyboard focus ring is therefore drawn on the item
+ * via `:has(input:focus-visible)` in the stylesheet (verified against the live
+ * Ark DOM), not a (non-existent) `data-focus-visible` attribute.
+ *
  * The sliding Indicator is positioned by Zag via CSS custom properties
  * (--left, --top, --width, --height) on the indicator element itself.
  */
 export const SegmentGroup = forwardRef<HTMLDivElement, SegmentGroupProps>(function SegmentGroup(
-  { label, options, ...rootProps },
+  { label, options, size = 'medium', ...rootProps },
   ref,
 ) {
   return (
-    <ArkSegmentGroup.Root ref={ref} {...rootProps}>
+    <ArkSegmentGroup.Root ref={ref} data-size={size} {...rootProps}>
       <ArkSegmentGroup.Label>{label}</ArkSegmentGroup.Label>
       <ArkSegmentGroup.Indicator />
       {options.map((option) => (

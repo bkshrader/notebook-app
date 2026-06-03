@@ -1,0 +1,321 @@
+/**
+ * ColorPicker — token-styled Ark UI primitive.
+ *
+ * No exact Helios page exists; this matches the Helios form-control visual
+ * language (the trigger is styled like a text input, the popover like the
+ * DatePicker calendar panel). Styling targets Ark's `data-scope`/`data-part`
+ * attributes (per the unstyled-primitives-ark ADR) rather than custom class
+ * names. Every visual value resolves to a Helios `--token-*` custom property.
+ * No raw literals, no `--token-color-palette-*`.
+ *
+ * Focus ring: the Trigger, SwatchTrigger, and HiddenInput are native form
+ * controls, so the keyboard ring is drawn with the native `:focus-visible`
+ * pseudo-class (Ark does not emit `data-focus-visible`). The Area thumb and
+ * the ChannelSlider thumbs are <div>s driven by Ark's roving focus — they
+ * expose `data-focus`, so the ring keys off `[data-focus]` there. `outline:
+ * none` and the focus-ring `box-shadow` always appear together in the same
+ * selector. Hover is kept separate from focus.
+ *
+ * Reduced motion: every transition/animation reset appears under BOTH
+ * `@media (prefers-reduced-motion: reduce)` AND
+ * `[data-reduced-motion='reduce'] <selector>`, each animated selector getting
+ * its own reset block (the stylelint a11y rule matches per-selector).
+ *
+ * Logical properties/units (inline-size/block-size/padding-inline/padding-block)
+ * are used throughout.
+ */
+
+/* ── Size scale ──────────────────────────────────────────────────────────────
+   Helios has no ColorPicker page; the trigger swatch + preset swatch box are
+   sized with a local per-size custom property, mirroring the form-control
+   density steps used by the DatePicker. */
+
+[data-scope='color-picker'][data-part='root'][data-size='small'] {
+  --color-picker-swatch-size: 1rem;
+}
+
+[data-scope='color-picker'][data-part='root'][data-size='medium'] {
+  --color-picker-swatch-size: 1.25rem;
+}
+
+[data-scope='color-picker'][data-part='root'][data-size='large'] {
+  --color-picker-swatch-size: 1.5rem;
+}
+
+/* ── Root ────────────────────────────────────────────────────────────────── */
+
+[data-scope='color-picker'][data-part='root'] {
+  display: inline flex;
+  flex-direction: column;
+  gap: var(--token-form-control-border-width);
+}
+
+/* ── Label ───────────────────────────────────────────────────────────────── */
+
+[data-scope='color-picker'][data-part='label'] {
+  user-select: none;
+
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-form-label-color);
+
+  &[data-disabled] {
+    color: var(--token-form-control-disabled-foreground-color);
+  }
+}
+
+/* ── Control ─────────────────────────────────────────────────────────────── */
+
+[data-scope='color-picker'][data-part='control'] {
+  display: block flex;
+  align-items: center;
+  inline-size: 100%;
+}
+
+/* ── Trigger (opens the popover) ─────────────────────────────────────────── */
+
+[data-scope='color-picker'][data-part='trigger'] {
+  cursor: pointer;
+
+  display: inline flex;
+  flex: 1;
+  gap: var(--token-form-control-padding);
+  align-items: center;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-color: var(--token-form-control-base-border-color-default);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background-color: var(--token-form-control-base-surface-color-default);
+
+  transition:
+    border-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    box-shadow var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  /* Native <button>: keyboard ring via :focus-visible (no data-focus-visible). */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  /* Hover tint, mirrored on :focus-visible for keyboard parity. */
+  &:hover,
+  &:focus-visible {
+    border-color: var(--token-form-control-base-border-color-hover);
+    background-color: var(--token-form-control-base-surface-color-hover);
+  }
+
+  &[data-disabled] {
+    cursor: not-allowed;
+    border-color: var(--token-form-control-disabled-border-color);
+    color: var(--token-form-control-disabled-foreground-color);
+    background-color: var(--token-form-control-disabled-surface-color);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* ── Value Swatch (current color chip inside the trigger) ────────────────── */
+
+[data-scope='color-picker'][data-part='value-swatch'] {
+  flex-shrink: 0;
+
+  inline-size: var(--color-picker-swatch-size, 1.25rem);
+  block-size: var(--color-picker-swatch-size, 1.25rem);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+  border-radius: var(--token-border-radius-small);
+}
+
+/* ── Value Text ──────────────────────────────────────────────────────────── */
+
+[data-scope='color-picker'][data-part='value-text'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-primary);
+  text-transform: uppercase;
+}
+
+/* ── Positioner (portalled) ──────────────────────────────────────────────── */
+
+[data-scope='color-picker'][data-part='positioner'] {
+  z-index: 1;
+}
+
+/* ── Content (popover panel) ─────────────────────────────────────────────── */
+
+[data-scope='color-picker'][data-part='content'] {
+  display: block flex;
+  flex-direction: column;
+  gap: var(--token-form-control-padding);
+
+  inline-size: 16rem;
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-color: var(--token-color-border-primary);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-border-radius-medium);
+
+  background-color: var(--token-color-surface-primary);
+  outline: none;
+  box-shadow: var(--token-elevation-overlay-box-shadow);
+
+  &[data-state='open'] {
+    animation: color-picker-content-in var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+    [data-reduced-motion='reduce'] & {
+      animation: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
+
+  &[data-state='closed'] {
+    animation: color-picker-content-out var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+    [data-reduced-motion='reduce'] & {
+      animation: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
+}
+
+/* ── Area (saturation/value picking surface) ─────────────────────────────── */
+
+[data-scope='color-picker'][data-part='area'] {
+  position: relative;
+  block-size: 8rem;
+  border-radius: var(--token-border-radius-small);
+}
+
+[data-scope='color-picker'][data-part='area-background'] {
+  block-size: 100%;
+  border-radius: inherit;
+}
+
+/* ── Area Thumb ──────────────────────────────────────────────────────────── */
+
+[data-scope='color-picker'][data-part='area-thumb'] {
+  inline-size: var(--token-form-control-padding);
+  block-size: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-checked-foreground-color);
+  border-radius: 50%;
+
+  /* <div> with Ark roving focus: ring keys off [data-focus]. */
+  &[data-focus] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+}
+
+/* ── Channel Sliders (hue / alpha) ───────────────────────────────────────── */
+
+[data-scope='color-picker'][data-part='channel-slider'] {
+  position: relative;
+  block-size: var(--token-form-control-padding);
+  border-radius: 50%;
+}
+
+[data-scope='color-picker'][data-part='channel-slider-track'] {
+  block-size: 100%;
+  border-radius: inherit;
+}
+
+[data-scope='color-picker'][data-part='channel-slider-thumb'] {
+  inline-size: var(--token-form-control-padding);
+  block-size: var(--token-form-control-padding);
+  border: var(--token-form-control-border-width) solid
+    var(--token-form-control-checked-foreground-color);
+  border-radius: 50%;
+
+  /* <div> with Ark roving focus: ring keys off [data-focus]. */
+  &[data-focus] {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+}
+
+/* ── Swatch Group (preset grid) ──────────────────────────────────────────── */
+
+[data-scope='color-picker'][data-part='swatch-group'] {
+  display: block flex;
+  flex-wrap: wrap;
+  gap: var(--token-form-control-border-width);
+}
+
+/* ── Swatch Trigger ──────────────────────────────────────────────────────── */
+
+[data-scope='color-picker'][data-part='swatch-trigger'] {
+  cursor: pointer;
+
+  display: inline flex;
+
+  padding: 0;
+  border: none;
+  border-radius: var(--token-border-radius-small);
+
+  background: none;
+
+  /* Native <button>: keyboard ring via :focus-visible (no data-focus-visible). */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+}
+
+/* ── Swatch (the color chip itself) ──────────────────────────────────────── */
+
+[data-scope='color-picker'][data-part='swatch'] {
+  inline-size: var(--color-picker-swatch-size, 1.25rem);
+  block-size: var(--color-picker-swatch-size, 1.25rem);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-faint);
+  border-radius: var(--token-border-radius-small);
+}
+
+/* ── Keyframe animations ─────────────────────────────────────────────────── */
+
+@keyframes color-picker-content-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes color-picker-content-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}

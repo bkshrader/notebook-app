@@ -3,19 +3,41 @@
  *
  * Styling targets Ark's `data-scope`/`data-part` attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
- * value resolves to a Helios `--token-*` custom property. No raw literals,
- * no `--token-color-palette-*`.
+ * value resolves to a Helios `--token-*` custom property, except the per-size
+ * handle/indicator px dimensions — Helios has no generic spacing scale and no
+ * Splitter tokens, so those are local `--splitter-*` properties (the same
+ * pattern Accordion uses for its hardcoded per-size px values).
  *
- * Anatomy parts styled: root, panel, resize-trigger, resize-trigger-indicator.
- * State attributes used: data-orientation, data-focus-visible, data-dragging,
- * data-disabled.
+ * Anatomy parts styled: root, panel, resize-trigger, resize-trigger-indicator
+ * (all verified emitted against the live DOM, not just the styling guide).
  *
- * Focus ring is applied ONLY on keyboard focus (data-focus-visible), never on
- * every focus. Each animated selector gets its own reduced-motion reset so the
- * stylelint a11y per-selector rule is satisfied.
+ * State comes from Ark's data-attributes (verified against the Ark styling
+ * guide AND the live DOM — do NOT assume attributes Ark doesn't document):
+ *   data-orientation  (root, panel, resize-trigger)
+ *   data-dragging     (resize-trigger)
+ *   data-disabled     (resize-trigger)
+ * Ark does NOT expose `data-focus-visible`. Its resize-trigger only carries
+ * `data-focus` (present when focused at all). The keyboard focus ring is drawn
+ * with the native `:focus-visible` pseudo so it renders on keyboard focus only
+ * and never on a mouse drag-grab.
+ *
+ * Motion: each animated selector gets both a `[data-reduced-motion='reduce']`
+ * (Storybook toolbar) and a `prefers-reduced-motion` (OS) reset.
  */
 
+/* ─── Size scale ───────────────────────────────────────────────────────────────
+   Helios ships no Splitter tokens and no generic spacing scale, so the handle
+   thickness and the indicator pill dimensions are local custom properties
+   (not borrowed cross-component tokens). Consumed by the parts below. */
+
 [data-scope='splitter'][data-part='root'] {
+  /* Thickness of the draggable handle along the cross axis. */
+  --splitter-handle-thickness: 3px;
+
+  /* The visual pill: a thin bar whose long edge runs along the handle. */
+  --splitter-indicator-thickness: 5px;
+  --splitter-indicator-length: 36px;
+
   display: block flex;
   inline-size: 100%;
 
@@ -59,12 +81,12 @@
 
   &[data-orientation='horizontal'] {
     cursor: col-resize;
-    min-inline-size: var(--token-border-radius-x-small);
+    min-inline-size: var(--splitter-handle-thickness);
   }
 
   &[data-orientation='vertical'] {
     cursor: row-resize;
-    min-block-size: var(--token-border-radius-x-small);
+    min-block-size: var(--splitter-handle-thickness);
   }
 
   &[data-dragging] {
@@ -76,15 +98,17 @@
     background: var(--token-color-surface-interactive-disabled);
   }
 
+  /* Keyboard focus only — Ark exposes no data-focus-visible attribute, so use
+     the native pseudo. This renders the ring on Tab focus, never on a mouse
+     drag-grab. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
-}
-
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='splitter'][data-part='resize-trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
 }
 
 /* ── Resize trigger indicator (visual drag handle pill) ── */
@@ -106,20 +130,22 @@
   }
 
   &[data-orientation='horizontal'] {
-    inline-size: var(--token-border-radius-small);
-    block-size: var(--token-tabs-tab-height-medium);
+    inline-size: var(--splitter-indicator-thickness);
+    block-size: var(--splitter-indicator-length);
   }
 
   &[data-orientation='vertical'] {
-    inline-size: var(--token-tabs-tab-height-medium);
-    block-size: var(--token-border-radius-small);
+    inline-size: var(--splitter-indicator-length);
+    block-size: var(--splitter-indicator-thickness);
   }
 
   [data-scope='splitter'][data-part='resize-trigger'][data-dragging] & {
     background: var(--token-color-border-action);
   }
 
-  [data-scope='splitter'][data-part='resize-trigger'][data-focus-visible] & {
+  /* Match the keyboard focus ring: recolor the pill on the trigger's native
+     :focus-visible (Ark exposes no data-focus-visible attribute). */
+  [data-scope='splitter'][data-part='resize-trigger']:focus-visible & {
     background: var(--token-color-border-action);
   }
 

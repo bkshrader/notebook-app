@@ -4,16 +4,50 @@
  * Styling targets Ark's `data-scope`/`data-part` attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios `--token-*` custom property. No raw literals,
- * no `--token-color-palette-*`. Focus ring ONLY on data-focus-visible. Reduced
- * motion suppressed via BOTH the prefers-reduced-motion media query AND the
- * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
- * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
- * per-selector, so comma-grouped resets fail).
+ * no `--token-color-palette-*`.
+ *
+ * State comes from Ark's data-attributes, verified against the Ark Menu
+ * styling guide and the live rendered DOM (do NOT assume attributes Ark does
+ * not emit — that is how phantom selectors ship):
+ *   - Trigger renders a NATIVE <button> (Ark `Trigger → HTMLButtonElement`).
+ *     Its attrs are data-state="open|closed", data-placement, data-side,
+ *     data-controls, data-value, data-current — there is NO data-focus-visible
+ *     and NO data-disabled on the trigger. Keyboard focus uses the native
+ *     `:focus-visible` pseudo; the disabled treatment uses native `:disabled`.
+ *   - Content carries data-state="open|closed".
+ *   - Item carries data-disabled (when disabled) and data-highlighted (when the
+ *     active descendant). These ARE real Ark Item attributes.
+ *   - Separator renders a native <hr> (Ark `Separator → HTMLHRElement`).
+ *
+ * Sizing: a per-`[data-size]` block on trigger/content sets local
+ * `--menu-*` custom properties (font size + control padding scale), consumed by
+ * the parts — mirroring the Accordion size-matrix pattern.
+ *
+ * Reduced motion: every animated selector suppresses motion via BOTH the OS
+ * `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * `[data-reduced-motion='reduce']` attribute. The resets are NESTED inside each
+ * animated selector (per csstools/use-nesting) so each animated rule owns its
+ * own pair of resets rather than relying on detached descendant selectors.
  *
  * This is a Tier B overlay — content renders in a Portal and floats above the
- * page. z-index is managed via Ark's --layer-index CSS variable on the
- * positioner; we set it on the content part and Ark propagates it.
+ * page. z-index is managed via Ark's --layer-index CSS variable; per the Ark
+ * styling guide the z-index is set on the Content part and Ark propagates it to
+ * the Positioner.
  */
+
+/* ── Size scale (local custom properties; consumed by trigger + items) ────── */
+
+[data-scope='menu'][data-part='trigger'][data-size='small'],
+[data-scope='menu'][data-part='content'][data-size='small'] {
+  --menu-font-size: var(--token-typography-body-100-font-size);
+  --menu-line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-scope='menu'][data-part='trigger'][data-size='medium'],
+[data-scope='menu'][data-part='content'][data-size='medium'] {
+  --menu-font-size: var(--token-typography-body-200-font-size);
+  --menu-line-height: var(--token-typography-body-200-line-height);
+}
 
 /* ── Trigger ────────────────────────────────────────────────────────────── */
 
@@ -32,23 +66,22 @@
   border-radius: var(--token-border-radius-medium);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
+  font-size: var(--menu-font-size, var(--token-typography-body-200-font-size));
   font-weight: var(--token-typography-font-weight-medium);
-  line-height: var(--token-typography-body-200-line-height);
+  line-height: var(--menu-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-color-foreground-primary);
 
   background: var(--token-color-surface-primary);
 
-  transition: background-color var(--token-form-radiocard-transition-duration) ease;
+  /* Interaction motion: the form-toggle family (0.2s + Helios interaction
+     easing) — NOT the tabs-indicator family (0.6s, far too slow for a button). */
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
 
+  /* Reduced-motion reset via the Storybook toolbar attribute (lowest
+     specificity; the OS @media reset is at the end of this block). */
   [data-reduced-motion='reduce'] & {
     transition: none;
-  }
-
-  &:hover:not([data-disabled]),
-  &:focus:not([data-disabled]) {
-    border-color: var(--token-form-control-base-border-color-hover);
-    background: var(--token-color-surface-interactive-hover);
   }
 
   &[data-state='open'] {
@@ -56,21 +89,37 @@
     background: var(--token-color-surface-interactive-active);
   }
 
-  &[data-focus-visible] {
+  /* Keyboard focus ring. Ark emits NO data-focus-visible attribute on the
+     trigger (verified against the styling guide + live DOM), so the ring uses
+     the native :focus-visible pseudo — otherwise the WCAG 2.4.7 ring never
+     renders. :focus-visible fires only for keyboard focus, never mouse. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
 
-  &[data-disabled] {
+  /* Disabled: native <button> disabled attribute (Ark does not put
+     data-disabled on the trigger). */
+  &:disabled {
     cursor: not-allowed;
     border-color: var(--token-form-control-disabled-border-color);
 
     /* foreground-disabled (#8c909c) fails AA on the disabled surface. Use
-     foreground-faint (#656a76) which passes and still conveys diminished state. */
+       foreground-faint (#656a76) which passes and still conveys diminished state. */
     color: var(--token-color-foreground-faint);
     background: var(--token-form-control-disabled-surface-color);
   }
 
+  /* Hover/focus affordance — only when not disabled. The trigger is a native
+     <button>, so disabled is the native `:disabled` state, not data-disabled.
+     Ordered last among style rules: highest-specificity selector here. */
+  &:hover:not(:disabled),
+  &:focus:not(:disabled) {
+    border-color: var(--token-form-control-base-border-color-hover);
+    background: var(--token-color-surface-interactive-hover);
+  }
+
+  /* OS reduced-motion reset — @media blocks ordered after style rules. */
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
@@ -89,43 +138,40 @@
   border: var(--token-form-control-border-width) solid var(--token-color-border-faint);
   border-radius: var(--token-border-radius-medium);
 
+  font-size: var(--menu-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--menu-line-height, var(--token-typography-body-200-line-height));
+
   background: var(--token-color-surface-primary);
   outline: none;
   box-shadow: var(--token-elevation-overlay-box-shadow);
 
-  animation-duration: var(--token-form-radiocard-transition-duration);
+  animation-duration: var(--token-form-toggle-transition-duration);
   animation-timing-function: ease-out;
   animation-fill-mode: both;
 
   &[data-state='open'] {
     animation-name: nb-menu-scale-in;
 
-  @media screen and (prefers-reduced-motion: reduce) {
-      animation: none
-  }
-  }
-}
+    [data-reduced-motion='reduce'] & {
+      animation: none;
+    }
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='menu'][data-part='content'][data-state='open'] {
-    animation: none;
-  }
-}
-
-[data-reduced-motion='reduce'] [data-scope='menu'][data-part='content'][data-state='open'] {
-  animation: none;
-}
-
-[data-scope='menu'][data-part='content'][data-state='closed'] {
-  animation-name: nb-menu-scale-out;
-  animation-timing-function: ease-in;
-
-  [data-reduced-motion='reduce'] & {
-    animation: none;
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
+  &[data-state='closed'] {
+    animation-name: nb-menu-scale-out;
+    animation-timing-function: ease-in;
+
+    [data-reduced-motion='reduce'] & {
+      animation: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 }
 
@@ -144,26 +190,29 @@
   border-radius: var(--token-border-radius-small);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: inherit;
+  line-height: inherit;
   color: var(--token-color-foreground-primary);
   text-decoration: none;
 
   outline: none;
 
+  /* data-highlighted is the real Ark Item attribute for the active descendant
+     (keyboard navigation highlights it via aria-activedescendant). */
   &[data-highlighted] {
     /* foreground-action (#1060ff) fails on grey interactive-hover surface (~3.8:1).
-     Use foreground-strong (#0c0c0e) which clears 4.5:1 on any light surface. */
+       Use foreground-strong (#0c0c0e) which clears 4.5:1 on any light surface. */
     color: var(--token-color-foreground-strong);
     background: var(--token-color-surface-interactive-hover);
   }
 
+  /* data-disabled is the real Ark Item attribute (Ark sets it on the item div). */
   &[data-disabled] {
     cursor: not-allowed;
 
     /* foreground-disabled (#8c909c) fails AA on white (3.18:1). WCAG 1.4.3 exempts
-     genuinely disabled controls, but axe still flags it. Use foreground-faint
-     (#656a76, passes at ~5.74:1 on white) and signal disabled via cursor + opacity. */
+       genuinely disabled controls, but axe still flags it. Use foreground-faint
+       (#656a76, passes at ~5.74:1 on white) and signal disabled via cursor + opacity. */
     color: var(--token-color-foreground-faint);
     opacity: 0.6;
   }
@@ -182,7 +231,7 @@
   color: var(--token-color-foreground-faint);
 }
 
-/* ── Separator ─────────────────────────────────────────────────────────── */
+/* ── Separator (native <hr>) ───────────────────────────────────────────── */
 
 [data-scope='menu'][data-part='separator'] {
   block-size: var(--token-form-control-border-width);

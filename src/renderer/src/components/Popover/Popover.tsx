@@ -30,6 +30,17 @@ export interface PopoverProps extends PopoverRootProps {
   description?: React.ReactNode;
 }
 
+/*
+ * Behavioral / positioning props are inherited from `PopoverRootProps` and
+ * forwarded verbatim to `Popover.Root`, so they need no re-declaration here:
+ *   - `positioning`  — placement, gutter, flip/shift options.
+ *   - `modal`        — trap focus, block scroll, hide siblings from AT.
+ *   - `closeOnEscape`, `closeOnInteractOutside` — dismissal behavior.
+ *   - `initialFocusEl`, `autoFocus` — focus management on open.
+ *   - `open` / `defaultOpen` / `onOpenChange` — controlled vs. uncontrolled.
+ * They are surfaced as Storybook controls in `Popover.stories.tsx`.
+ */
+
 /**
  * Token-styled wrapper over Ark UI's Popover.
  *
@@ -57,7 +68,12 @@ export const Popover = forwardRef<HTMLButtonElement, PopoverProps>(function Popo
             {title != null && <ArkPopover.Title>{title}</ArkPopover.Title>}
             {description != null && <ArkPopover.Description>{description}</ArkPopover.Description>}
             {content}
-            <ArkPopover.CloseTrigger aria-label="Close popover">✕</ArkPopover.CloseTrigger>
+            <ArkPopover.CloseTrigger aria-label="Close popover">
+              {/* The glyph is decorative: the button's accessible name comes
+                  from aria-label, so hide the symbol from AT to avoid a
+                  double announcement. */}
+              <span aria-hidden="true">✕</span>
+            </ArkPopover.CloseTrigger>
             {children}
           </ArkPopover.Content>
         </ArkPopover.Positioner>

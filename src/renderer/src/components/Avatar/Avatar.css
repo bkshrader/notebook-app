@@ -1,3 +1,56 @@
+/**
+ * Avatar — token-styled Ark UI primitive, built to the Helios Avatar
+ * specification (https://helios.hashicorp.design/components/avatar).
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property; the only bare values
+ * are the per-size box dimensions, which Helios itself hardcodes (they are not
+ * design tokens) — replicated here as a local `--avatar-size` property.
+ *
+ * Parts (verified against the live Ark DOM, not just the styling guide):
+ *   data-part="root"      — the DIV container. Ark DOES emit this attribute
+ *                           (confirmed live); a prior audit's "phantom root"
+ *                           flag was a false positive, so this selector stays.
+ *   data-part="image"     — the <img>. Ark sets data-state="visible|hidden".
+ *   data-part="fallback"  — the <span> initials. Ark sets data-state too.
+ *
+ * Ark owns the load lifecycle: it sets data-state and hides the inactive
+ * element itself (fallback while loading/on error, image once available), so no
+ * state-specific CSS is needed to perform the swap.
+ *
+ * The size scale lives in one place: `[data-size]` on the root sets a local
+ * `--avatar-*` set (box dimension + fallback typography) consumed by the parts.
+ *
+ * Avatar is non-interactive (no focusable control, no disabled/open state), so
+ * there is no focus-ring, hover, or state-toggle styling — and therefore no
+ * motion to suppress under reduced-motion.
+ */
+
+/* ─── Size scale ─────────────────────────────────────────────────────────────
+   Helios hardcodes the box dimension per size (not a design token); the
+   fallback initials scale with the box via the body typography tokens. */
+
+[data-scope='avatar'][data-part='root'][data-size='small'] {
+  --avatar-size: 1.75rem; /* 28px */
+  --avatar-font-size: var(--token-typography-body-100-font-size);
+  --avatar-line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-scope='avatar'][data-part='root'][data-size='medium'] {
+  --avatar-size: 2.5rem; /* 40px */
+  --avatar-font-size: var(--token-typography-body-200-font-size);
+  --avatar-line-height: var(--token-typography-body-200-line-height);
+}
+
+[data-scope='avatar'][data-part='root'][data-size='large'] {
+  --avatar-size: 3.5rem; /* 56px */
+  --avatar-font-size: var(--token-typography-body-300-font-size);
+  --avatar-line-height: var(--token-typography-body-300-line-height);
+}
+
+/* ─── Root (container) ─────────────────────────────────────────────────────── */
+
 [data-scope='avatar'][data-part='root'] {
   user-select: none;
 
@@ -6,14 +59,18 @@
   align-items: center;
   justify-content: center;
 
-  inline-size: 2.5rem;
-  block-size: 2.5rem;
+  /* Fallback to medium if no data-size is set (defensive; the wrapper always
+     sets one). */
+  inline-size: var(--avatar-size, 2.5rem);
+  block-size: var(--avatar-size, 2.5rem);
   border-radius: var(--token-border-radius-large);
 
   color: var(--token-color-foreground-primary);
 
   background: var(--token-color-surface-strong);
 }
+
+/* ─── Image ────────────────────────────────────────────────────────────────── */
 
 [data-scope='avatar'][data-part='image'] {
   inline-size: 100%;
@@ -22,9 +79,14 @@
   object-fit: cover;
 }
 
+/* ─── Fallback (initials) ──────────────────────────────────────────────────── */
+
 [data-scope='avatar'][data-part='fallback'] {
   border-radius: inherit;
+
   font-family: var(--token-typography-font-stack-text);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--avatar-font-size, var(--token-typography-body-200-font-size));
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--avatar-line-height, var(--token-typography-body-200-line-height));
+  text-transform: uppercase;
 }

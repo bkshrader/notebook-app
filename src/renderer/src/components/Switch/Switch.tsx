@@ -20,10 +20,12 @@ export interface SwitchProps extends Omit<SwitchRootProps, 'label'> {
  * Token-styled wrapper over Ark UI's Switch.
  *
  * Anatomy (from @ark-ui/react/switch): Root > Control > Thumb, plus Label and
- * the visually-hidden native input. Ark/Zag own the wiring: `role="switch"`
- * lives on the hidden `<input type="checkbox">` (the focusable, disable-able
- * element that carries `aria-checked`); the Control is `aria-hidden` and exists
- * purely for presentation, exposing `data-state` / `data-disabled` /
+ * the visually-hidden native input. Ark/Zag own the wiring: the operable element
+ * is the hidden `<input type="checkbox">` — it carries the native (implicit)
+ * `checkbox` role with `checked`/`disabled` and the focus the keyboard lands on
+ * (verified against the live DOM: the input has NO explicit `role`, so AT
+ * announces it as a checkbox). The Control is `aria-hidden` and exists purely
+ * for presentation, exposing `data-state` / `data-disabled` /
  * `data-focus-visible` for styling.
  *
  * Styling is attached to Ark's `data-scope` / `data-part` attributes (see

@@ -1,0 +1,149 @@
+/* KeyValueInputs — token-styled composite matching the Helios Key Value Inputs
+ * spec (https://helios.hashicorp.design/components/form/key-value-inputs).
+ *
+ * There is no Ark primitive for this widget; it is a presentational composite on
+ * a plain `<fieldset>` (per the unstyled-primitives-ark ADR scope clarification).
+ * Styling therefore targets our OWN `data-part` attributes (set by the wrapper),
+ * keeping the project's attribute-selector convention with no class names. Every
+ * color-bearing value resolves to a Helios --token-* custom property; layout
+ * spacing mirrors the Helios `.hds-form-key-value-inputs` rules read from the
+ * live page stylesheet:
+ *   root   : flex column, row-gap 24px (1.5rem)
+ *   row    : flex column, row-gap 8px (0.5rem), align-items flex-start
+ *            → on wider viewports becomes key | value | delete columns
+ *   footer : flex column, row-gap 12px (0.75rem), align-items flex-start
+ *
+ * The interactive controls (TextInput, Button) carry their own focus rings and
+ * reduced-motion handling, so the only animated affordance owned here is the
+ * row enter transition, which IS reset under reduced motion via BOTH the
+ * prefers-reduced-motion media query AND the [data-reduced-motion='reduce']
+ * attribute (each animated selector gets its own reset).
+ *
+ * Logical properties/units throughout. */
+
+[data-scope='key-value-inputs'][data-part='root'] {
+  display: block flex;
+  flex-direction: column;
+  row-gap: 1.5rem;
+
+  min-inline-size: 0;
+  margin-block: 0;
+  margin-inline: 0;
+  padding-block: 0;
+  padding-inline: 0;
+  border: none;
+}
+
+[data-scope='key-value-inputs'][data-part='legend'] {
+  padding-block: 0;
+  padding-inline: 0;
+
+  font-family: var(--token-typography-body-300-font-family);
+  font-size: var(--token-typography-body-300-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--token-typography-body-300-line-height);
+  color: var(--token-form-legend-color);
+}
+
+[data-scope='key-value-inputs'][data-part='helper-text'] {
+  margin-block: 0.25rem 0;
+
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-form-helper-text-color);
+}
+
+[data-scope='key-value-inputs'][data-part='rows'] {
+  display: block flex;
+  flex-direction: column;
+  row-gap: 1rem;
+}
+
+[data-scope='key-value-inputs'][data-part='row'] {
+  display: block flex;
+  flex-direction: column;
+  row-gap: 0.5rem;
+  align-items: flex-start;
+
+  /* A subtle settle-in transition for a newly added row. Decorative; reset
+   * under reduced motion below. */
+  transition: opacity var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  /* On a wider container, lay the key/value inputs and the delete button out as
+   * a single horizontal row (Helios desktop layout). The delete button hugs the
+   * baseline of the inputs. */
+  @media (width >= 35rem) {
+    flex-direction: row;
+    gap: 0 0.75rem;
+    align-items: flex-end;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+[data-scope='key-value-inputs'][data-part='field'] {
+  display: block flex;
+  flex-direction: column;
+  row-gap: 0.25rem;
+
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+[data-scope='key-value-inputs'][data-part='field-label'] {
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-label-color);
+}
+
+/* Visually hide the repeated column labels on rows after the first while
+ * keeping them in the accessibility tree (each input stays named). */
+[data-scope='key-value-inputs'][data-part='field-label'][data-visually-hidden] {
+  position: absolute;
+
+  overflow: hidden;
+
+  inline-size: 1px;
+  block-size: 1px;
+  margin-block: -1px;
+  margin-inline: -1px;
+  padding-block: 0;
+  padding-inline: 0;
+  border: 0;
+
+  white-space: nowrap;
+
+  clip-path: inset(50%);
+}
+
+[data-scope='key-value-inputs'][data-part='field-control'] {
+  display: block flex;
+  flex-direction: column;
+  inline-size: 100%;
+}
+
+[data-scope='key-value-inputs'][data-part='delete-row-button-container'] {
+  flex: none;
+  align-self: flex-start;
+
+  @media (width >= 35rem) {
+    align-self: flex-end;
+  }
+}
+
+[data-scope='key-value-inputs'][data-part='footer'] {
+  display: block flex;
+  flex-direction: column;
+  row-gap: 0.75rem;
+  align-items: flex-start;
+}

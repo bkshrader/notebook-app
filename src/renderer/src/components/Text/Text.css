@@ -1,0 +1,200 @@
+/**
+ * Text — token-styled presentational typographic primitive, built to the Helios
+ * Text specification (https://helios.hashicorp.design/components/text).
+ *
+ * Text wraps a plain semantic HTML element (no Ark primitive exists, and it has
+ * no interactive state) per the unstyled-primitives-ark ADR scope clarification.
+ * It therefore has NO Ark `data-scope`; styling targets the `data-*` attributes
+ * our wrapper sets on the element itself (kept as attribute selectors, no class
+ * names, matching the Ark-backed components' convention):
+ *
+ *   data-part="text"   — the rendered element (span/p/h1/pre/…)
+ *   data-variant       — display | body | code   (font family + scale family)
+ *   data-size          — 100…500                 (type-scale step, per variant)
+ *   data-weight        — regular | medium | semibold | bold
+ *   data-color         — inherit | primary | … | highlight (semantic foreground)
+ *   data-align         — start | center | end     (logical; optional)
+ *
+ * Every value resolves to a Helios `--token-typography-*` / `--token-color-*`
+ * custom property. The variant sets the font-family and a local `--text-font-size`
+ * / `--text-line-height` pair that the element consumes; the per-(variant,size)
+ * rules below override those locals. Helios scopes sizes per variant (Display
+ * 100–500; Body/Code 100–300) — the variant base provides the fallback when a
+ * size a variant does not define is requested.
+ *
+ * Text is non-interactive: no focus ring, no hover/open/disabled state, and no
+ * transition or animation — so there is no motion to suppress under reduced
+ * motion (no animated selector exists to reset).
+ */
+
+/* ─── Base element ───────────────────────────────────────────────────────────
+   Consumes the variant-provided locals. `margin-block: 0` matches Helios, which
+   zeroes the default block margins browsers add to paragraph, heading, and
+   preformatted elements so the typographic style is the single source of
+   spacing. */
+[data-part='text'] {
+  margin-block: 0;
+
+  font-size: var(--text-font-size, var(--token-typography-body-200-font-size));
+  font-weight: var(--token-typography-font-weight-regular);
+  line-height: var(--text-line-height, var(--token-typography-body-200-line-height));
+  color: var(--text-color, inherit);
+}
+
+/* ─── Variant: font family + base scale ──────────────────────────────────────
+   Each variant sets its font stack and a base size/line-height local (the
+   variant's "200" step) so an unscoped size still renders correctly. */
+
+[data-part='text'][data-variant='display'] {
+  --text-font-size: var(--token-typography-display-200-font-size);
+  --text-line-height: var(--token-typography-display-200-line-height);
+
+  font-family: var(--token-typography-font-stack-display);
+}
+
+[data-part='text'][data-variant='body'] {
+  --text-font-size: var(--token-typography-body-200-font-size);
+  --text-line-height: var(--token-typography-body-200-line-height);
+
+  font-family: var(--token-typography-font-stack-text);
+}
+
+[data-part='text'][data-variant='code'] {
+  --text-font-size: var(--token-typography-code-200-font-size);
+  --text-line-height: var(--token-typography-code-200-line-height);
+
+  font-family: var(--token-typography-font-stack-code);
+}
+
+/* ─── Size: type-scale step within a variant ─────────────────────────────────
+   Helios Display supports 100–500; Body and Code support 100–300. Each rule
+   resets the local font-size + line-height pair for its (variant, size). */
+
+[data-part='text'][data-variant='display'][data-size='100'] {
+  --text-font-size: var(--token-typography-display-100-font-size);
+  --text-line-height: var(--token-typography-display-100-line-height);
+}
+
+[data-part='text'][data-variant='display'][data-size='200'] {
+  --text-font-size: var(--token-typography-display-200-font-size);
+  --text-line-height: var(--token-typography-display-200-line-height);
+}
+
+[data-part='text'][data-variant='display'][data-size='300'] {
+  --text-font-size: var(--token-typography-display-300-font-size);
+  --text-line-height: var(--token-typography-display-300-line-height);
+}
+
+[data-part='text'][data-variant='display'][data-size='400'] {
+  --text-font-size: var(--token-typography-display-400-font-size);
+  --text-line-height: var(--token-typography-display-400-line-height);
+}
+
+[data-part='text'][data-variant='display'][data-size='500'] {
+  --text-font-size: var(--token-typography-display-500-font-size);
+  --text-line-height: var(--token-typography-display-500-line-height);
+}
+
+[data-part='text'][data-variant='body'][data-size='100'] {
+  --text-font-size: var(--token-typography-body-100-font-size);
+  --text-line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-part='text'][data-variant='body'][data-size='200'] {
+  --text-font-size: var(--token-typography-body-200-font-size);
+  --text-line-height: var(--token-typography-body-200-line-height);
+}
+
+[data-part='text'][data-variant='body'][data-size='300'] {
+  --text-font-size: var(--token-typography-body-300-font-size);
+  --text-line-height: var(--token-typography-body-300-line-height);
+}
+
+[data-part='text'][data-variant='code'][data-size='100'] {
+  --text-font-size: var(--token-typography-code-100-font-size);
+  --text-line-height: var(--token-typography-code-100-line-height);
+}
+
+[data-part='text'][data-variant='code'][data-size='200'] {
+  --text-font-size: var(--token-typography-code-200-font-size);
+  --text-line-height: var(--token-typography-code-200-line-height);
+}
+
+[data-part='text'][data-variant='code'][data-size='300'] {
+  --text-font-size: var(--token-typography-code-300-font-size);
+  --text-line-height: var(--token-typography-code-300-line-height);
+}
+
+/* ─── Weight ──────────────────────────────────────────────────────────────── */
+
+[data-part='text'][data-weight='regular'] {
+  font-weight: var(--token-typography-font-weight-regular);
+}
+
+[data-part='text'][data-weight='medium'] {
+  font-weight: var(--token-typography-font-weight-medium);
+}
+
+[data-part='text'][data-weight='semibold'] {
+  font-weight: var(--token-typography-font-weight-semibold);
+}
+
+[data-part='text'][data-weight='bold'] {
+  font-weight: var(--token-typography-font-weight-bold);
+}
+
+/* ─── Color (semantic foreground tokens) ─────────────────────────────────────
+   `inherit` is the default (no local set → the base `color: inherit` applies).
+   Every other value resolves to a semantic --token-color-foreground-* token. */
+
+[data-part='text'][data-color='primary'] {
+  --text-color: var(--token-color-foreground-primary);
+}
+
+[data-part='text'][data-color='strong'] {
+  --text-color: var(--token-color-foreground-strong);
+}
+
+[data-part='text'][data-color='faint'] {
+  --text-color: var(--token-color-foreground-faint);
+}
+
+[data-part='text'][data-color='disabled'] {
+  --text-color: var(--token-color-foreground-disabled);
+}
+
+[data-part='text'][data-color='action'] {
+  --text-color: var(--token-color-foreground-action);
+}
+
+[data-part='text'][data-color='success'] {
+  --text-color: var(--token-color-foreground-success-on-surface);
+}
+
+[data-part='text'][data-color='warning'] {
+  --text-color: var(--token-color-foreground-warning-on-surface);
+}
+
+[data-part='text'][data-color='critical'] {
+  --text-color: var(--token-color-foreground-critical-on-surface);
+}
+
+[data-part='text'][data-color='highlight'] {
+  --text-color: var(--token-color-foreground-highlight-on-surface);
+}
+
+/* ─── Alignment (logical) ────────────────────────────────────────────────────
+   `start`/`end` are logical keywords so the alignment follows the writing
+   direction (RTL-safe). */
+
+[data-part='text'][data-align='start'] {
+  text-align: start;
+}
+
+[data-part='text'][data-align='center'] {
+  text-align: center;
+}
+
+[data-part='text'][data-align='end'] {
+  text-align: end;
+}

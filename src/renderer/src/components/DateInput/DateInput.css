@@ -1,0 +1,188 @@
+/**
+ * DateInput — token-styled Ark UI `date-picker` primitive, presented as a date
+ * *text input* (no calendar overlay). Matches the Helios text-input visual
+ * language.
+ *
+ * Styling targets Ark's `data-scope='date-picker'`/`data-part` attributes (per
+ * the unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios `--token-*` custom property. No raw literals, no
+ * `--token-color-palette-*`.
+ *
+ * Scope note: Ark's scope for this machine is `date-picker` (shared with the
+ * DatePicker component). DateInput renders only the field subset
+ * (root/label/control/input/clear-trigger) and DatePicker.css owns the calendar
+ * parts, so the two stylesheets never style the same selector.
+ *
+ * Reduced motion: every transition reset appears under BOTH
+ * `@media (prefers-reduced-motion: reduce)` AND
+ * `[data-reduced-motion='reduce'] <selector>`, with each animated selector
+ * getting its OWN reset block (the stylelint a11y rule matches per-selector).
+ *
+ * Focus ring: the Input is a native <input> and the clear button a native
+ * <button>; Ark emits NO `data-focus-visible`, so the keyboard ring is drawn
+ * with the native `:focus-visible` pseudo-class. `outline: none` and the
+ * focus-ring `box-shadow` always appear together in the same selector, and
+ * `:hover` is mirrored onto `:focus-visible` for keyboard parity.
+ *
+ * Logical properties (inline-size/padding-inline/padding-block) throughout.
+ */
+
+/* ── Root ────────────────────────────────────────────────────────────────── */
+
+[data-scope='date-picker'][data-part='root'] {
+  /* Helios control-size scale. The per-size vertical padding values are bare px
+     where Helios hardcodes them (they are not design tokens), mirrored as a
+     local custom property consumed by the field. Defaults to the medium scale
+     so a root with no data-size still sizes correctly. */
+  --date-input-field-padding-block: var(--token-form-control-padding);
+
+  display: inline flex;
+  flex-direction: column;
+  gap: var(--token-form-control-border-width);
+
+  &[data-size='small'] {
+    --date-input-field-padding-block: 2px;
+  }
+
+  &[data-size='medium'] {
+    --date-input-field-padding-block: var(--token-form-control-padding);
+  }
+
+  &[data-size='large'] {
+    --date-input-field-padding-block: 12px;
+  }
+}
+
+/* ── Label ───────────────────────────────────────────────────────────────── */
+
+[data-scope='date-picker'][data-part='label'] {
+  user-select: none;
+
+  font-family: var(--token-typography-body-100-font-family);
+  font-size: var(--token-typography-body-100-font-size);
+  line-height: var(--token-typography-body-100-line-height);
+  color: var(--token-form-label-color);
+
+  &[data-disabled] {
+    color: var(--token-form-control-disabled-foreground-color);
+  }
+}
+
+/* ── Control (field row) ─────────────────────────────────────────────────── */
+
+[data-scope='date-picker'][data-part='control'] {
+  display: block flex;
+  gap: var(--token-form-control-border-width);
+  align-items: center;
+  inline-size: 100%;
+}
+
+/* ── Input (the date text field) ─────────────────────────────────────────── */
+
+[data-scope='date-picker'][data-part='input'] {
+  flex: 1;
+
+  padding-block: var(--date-input-field-padding-block);
+  padding-inline: var(--token-form-control-padding);
+  border-color: var(--token-form-control-base-border-color-default);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-form-control-base-foreground-value-color);
+
+  background-color: var(--token-form-control-base-surface-color-default);
+
+  transition:
+    border-color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    box-shadow var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  /* Native <input>: Ark exposes no data-focus-visible. Use :focus-visible so
+     the keyboard ring renders only on keyboard focus, never on mouse focus. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  /* Hover tint, mirrored on :focus-visible so keyboard users get the same
+     affordance (a11y/selector-pseudo-class-focus). */
+  &:hover,
+  &:focus-visible {
+    border-color: var(--token-form-control-base-border-color-hover);
+    background-color: var(--token-form-control-base-surface-color-hover);
+  }
+
+  /* Native <input>: disabled is the native attribute (Ark mirrors data-disabled
+     onto the control part, not the input), so style :disabled directly. */
+  &:disabled,
+  &[data-disabled] {
+    cursor: not-allowed;
+    border-color: var(--token-form-control-disabled-border-color);
+    color: var(--token-form-control-disabled-foreground-color);
+    background-color: var(--token-form-control-disabled-surface-color);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+[data-scope='date-picker'][data-part='input']::placeholder {
+  color: var(--token-form-control-base-foreground-placeholder-color);
+}
+
+/* ── Clear Trigger (optional) ────────────────────────────────────────────── */
+
+[data-scope='date-picker'][data-part='clear-trigger'] {
+  cursor: pointer;
+
+  padding-block: var(--token-form-control-padding);
+  padding-inline: var(--token-form-control-padding);
+  border-color: var(--token-color-border-faint);
+  border-style: solid;
+  border-width: var(--token-form-control-border-width);
+  border-radius: var(--token-form-control-border-radius);
+
+  font-family: var(--token-typography-body-200-font-family);
+  font-size: var(--token-typography-body-200-font-size);
+  line-height: var(--token-typography-body-200-line-height);
+  color: var(--token-color-foreground-faint);
+
+  background-color: var(--token-color-surface-faint);
+
+  transition:
+    color var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function),
+    box-shadow var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  /* Native <button>: keyboard ring via :focus-visible (no data-focus-visible). */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  /* Hover tint, mirrored on :focus-visible for keyboard parity. */
+  &:hover,
+  &:focus-visible {
+    color: var(--token-color-foreground-primary);
+    background-color: var(--token-color-surface-interactive-hover);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}

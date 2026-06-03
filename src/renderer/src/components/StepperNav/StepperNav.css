@@ -1,0 +1,358 @@
+/**
+ * StepperNav — token-styled Ark UI Steps wrapper, built to the Helios Stepper
+ * Nav specification (https://helios.hashicorp.design/components/stepper/nav).
+ *
+ * Styling targets Ark's `data-scope`/`data-part` attributes (per the
+ * unstyled-primitives-ark ADR) rather than custom class names. Every visual
+ * value resolves to a Helios semantic `--token-*` custom property. Helios's own
+ * stepper-nav stylesheet reaches for raw `--token-color-palette-*` values
+ * (blue-200, neutral-700, alpha-200); per this project's token rules those are
+ * forbidden, so each is mapped to its semantic equivalent (action surfaces /
+ * foreground-strong / faint borders) exactly as the sibling Steps component
+ * does. The only bare values are the per-size spacing / indicator px values,
+ * which Helios itself hardcodes (not design tokens) — replicated here as local
+ * `--stepper-nav-*` properties keyed off `[data-size]`.
+ *
+ * State comes from Ark's data-attributes (shared with the Steps component,
+ * verified against the live DOM):
+ *   - Trigger is a native <button role="tab"> carrying data-state plus one of
+ *     data-current / data-complete / data-incomplete. Ark exposes NO
+ *     data-focus-visible and NO data-disabled on the trigger, so keyboard focus
+ *     uses the native :focus-visible pseudo and there is no trigger-disabled rule.
+ *   - Indicator / Separator carry data-current / data-complete / data-incomplete.
+ *   - PrevTrigger / NextTrigger render our <Button> (asChild) and carry the
+ *     native `disabled` attribute — their visuals come from Button.css, so this
+ *     file only lays out the actions row.
+ *   - The Root exposes the Zag `--percent` custom property (0..100); the progress
+ *     track fill width is driven from it.
+ *
+ * Motion: the progress fill and separator fill transitions are suppressed under
+ * reduced motion — both the OS `prefers-reduced-motion` media query AND the
+ * Storybook toolbar's `[data-reduced-motion='reduce']` attribute on <html>.
+ */
+
+/* ─── Root + size scale ─────────────────────────────────────────────────────────
+   Helios has no generic spacing token scale; these per-size px values are bare
+   (as in Steps/Accordion). Set on the root and inherited by every part. */
+
+[data-scope='steps'][data-part='root'][data-size] {
+  --stepper-nav-gap: 8px;
+  --stepper-nav-indicator-size: 2rem;
+  --stepper-nav-trigger-padding-block: 8px;
+  --stepper-nav-trigger-padding-inline: 12px;
+  --stepper-nav-progress-block: 4px;
+  --stepper-nav-actions-gap: 12px;
+  --stepper-nav-label-font-size: var(--token-typography-body-200-font-size);
+  --stepper-nav-label-line-height: var(--token-typography-body-200-line-height);
+  --stepper-nav-description-font-size: var(--token-typography-body-100-font-size);
+  --stepper-nav-description-line-height: var(--token-typography-body-100-line-height);
+
+  display: block flex;
+  flex-direction: column;
+  gap: var(--stepper-nav-gap);
+
+  inline-size: 100%;
+
+  font-family: var(--token-typography-font-stack-text);
+
+  &[data-size='small'] {
+    --stepper-nav-gap: 6px;
+    --stepper-nav-indicator-size: 1.75rem;
+    --stepper-nav-trigger-padding-block: 6px;
+    --stepper-nav-trigger-padding-inline: 8px;
+    --stepper-nav-label-font-size: var(--token-typography-body-100-font-size);
+    --stepper-nav-label-line-height: var(--token-typography-body-100-line-height);
+  }
+
+  &[data-size='large'] {
+    --stepper-nav-gap: 12px;
+    --stepper-nav-indicator-size: 2.5rem;
+    --stepper-nav-trigger-padding-block: 10px;
+    --stepper-nav-trigger-padding-inline: 16px;
+    --stepper-nav-label-font-size: var(--token-typography-body-300-font-size);
+    --stepper-nav-label-line-height: var(--token-typography-body-300-line-height);
+  }
+}
+
+/* ─── Progress bar ──────────────────────────────────────────────────────────────
+   Helios renders a full-width track with a fill whose width tracks completion.
+   Ark exposes the completion percentage on the Root as `--percent`. */
+
+[data-scope='steps'][data-part='progress'] {
+  position: relative;
+
+  overflow: hidden;
+
+  inline-size: 100%;
+  block-size: var(--stepper-nav-progress-block);
+  border-radius: var(--token-border-radius-x-small);
+
+  /* Track: the faint/neutral base Helios paints via alpha-200 over neutral-100. */
+  background: var(--token-color-surface-faint);
+
+  &::after {
+    content: '';
+
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+
+    /* Zag sets --percent (0..100) on the Root; default to 0 defensively. */
+    inline-size: calc(var(--percent, 0) * 1%);
+    border-start-end-radius: var(--token-border-radius-x-small);
+    border-end-end-radius: var(--token-border-radius-x-small);
+
+    /* Helios fill is neutral-700; the interactive variant uses blue-200. Map to
+       semantic strong/action borders. */
+    background: var(--token-color-foreground-strong);
+
+    transition: inline-size var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
+  }
+
+  [data-reduced-motion='reduce'] &::after {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      transition: none;
+    }
+  }
+}
+
+[data-scope='steps'][data-part='root'][data-interactive] [data-part='progress']::after {
+  background: var(--token-color-border-action);
+}
+
+/* ─── List ─────────────────────────────────────────────────────────────────── */
+
+[data-scope='steps'][data-part='list'] {
+  display: block flex;
+  flex-direction: row;
+  align-items: flex-start;
+
+  margin: 0;
+  padding: 0;
+}
+
+/* ─── Item ─────────────────────────────────────────────────────────────────── */
+
+[data-scope='steps'][data-part='item'] {
+  position: relative;
+  display: block flex;
+  flex: 1 0 0;
+  align-items: center;
+
+  &:last-of-type {
+    flex: initial;
+  }
+}
+
+/* ─── Trigger (interactive) and static-step (read-only) share layout ───────────
+   Both lay out the indicator beside the label. The trigger is a native button;
+   the static step is a plain span. */
+
+[data-scope='steps'][data-part='trigger'],
+[data-scope='steps'][data-part='static-step'] {
+  display: block flex;
+  gap: var(--stepper-nav-gap);
+  align-items: center;
+
+  padding-block: var(--stepper-nav-trigger-padding-block);
+  padding-inline: var(--stepper-nav-trigger-padding-inline);
+
+  text-align: start;
+}
+
+[data-scope='steps'][data-part='trigger'] {
+  cursor: pointer;
+
+  position: relative;
+
+  border: none;
+  border-radius: var(--token-border-radius-medium);
+
+  background: transparent;
+
+  /* Keyboard focus only — Ark exposes NO data-focus-visible attribute on the
+     trigger (verified in the live DOM via the sibling Steps component), so the
+     ring must hang off the native :focus-visible pseudo. outline:none is paired
+     with the box-shadow ring in the same rule (a11y/no-outline-none). */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+}
+
+[data-scope='steps'][data-part='static-step'] {
+  cursor: default;
+}
+
+/* ─── Indicator (the numbered circle) ──────────────────────────────────────── */
+
+[data-scope='steps'][data-part='indicator'] {
+  display: block flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  inline-size: var(--stepper-nav-indicator-size);
+  block-size: var(--stepper-nav-indicator-size);
+  border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
+  border-radius: var(--token-border-radius-large);
+
+  font-size: var(--stepper-nav-label-font-size);
+  font-weight: var(--token-typography-font-weight-semibold);
+  line-height: var(--stepper-nav-label-line-height);
+  color: var(--token-color-foreground-primary);
+
+  background: var(--token-color-surface-primary);
+
+  /* Interactive (Ark) state lives in data-current / data-complete /
+     data-incomplete; the read-only <ol> variant mirrors it via data-state, so
+     each state rule matches both. */
+  &[data-current],
+  &[data-state='current'],
+  &[data-complete],
+  &[data-state='complete'] {
+    border-color: var(--token-color-border-action);
+    color: var(--token-color-foreground-action);
+    background: var(--token-color-surface-action);
+  }
+
+  &[data-incomplete],
+  &[data-state='incomplete'] {
+    border-color: var(--token-color-border-faint);
+    color: var(--token-color-foreground-faint);
+    background: var(--token-color-surface-faint);
+  }
+}
+
+/* ─── Label (title + optional description) ─────────────────────────────────── */
+
+[data-scope='steps'][data-part='step-label'] {
+  display: block flex;
+  flex-direction: column;
+}
+
+[data-scope='steps'][data-part='step-title'] {
+  font-size: var(--stepper-nav-label-font-size);
+  font-weight: var(--token-typography-font-weight-medium);
+  line-height: var(--stepper-nav-label-line-height);
+
+  /* Incomplete (default) steps read in the faint foreground; active / complete
+     steps promote to the strong foreground (see the data-current/complete rules
+     keyed off the trigger below). */
+  color: var(--token-color-foreground-faint);
+}
+
+[data-scope='steps'][data-part='step-description'] {
+  font-size: var(--stepper-nav-description-font-size);
+  line-height: var(--stepper-nav-description-line-height);
+  color: var(--token-color-foreground-faint);
+}
+
+/* Active / complete steps promote the title + description foreground. The state
+   attribute lives on the Indicator (verified via Steps); style the sibling label
+   that follows it within the same trigger / static-step row. */
+[data-scope='steps']
+  [data-part='indicator'][data-current]
+  ~ [data-part='step-label']
+  [data-part='step-title'],
+[data-scope='steps']
+  [data-part='indicator'][data-complete]
+  ~ [data-part='step-label']
+  [data-part='step-title'],
+[data-scope='steps']
+  [data-part='indicator'][data-state='current']
+  ~ [data-part='step-label']
+  [data-part='step-title'],
+[data-scope='steps']
+  [data-part='indicator'][data-state='complete']
+  ~ [data-part='step-label']
+  [data-part='step-title'] {
+  color: var(--token-color-foreground-strong);
+}
+
+[data-scope='steps']
+  [data-part='indicator'][data-current]
+  ~ [data-part='step-label']
+  [data-part='step-description'],
+[data-scope='steps']
+  [data-part='indicator'][data-complete]
+  ~ [data-part='step-label']
+  [data-part='step-description'],
+[data-scope='steps']
+  [data-part='indicator'][data-state='current']
+  ~ [data-part='step-label']
+  [data-part='step-description'],
+[data-scope='steps']
+  [data-part='indicator'][data-state='complete']
+  ~ [data-part='step-label']
+  [data-part='step-description'] {
+  color: var(--token-color-foreground-primary);
+}
+
+/* Interactive active step: title takes the action foreground (Helios). */
+[data-scope='steps'][data-part='root'][data-interactive]
+  [data-part='indicator'][data-current]
+  ~ [data-part='step-label']
+  [data-part='step-title'] {
+  color: var(--token-color-foreground-action);
+}
+
+/* ─── Separator (the connector line) ───────────────────────────────────────── */
+
+[data-scope='steps'][data-part='separator'] {
+  flex: 1;
+
+  block-size: var(--token-form-control-border-width);
+  margin-inline: var(--stepper-nav-gap);
+
+  background: var(--token-color-border-primary);
+
+  transition: background-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  &[data-complete],
+  &[data-state='complete'] {
+    background: var(--token-color-border-action);
+  }
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* ─── Content (the per-step tabpanel) ──────────────────────────────────────────
+   StepperNav is navigation, not a content host: a Content panel is rendered per
+   interactive step only so each role="tab" trigger's aria-controls reference is
+   valid. When a step supplies no content the panel is empty (renders nothing);
+   when it does, it reads in the primary foreground. Ark hides the inactive panels
+   with the native `hidden` attribute — no display:none rule needed (the a11y
+   lint rule forbids it, and an empty active panel collapses to zero height). */
+
+[data-scope='steps'][data-part='content'] {
+  font-size: var(--stepper-nav-label-font-size);
+  line-height: var(--stepper-nav-label-line-height);
+  color: var(--token-color-foreground-primary);
+
+  &:not(:empty) {
+    padding-block: var(--stepper-nav-gap);
+  }
+}
+
+/* ─── Actions (our own Prev/Next row) ──────────────────────────────────────────
+   The Prev/Next buttons render our <Button> (asChild), so their chrome comes
+   from Button.css; this rule only positions the row. */
+
+[data-scope='steps'][data-part='actions'] {
+  display: block flex;
+  gap: var(--stepper-nav-actions-gap);
+  justify-content: flex-end;
+}

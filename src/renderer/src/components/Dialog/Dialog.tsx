@@ -22,6 +22,11 @@ export interface DialogProps extends DialogRootProps {
    */
   triggerLabel?: React.ReactNode;
   /**
+   * Visible label for the close button. Defaults to "Close". The same string is
+   * used as the button's accessible name.
+   */
+  closeLabel?: string;
+  /**
    * Content rendered inside the dialog panel (form fields, body text, actions).
    */
   children?: React.ReactNode;
@@ -31,9 +36,16 @@ export interface DialogProps extends DialogRootProps {
  * Token-styled wrapper over Ark UI's Dialog.
  *
  * Anatomy (from @ark-ui/react/dialog): Root > Trigger; Portal > Backdrop,
- * Positioner > Content > CloseTrigger, Title, Description. Ark/Zag own the
- * wiring: the Content receives role="dialog" with aria-labelledby wired to the
- * Title and aria-describedby wired to the Description automatically.
+ * Positioner > Content > Title, Description, CloseTrigger. Ark/Zag own the
+ * wiring (verified against the live DOM): the Content (an HTMLDivElement)
+ * receives role="dialog" with aria-labelledby pointing at the Title — which Ark
+ * renders as a semantic <h2> heading — and aria-describedby pointing at the
+ * Description.
+ *
+ * Behavioral props (role 'dialog' | 'alertdialog', trapFocus, closeOnEscape,
+ * closeOnInteractOutside, initialFocusEl, modal, open/defaultOpen, …) flow
+ * straight through from Ark's DialogRootProps via the {...rootProps} spread, so
+ * the wrapper does not redeclare them.
  *
  * Styling is attached to Ark's data-scope / data-part attributes (see
  * Dialog.css) per the unstyled-primitives-ark ADR — no custom class names.
@@ -42,7 +54,7 @@ export interface DialogProps extends DialogRootProps {
  * story canvas. Play tests must query via document.body, not canvasElement.
  */
 export const Dialog = forwardRef<HTMLButtonElement, DialogProps>(function Dialog(
-  { title, description, triggerLabel = 'Open', children, ...rootProps },
+  { title, description, triggerLabel = 'Open', closeLabel = 'Close', children, ...rootProps },
   ref,
 ) {
   return (
@@ -55,7 +67,7 @@ export const Dialog = forwardRef<HTMLButtonElement, DialogProps>(function Dialog
             <ArkDialog.Title>{title}</ArkDialog.Title>
             {description != null && <ArkDialog.Description>{description}</ArkDialog.Description>}
             {children}
-            <ArkDialog.CloseTrigger>Close</ArkDialog.CloseTrigger>
+            <ArkDialog.CloseTrigger aria-label={closeLabel}>{closeLabel}</ArkDialog.CloseTrigger>
           </ArkDialog.Content>
         </ArkDialog.Positioner>
       </Portal>

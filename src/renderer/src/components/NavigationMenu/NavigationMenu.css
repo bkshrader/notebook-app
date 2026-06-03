@@ -6,18 +6,58 @@
  * value resolves to a Helios `--token-*` custom property. No raw literals,
  * no `--token-color-palette-*`.
  *
- * Focus ring applied ONLY on `[data-focus-visible]` (keyboard focus), never on
- * every `:focus` / `[data-focus]`.
+ * State comes from Ark's data-attributes (verified against the Ark styling
+ * guide and the live DOM — do NOT assume attributes Ark doesn't emit):
+ *   data-state="open|closed"   (on Item, Trigger, Content, ItemIndicator)
+ *   data-disabled              (on Item and Trigger when disabled; the Trigger
+ *                               is a native <button> that ALSO carries the
+ *                               native `disabled` attribute — both are matched)
+ *   data-current               (on Link, the active route)
+ *   data-orientation           (on Root/List/Item/Content — drives horizontal
+ *                               vs. vertical layout)
+ * Ark does NOT emit `data-focus-visible`; the Trigger is an HTMLButtonElement
+ * and the Link an HTMLAnchorElement, so the keyboard-only focus ring is drawn
+ * with the native `:focus-visible` pseudo-class.
  *
- * Motion: the Content open/close animation is suppressed under reduced-motion —
- * both the OS `prefers-reduced-motion` media query AND the Storybook toolbar's
- * `[data-reduced-motion='reduce']` attribute on <html>. Each animated selector
- * gets its own reduced-motion reset so the stylelint a11y rule (which matches
- * per-selector) is satisfied.
+ * Size scale: `[data-size]` on the Root sets the `--nav-*` custom properties
+ * (padding, font size, chevron size) consumed by the trigger/link/indicator.
+ *
+ * Motion: the Content open/close animation and the chevron rotation are
+ * suppressed under reduced-motion — both the OS `prefers-reduced-motion` media
+ * query AND the Storybook toolbar's `[data-reduced-motion='reduce']` attribute
+ * on <html>. Each animated selector gets its own reduced-motion reset so the
+ * stylelint a11y rule (which matches per-selector) is satisfied.
  *
  * Logical properties (inline-size / block-size / padding-inline / padding-block)
  * are used throughout — no physical width/height/padding-left.
  */
+
+/* ── Size scale ─────────────────────────────────────────────────────────────
+   Per-size custom properties set on the Root and inherited by every part. */
+
+[data-scope='navigation-menu'][data-part='root'][data-size='small'] {
+  --nav-control-padding-block: var(--token-border-radius-x-small);
+  --nav-control-padding-inline: var(--token-border-radius-small);
+  --nav-control-font-size: var(--token-typography-body-100-font-size);
+  --nav-control-line-height: var(--token-typography-body-100-line-height);
+  --nav-chevron-size: 1rem;
+}
+
+[data-scope='navigation-menu'][data-part='root'][data-size='medium'] {
+  --nav-control-padding-block: var(--token-border-radius-small);
+  --nav-control-padding-inline: var(--token-form-control-padding);
+  --nav-control-font-size: var(--token-typography-body-200-font-size);
+  --nav-control-line-height: var(--token-typography-body-200-line-height);
+  --nav-chevron-size: 1.25rem;
+}
+
+[data-scope='navigation-menu'][data-part='root'][data-size='large'] {
+  --nav-control-padding-block: var(--token-form-control-padding);
+  --nav-control-padding-inline: var(--token-border-radius-medium);
+  --nav-control-font-size: var(--token-typography-body-300-font-size);
+  --nav-control-line-height: var(--token-typography-body-300-line-height);
+  --nav-chevron-size: 1.5rem;
+}
 
 /* ── Root ───────────────────────────────────────────────────────────────────── */
 
@@ -25,8 +65,8 @@
   position: relative;
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--nav-control-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--nav-control-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-color-foreground-primary);
 }
 
@@ -36,13 +76,18 @@
   position: relative;
 
   display: block flex;
-  flex-wrap: wrap;
+  flex-flow: row wrap;
   gap: var(--token-border-radius-x-small);
 
   margin: 0;
   padding-inline: 0;
 
   list-style: none;
+
+  /* Vertical orientation stacks the items into a column rail. */
+  &[data-orientation='vertical'] {
+    flex-flow: column nowrap;
+  }
 }
 
 /* ── Item ───────────────────────────────────────────────────────────────────── */
@@ -61,38 +106,53 @@
   gap: var(--token-border-radius-x-small);
   align-items: center;
 
-  padding-block: var(--token-border-radius-small);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--nav-control-padding-block, var(--token-border-radius-small));
+  padding-inline: var(--nav-control-padding-inline, var(--token-form-control-padding));
   border: none;
   border-radius: var(--token-border-radius-medium);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
+  font-size: var(--nav-control-font-size, var(--token-typography-body-200-font-size));
   font-weight: var(--token-typography-font-weight-medium);
-  line-height: var(--token-typography-body-200-line-height);
+  line-height: var(--nav-control-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-color-foreground-primary);
   white-space: nowrap;
 
   background: transparent;
 
   transition:
-    background-color var(--token-form-radiocard-transition-duration) ease,
-    color var(--token-form-radiocard-transition-duration) ease;
+    background-color var(--token-form-toggle-transition-duration) ease,
+    color var(--token-form-toggle-transition-duration) ease;
 
   [data-reduced-motion='reduce'] & {
     transition: none;
   }
 
-  &:hover:not([data-disabled]),
-  &[data-state='open']:not([data-disabled]),
-  &:focus:not([data-disabled]) {
-    color: var(--token-color-foreground-action-hover);
-    background: var(--token-color-surface-interactive-hover);
-  }
-
+  /* Disabled: Ark sets `data-disabled` on the trigger AND the native `disabled`
+     attribute on the button. Match both so the dimmed state is robust. */
+  &:disabled,
   &[data-disabled] {
     cursor: not-allowed;
     color: var(--token-color-foreground-disabled);
+  }
+
+  /* Keyboard focus only — Ark emits NO data-focus-visible, so the ring is drawn
+     with the native :focus-visible pseudo on the button element. A mouse press
+     does not trigger :focus-visible, so it never paints a ring. */
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  /* Hover, the open state, and keyboard focus all tint the trigger (keyboard
+     parity with hover). :focus-visible is grouped with :hover so the stylelint
+     a11y rule — which requires every :hover to have a focus counterpart — is
+     satisfied without decorating mouse focus. */
+  &:hover:not(:disabled, [data-disabled]),
+  &:focus-visible:not(:disabled, [data-disabled]),
+  &[data-state='open']:not(:disabled, [data-disabled]) {
+    color: var(--token-color-foreground-action-hover);
+    background: var(--token-color-surface-interactive-hover);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -100,10 +160,36 @@
   }
 }
 
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='navigation-menu'][data-part='trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
+/* ── Trigger chevron ──────────────────────────────────────────────────────────
+   The chevron is a plain SVG rendered as a direct child of the Trigger (NOT
+   Ark's ItemIndicator part, which carries the native `hidden` attribute while
+   the item is closed and so would make the chevron disappear when collapsed).
+   It is the only `svg` inside the trigger, so the child selector is exact. */
+
+[data-scope='navigation-menu'][data-part='trigger'] > svg {
+  flex-shrink: 0;
+
+  inline-size: var(--nav-chevron-size, 1.25rem);
+  block-size: var(--nav-chevron-size, 1.25rem);
+
+  color: var(--token-color-foreground-faint);
+
+  transition: rotate var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* Rotate the chevron to point up while its trigger is open, keyed off the
+   trigger's `data-state` (which Ark flips reliably on the <button>). */
+[data-scope='navigation-menu'][data-part='trigger'][data-state='open'] > svg {
+  rotate: -180deg;
 }
 
 /* ── Link ───────────────────────────────────────────────────────────────────── */
@@ -114,32 +200,27 @@
   display: inline flex;
   align-items: center;
 
-  padding-block: var(--token-border-radius-small);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--nav-control-padding-block, var(--token-border-radius-small));
+  padding-inline: var(--nav-control-padding-inline, var(--token-form-control-padding));
   border-radius: var(--token-border-radius-medium);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
+  font-size: var(--nav-control-font-size, var(--token-typography-body-200-font-size));
   font-weight: var(--token-typography-font-weight-medium);
-  line-height: var(--token-typography-body-200-line-height);
+  line-height: var(--nav-control-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-color-foreground-primary);
   text-decoration: none;
   white-space: nowrap;
 
   transition:
-    background-color var(--token-form-radiocard-transition-duration) ease,
-    color var(--token-form-radiocard-transition-duration) ease;
+    background-color var(--token-form-toggle-transition-duration) ease,
+    color var(--token-form-toggle-transition-duration) ease;
 
   [data-reduced-motion='reduce'] & {
     transition: none;
   }
 
-  &:hover:not([data-disabled]),
-  &:focus:not([data-disabled]) {
-    color: var(--token-color-foreground-action-hover);
-    background: var(--token-color-surface-interactive-hover);
-  }
-
+  /* The current route is painted in the action color. */
   &[data-current] {
     color: var(--token-color-foreground-action);
   }
@@ -149,9 +230,20 @@
     color: var(--token-color-foreground-disabled);
   }
 
-  &[data-focus-visible] {
+  /* Keyboard focus only — Ark emits NO data-focus-visible; the link is a native
+     <a>, so the ring uses the native :focus-visible pseudo. A mouse press does
+     not trigger :focus-visible, so it never paints a ring. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  /* Hover and keyboard focus tint the link (keyboard parity). :focus-visible is
+     grouped with :hover so the stylelint a11y rule is satisfied. */
+  &:hover:not([data-disabled]),
+  &:focus-visible:not([data-disabled]) {
+    color: var(--token-color-foreground-action-hover);
+    background: var(--token-color-surface-interactive-hover);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -181,7 +273,7 @@
   outline: none;
   box-shadow: var(--token-elevation-overlay-box-shadow);
 
-  animation-duration: var(--token-form-radiocard-transition-duration);
+  animation-duration: var(--token-form-toggle-transition-duration);
   animation-timing-function: ease;
   animation-fill-mode: both;
 
@@ -208,142 +300,6 @@
   @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
-}
-
-/* ── Indicator ──────────────────────────────────────────────────────────────── */
-
-[data-scope='navigation-menu'][data-part='indicator'] {
-  position: absolute;
-  inset-block-end: 0;
-
-  block-size: var(--token-border-radius-x-small);
-  border-radius: var(--token-border-radius-x-small);
-
-  background: var(--token-color-foreground-action);
-
-  transition: translate var(--token-form-radiocard-transition-duration) ease;
-
-  [data-reduced-motion='reduce'] & {
-    transition: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-}
-
-/* ── Item indicator ─────────────────────────────────────────────────────────── */
-
-[data-scope='navigation-menu'][data-part='item-indicator'] {
-  display: inline flex;
-  align-items: center;
-  justify-content: center;
-
-  color: var(--token-color-foreground-faint);
-
-  transition: transform var(--token-form-radiocard-transition-duration) ease;
-
-  [data-reduced-motion='reduce'] & {
-    transition: none;
-  }
-
-  &[data-state='open'] {
-    transform: rotate(180deg);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-}
-
-/* ── Viewport positioner ────────────────────────────────────────────────────── */
-
-[data-scope='navigation-menu'][data-part='viewport-positioner'] {
-  position: absolute;
-  inset-block-start: 100%;
-  inset-inline-start: 0;
-
-  display: block flex;
-
-  inline-size: 100%;
-}
-
-/* ── Viewport ───────────────────────────────────────────────────────────────── */
-
-[data-scope='navigation-menu'][data-part='viewport'] {
-  position: relative;
-
-  overflow: hidden;
-
-  inline-size: var(--viewport-width, 100%);
-  block-size: var(--viewport-height, auto);
-  border: var(--token-form-control-border-width) solid var(--token-color-border-primary);
-  border-radius: var(--token-border-radius-medium);
-
-  background: var(--token-color-surface-primary);
-  box-shadow: var(--token-elevation-overlay-box-shadow);
-
-  transition:
-    inline-size var(--token-form-radiocard-transition-duration) ease,
-    block-size var(--token-form-radiocard-transition-duration) ease;
-
-  [data-reduced-motion='reduce'] & {
-    transition: none;
-  }
-
-  &[data-state='open'] {
-    animation-name: nb-nav-content-in;
-    animation-duration: var(--token-form-radiocard-transition-duration);
-    animation-timing-function: ease;
-    animation-fill-mode: both;
-
-    @media screen and (prefers-reduced-motion: reduce) {
-      animation: none;
-      animation-duration: var(--token-form-radiocard-transition-duration);
-      animation-timing-function: ease;
-      animation-fill-mode: both;
-    }
-  }
-
-  &[data-state='closed'] {
-    animation-name: nb-nav-content-out;
-    animation-duration: var(--token-form-radiocard-transition-duration);
-    animation-timing-function: ease;
-    animation-fill-mode: both;
-
-    @media screen and (prefers-reduced-motion: reduce) {
-      animation: none;
-      animation-duration: var(--token-form-radiocard-transition-duration);
-      animation-timing-function: ease;
-      animation-fill-mode: both;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='navigation-menu'][data-part='viewport'][data-state='open'] {
-    animation: none;
-  }
-}
-
-[data-reduced-motion='reduce']
-  [data-scope='navigation-menu'][data-part='viewport'][data-state='open'] {
-  animation: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-scope='navigation-menu'][data-part='viewport'][data-state='closed'] {
-    animation: none;
-  }
-}
-
-[data-reduced-motion='reduce']
-  [data-scope='navigation-menu'][data-part='viewport'][data-state='closed'] {
-  animation: none;
 }
 
 /* ── Keyframes ──────────────────────────────────────────────────────────────── */

@@ -22,7 +22,7 @@
   cursor: pointer;
 
   display: inline flex;
-  gap: var(--token-form-toggle-background-image-size);
+  gap: var(--token-form-control-padding);
   align-items: center;
 
   font-family: var(--token-typography-body-200-font-family);

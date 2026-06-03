@@ -15,6 +15,9 @@ export interface ComboboxItem extends CollectionItem {
   value: string;
 }
 
+/** Size scale for control padding, typography, and toggle-icon size. */
+export type ComboboxSize = 'small' | 'medium' | 'large';
+
 export interface ComboboxProps extends Omit<
   ComboboxRootProps<ComboboxItem>,
   'collection' | 'children'
@@ -25,6 +28,8 @@ export interface ComboboxProps extends Omit<
   items: ComboboxItem[];
   /** Placeholder text for the text input. */
   placeholder?: string;
+  /** Size scale for padding, typography, and icon size. Defaults to `medium`. */
+  size?: ComboboxSize;
 }
 
 /**
@@ -42,7 +47,13 @@ export interface ComboboxProps extends Omit<
  * Styling targets Ark's data-scope/data-part attributes (see Combobox.css) per
  * the unstyled-primitives-ark ADR — no custom class names.
  */
-export function Combobox({ label, items, placeholder, ...rootProps }: ComboboxProps) {
+export function Combobox({
+  label,
+  items,
+  placeholder,
+  size = 'medium',
+  ...rootProps
+}: ComboboxProps) {
   const [inputValue, setInputValue] = useState('');
 
   const filtered = inputValue
@@ -56,6 +67,7 @@ export function Combobox({ label, items, placeholder, ...rootProps }: ComboboxPr
       collection={collection}
       onInputValueChange={({ inputValue: val }) => setInputValue(val)}
       openOnClick
+      data-size={size}
       {...rootProps}
     >
       <ArkCombobox.Label>{label}</ArkCombobox.Label>

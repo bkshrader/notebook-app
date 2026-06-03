@@ -10,21 +10,56 @@
  * mirroring other text-input form controls. Trigger buttons share the same
  * border/surface treatment.
  *
- * Focus ring via [data-focus-visible] (keyboard focus only). Reduced-motion
- * suppressed under BOTH `prefers-reduced-motion: reduce` AND the Storybook
- * toolbar's `[data-reduced-motion='reduce']` attribute — each animated selector
- * gets its own reset (stylelint a11y rule matches per-selector).
- * Logical properties only (inline-size/block-size/padding-inline/etc.).
+ * State comes from Ark's data-attributes (verified against the Ark styling
+ * guide — do NOT assume attributes Ark doesn't document):
+ *   data-disabled  (Root, Label, Control, Input, Increment/DecrementTrigger)
+ *   data-invalid   (Root, Label, Control, Input)
+ *   data-focus     (Root, Label, Control — "focused at all"; NOT keyboard-only)
+ * Ark exposes NO `data-focus-visible` on ANY number-input part. The Input is a
+ * native <input> and the triggers are native <button>s, so the keyboard focus
+ * ring is drawn with the native `:focus-visible` pseudo-class on those elements.
+ *
+ * Motion: the control's border-color transition is suppressed under
+ * reduced-motion — both the OS `prefers-reduced-motion: reduce` media query AND
+ * the Storybook toolbar's `[data-reduced-motion='reduce']` attribute on <html>.
+ * Each animated selector gets its own reset (the stylelint a11y rule matches
+ * per-selector). Logical properties only (inline-size/block-size/padding-inline).
+ *
+ * Size: a single `data-size` on the Root (small | medium | large) is read once
+ * into local `--number-input-*` custom properties consumed by the parts below,
+ * so one attribute drives padding + typography for the whole control. The
+ * per-part `var(--number-input-*, <token>)` fallbacks keep the medium defaults
+ * if `data-size` is ever absent. Mirrors the Combobox size pattern.
  */
+
+[data-scope='number-input'][data-part='root'][data-size='small'] {
+  --number-input-control-padding: 4px;
+  --number-input-font-size: var(--token-typography-body-100-font-size);
+  --number-input-line-height: var(--token-typography-body-100-line-height);
+}
+
+[data-scope='number-input'][data-part='root'][data-size='medium'] {
+  --number-input-control-padding: 7px;
+  --number-input-font-size: var(--token-typography-body-200-font-size);
+  --number-input-line-height: var(--token-typography-body-200-line-height);
+}
+
+[data-scope='number-input'][data-part='root'][data-size='large'] {
+  --number-input-control-padding: 12px;
+  --number-input-font-size: var(--token-typography-body-300-font-size);
+  --number-input-line-height: var(--token-typography-body-300-line-height);
+}
+
+/* ── Root ─────────────────────────────────────────────────────────────────── */
 
 [data-scope='number-input'][data-part='root'] {
   display: block flex;
   flex-direction: column;
-  gap: var(--token-form-control-padding);
+  gap: var(--number-input-control-padding, var(--token-form-control-padding));
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--number-input-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--number-input-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-color-foreground-primary);
 
   &[data-disabled] {
@@ -34,8 +69,8 @@
 
 [data-scope='number-input'][data-part='label'] {
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--number-input-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--number-input-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-form-label-color);
 
   &[data-disabled] {
@@ -58,7 +93,8 @@
 
   background-color: var(--token-form-control-base-surface-color-default);
 
-  transition: border-color var(--token-form-radiocard-transition-duration) ease;
+  transition: border-color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
 
   [data-reduced-motion='reduce'] & {
     transition: none;
@@ -86,12 +122,13 @@
   flex: 1;
 
   min-inline-size: 0;
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--number-input-control-padding, var(--token-form-control-padding));
+  padding-inline: var(--number-input-control-padding, var(--token-form-control-padding));
   border: none;
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--number-input-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--number-input-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-form-control-base-foreground-value-color);
 
   background-color: transparent;
@@ -101,7 +138,9 @@
     color: var(--token-form-control-disabled-foreground-color);
   }
 
-  &[data-focus-visible] {
+  /* Native input — Ark emits NO data-focus-visible. The keyboard focus ring is
+     drawn on the native :focus-visible pseudo so it actually renders. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -115,23 +154,35 @@
   align-items: center;
   justify-content: center;
 
-  padding-inline: var(--token-form-control-padding);
+  padding-inline: var(--number-input-control-padding, var(--token-form-control-padding));
   border: none;
   border-inline-start: var(--token-form-control-border-width) solid
     var(--token-form-control-base-border-color-default);
 
   font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-size: var(--number-input-font-size, var(--token-typography-body-200-font-size));
+  line-height: var(--number-input-line-height, var(--token-typography-body-200-line-height));
   color: var(--token-color-foreground-primary);
 
   background-color: var(--token-color-surface-interactive);
 }
 
+/* Native <button> triggers — Ark emits NO data-focus-visible. The keyboard
+   focus ring uses the native :focus-visible pseudo so it actually renders (and
+   is suppressed for mouse focus, which never matches :focus-visible). Declared
+   before the hover/active tints to satisfy no-descending-specificity. */
+[data-scope='number-input'][data-part='increment-trigger']:focus-visible,
+[data-scope='number-input'][data-part='decrement-trigger']:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
+}
+
+/* Hover tint. Keyboard parity: :focus-visible gets the same surface affordance
+   as :hover (the stylelint a11y rule requires a focus counterpart for hover). */
 [data-scope='number-input'][data-part='increment-trigger']:hover:not([data-disabled]),
 [data-scope='number-input'][data-part='decrement-trigger']:hover:not([data-disabled]),
-[data-scope='number-input'][data-part='increment-trigger']:focus:not([data-disabled]),
-[data-scope='number-input'][data-part='decrement-trigger']:focus:not([data-disabled]) {
+[data-scope='number-input'][data-part='increment-trigger']:focus-visible:not([data-disabled]),
+[data-scope='number-input'][data-part='decrement-trigger']:focus-visible:not([data-disabled]) {
   background-color: var(--token-color-surface-interactive-hover);
 }
 
@@ -145,10 +196,4 @@
   cursor: not-allowed;
   color: var(--token-form-control-disabled-foreground-color);
   background-color: var(--token-form-control-disabled-surface-color);
-}
-
-[data-scope='number-input'][data-part='increment-trigger'][data-focus-visible],
-[data-scope='number-input'][data-part='decrement-trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
 }

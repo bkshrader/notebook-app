@@ -11,7 +11,7 @@ const preview: Preview = {
   // `userEvent.tab()` from that ambient focus then lands on the wrong element
   // and fails intermittently. Blurring to <body> first makes each test's first
   // Tab deterministic regardless of run order — load-bearing for the
-  // AdvancedTable grid-navigation tests.
+  // AdvancedTable grid-navigation and cross-story keyboard/focus-ring tests.
   beforeEach: () => {
     if (typeof document === 'undefined') return;
     const active = document.activeElement;

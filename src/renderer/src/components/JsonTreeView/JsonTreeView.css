@@ -2,27 +2,54 @@
  * JsonTreeView — token-styled Ark UI primitive.
  *
  * Styling targets Ark's `data-scope`/`data-part` attributes (per the
- * unstyled-primitives-ark ADR) rather than custom class names. Every visual
- * value resolves to a Helios `--token-*` custom property. No raw literals, no
- * `--token-color-palette-*`.
+ * unstyled-primitives-ark ADR) rather than custom class names. Every
+ * color-bearing value resolves to a Helios `--token-*` custom property. No raw
+ * literals, no `--token-color-palette-*`.
  *
- * The JsonTreeView is built on top of Ark's tree-view anatomy. Parts rendered
- * by JsonTreeView.Tree: root (scope=tree-view), branch-control, branch-indicator,
- * branch-text, branch-content, branch-indent-guide, item, item-text.
- * Data attributes used for value typing: [data-type], [data-kind], [data-depth].
+ * SCOPE: Ark emits `data-scope='json-tree-view'` on every part of this widget
+ * (verified against the live DOM — NOT `tree-view`, which is the separate
+ * TreeView component's scope). Parts rendered by JsonTreeView.Tree:
+ * root, tree, branch, branch-control, branch-indicator, branch-text,
+ * branch-content, item, item-text. Value typing/syntax is carried on
+ * [data-type] / [data-kind] descendants Ark renders internally.
  *
- * Focus ring applied ONLY on [data-focus-visible] (keyboard focus), never on
- * every :focus / [data-focus].
+ * NOT styled: `branch-indent-guide`. Ark's JsonTreeView delegates indent guides
+ * to @zag-js/tree-view's `getBranchIndentGuideProps`, which does NOT exist in
+ * the pinned zag-js version (1.41.1) — so no `branch-indent-guide` element is
+ * ever emitted (verified against the live DOM: branch-content's only children
+ * are `item` and `branch`). A selector for it would be dead CSS, so there is
+ * none, and the wrapper does not expose an `indentGuide` prop (it would be a
+ * no-op). Nesting depth is instead conveyed by `padding-inline-start` on
+ * branch-control / item, scaled from Ark's per-node `--line-length` custom
+ * property (0 at the top level, +1 per nesting level).
  *
- * No transitions or animations are used in this component, so no reduced-motion
- * resets are needed. The branch-indicator rotation is a CSS transform on
- * data-state; if future changes add animation to it, add reduced-motion resets
- * per-selector for both @media and [data-reduced-motion='reduce'].
+ * STATE ATTRS (verified against the Ark styling guide + live DOM — do NOT assume
+ * attributes Ark doesn't emit):
+ *   data-state="open|closed"  (branch-control, branch-indicator, branch-content)
+ *   data-focus                (branch-control, item — present when focused; Ark
+ *                              exposes NO data-focus-visible attribute). The
+ *                              keyboard focus ring therefore uses the native
+ *                              :focus-visible pseudo so it actually renders for
+ *                              keyboard users while staying off mouse focus.
+ *   data-disabled / data-selected  (available but unused by this read-only view)
+ *
+ * Spacing is centralized in component-local `--json-tree-view-*` custom
+ * properties on the root (Accordion's pattern) rather than borrowing another
+ * component's token family, so this component owns its own layout scale.
+ *
+ * No transitions or animations beyond the static branch-indicator rotation on
+ * data-state. If future changes animate that rotation, add reduced-motion resets
+ * per-selector for BOTH @media (prefers-reduced-motion) and
+ * [data-reduced-motion='reduce'].
  */
 
 /* ── Root container ─────────────────────────────────────────────────────── */
 
-[data-scope='tree-view'][data-part='root'] {
+[data-scope='json-tree-view'][data-part='root'] {
+  /* Component-owned layout scale (no cross-component token coupling). */
+  --json-tree-view-indent: 8px;
+  --json-tree-view-icon-gap: 8px;
+
   inline-size: 100%;
 
   font-family: var(--token-typography-code-100-font-family);
@@ -33,32 +60,39 @@
 
 /* ── Tree (the scrollable list element) ─────────────────────────────────── */
 
-[data-scope='tree-view'][data-part='tree'] {
+[data-scope='json-tree-view'][data-part='tree'] {
   display: block flex;
   flex-direction: column;
 }
 
 /* ── Branch control (the clickable row for an expandable node) ──────────── */
 
-[data-scope='tree-view'][data-part='branch-control'] {
+[data-scope='json-tree-view'][data-part='branch-control'] {
   cursor: pointer;
   user-select: none;
 
   display: block flex;
   align-items: center;
 
-  padding-inline-start: calc(
-    (var(--depth, 1) - 1) * var(--token-app-side-nav-body-list-item-padding-horizontal)
-  );
+  /* Ark sets `--line-length` (0 at the top level, +1 per nesting level) on every
+     node's inline style; we scale it by the component indent for depth padding.
+     NOTE: the attribute is `--line-length`, NOT `--depth` — reading `--depth`
+     here would always fall back and render every row flush-left. */
+  padding-inline-start: calc(var(--line-length, 0) * var(--json-tree-view-indent));
 
   color: var(--token-color-foreground-primary);
 
+  /* Hover and keyboard-focus share the tint affordance (keyboard parity); plain
+     mouse :focus is deliberately excluded so a click does not leave the row
+     tinted. Ark exposes data-focus (focused-at-all), not data-focus-visible, so
+     keyboard targeting uses the native :focus-visible pseudo. */
   &:hover,
-  &:focus {
+  &:focus-visible {
     background: var(--token-color-surface-interactive-hover);
   }
 
-  &[data-focus-visible] {
+  /* Keyboard focus ring only — never on mouse focus. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -66,12 +100,12 @@
 
 /* ── Branch indicator (the expand/collapse chevron) ─────────────────────── */
 
-[data-scope='tree-view'][data-part='branch-indicator'] {
+[data-scope='json-tree-view'][data-part='branch-indicator'] {
   display: inline flex;
   align-items: center;
   justify-content: center;
 
-  margin-inline-end: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
+  margin-inline-end: var(--json-tree-view-icon-gap);
 
   color: var(--token-color-foreground-faint);
 
@@ -82,51 +116,32 @@
 
 /* ── Branch text (the key label for a branch node) ──────────────────────── */
 
-[data-scope='tree-view'][data-part='branch-text'] {
+[data-scope='json-tree-view'][data-part='branch-text'] {
   display: block flex;
   align-items: baseline;
   color: var(--token-color-foreground-primary);
 }
 
-/* ── Branch content (the container for a branch's children) ─────────────── */
-
-[data-scope='tree-view'][data-part='branch-content'] {
-  position: relative;
-}
-
-/* ── Branch indent guide (the vertical line for nesting depth) ──────────── */
-
-[data-scope='tree-view'][data-part='branch-indent-guide'] {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: var(--token-app-side-nav-body-list-item-padding-horizontal);
-
-  inline-size: var(--token-app-side-nav-wrapper-border-width);
-
-  background: var(--token-color-border-faint);
-}
-
 /* ── Leaf item (a non-expandable key/value row) ─────────────────────────── */
 
-[data-scope='tree-view'][data-part='item'] {
-  position: relative;
-
+[data-scope='json-tree-view'][data-part='item'] {
   display: block flex;
   align-items: center;
 
-  padding-inline-start: calc(
-    ((var(--depth, 1) - 1) * var(--token-app-side-nav-body-list-item-padding-horizontal)) +
-      var(--token-app-side-nav-body-list-item-padding-horizontal)
-  );
-
+  /* Leaves carry their own `--line-length` (one deeper than their parent
+     branch-control), so the same depth formula aligns a leaf's text under its
+     sibling branch text — the extra step stands in for the absent chevron. */
+  padding-inline-start: calc(var(--line-length, 0) * var(--json-tree-view-indent));
   color: var(--token-color-foreground-primary);
 
+  /* Hover + keyboard-focus tint; plain mouse :focus excluded (see branch-control). */
   &:hover,
-  &:focus {
+  &:focus-visible {
     background: var(--token-color-surface-interactive-hover);
   }
 
-  &[data-focus-visible] {
+  /* Keyboard focus ring only. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -134,63 +149,63 @@
 
 /* ── Item text ───────────────────────────────────────────────────────────── */
 
-[data-scope='tree-view'][data-part='item-text'] {
+[data-scope='json-tree-view'][data-part='item-text'] {
   display: block flex;
   align-items: baseline;
 }
 
 /* ── JSON value type colouring ───────────────────────────────────────────── */
 
-/* These [data-type] attributes are set by Ark's internal rendering. We map   */
+/* These [data-type] attributes are set by Ark's internal rendering. We map     */
 
-/* each type to a semantic Helios token.                                       */
+/* each value type to a semantic Helios token.                                  */
 
-[data-scope='tree-view'] [data-type='string'] {
+[data-scope='json-tree-view'] [data-type='string'] {
   color: var(--token-color-foreground-success);
 }
 
-[data-scope='tree-view'] [data-type='number'] {
+[data-scope='json-tree-view'] [data-type='number'] {
   color: var(--token-color-foreground-highlight);
 }
 
-[data-scope='tree-view'] [data-type='boolean'] {
+[data-scope='json-tree-view'] [data-type='boolean'] {
   color: var(--token-color-foreground-warning);
 }
 
-[data-scope='tree-view'] [data-type='null'],
-[data-scope='tree-view'] [data-type='undefined'] {
+[data-scope='json-tree-view'] [data-type='null'],
+[data-scope='json-tree-view'] [data-type='undefined'] {
   color: var(--token-color-foreground-faint);
 }
 
-[data-scope='tree-view'] [data-type='error'] {
+[data-scope='json-tree-view'] [data-type='error'] {
   color: var(--token-color-foreground-critical);
 }
 
-[data-scope='tree-view'] [data-type='function'],
-[data-scope='tree-view'] [data-type='regex'],
-[data-scope='tree-view'] [data-type='date'] {
+[data-scope='json-tree-view'] [data-type='function'],
+[data-scope='json-tree-view'] [data-type='regex'],
+[data-scope='json-tree-view'] [data-type='date'] {
   color: var(--token-color-foreground-action);
 }
 
 /* ── JSON syntax kind colouring ──────────────────────────────────────────── */
 
-[data-scope='tree-view'] [data-kind='key'] {
+[data-scope='json-tree-view'] [data-kind='key'] {
   color: var(--token-color-foreground-strong);
 }
 
-[data-scope='tree-view'] [data-kind='brace'] {
+[data-scope='json-tree-view'] [data-kind='brace'] {
   color: var(--token-color-foreground-primary);
 }
 
-[data-scope='tree-view'] [data-kind='colon'] {
-  margin-inline: var(--token-app-side-nav-body-list-item-content-spacing-horizontal);
+[data-scope='json-tree-view'] [data-kind='colon'] {
+  margin-inline: var(--json-tree-view-icon-gap);
   color: var(--token-color-foreground-faint);
 }
 
-[data-scope='tree-view'] [data-kind='preview-text'] {
+[data-scope='json-tree-view'] [data-kind='preview-text'] {
   color: var(--token-color-foreground-faint);
 }
 
-[data-scope='tree-view'] [data-kind='constructor'] {
+[data-scope='json-tree-view'] [data-kind='constructor'] {
   color: var(--token-color-foreground-action);
 }

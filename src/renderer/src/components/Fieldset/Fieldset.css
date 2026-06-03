@@ -1,17 +1,28 @@
 /* Styling targets Ark's data-scope/data-part attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Fieldset has no focusable root element, so no
- * focus-ring rule is needed on the root itself — focus rings belong on the
- * child controls (Checkbox, Switch, Field, etc.) rendered inside the slot.
- * Reduced-motion resets are included for any transition/animation, each
- * animated selector getting its own reset (stylelint a11y rule matches
- * per-selector). Logical properties used throughout. */
+ * --token-color-palette-*.
+ *
+ * Ark contract (verified against the live rendered DOM, not assumed):
+ *   - Root renders a native <fieldset>. When disabled it carries BOTH the
+ *     native `disabled` attribute AND `data-disabled`; when invalid it carries
+ *     `data-invalid`. (It is not focusable, so no focus-ring rule lives here —
+ *     focus rings belong on the child controls rendered into the slot.)
+ *   - Legend renders <legend> and is the ONLY descendant part Ark also tags
+ *     with `data-disabled` / `data-invalid`.
+ *   - HelperText / ErrorText render <span> and carry NEITHER `data-disabled`
+ *     NOR `data-invalid` — Ark does not emit state attrs on them. Their
+ *     disabled treatment must therefore be reached via a descendant selector
+ *     from the disabled Root, not a (dead) `[data-part='…'][data-disabled]`.
+ *
+ * Fieldset has no transitions/animations of its own, so no reduced-motion reset
+ * is needed here; animated affordances live on the child controls. Logical
+ * properties used throughout. */
 
 [data-scope='fieldset'][data-part='root'] {
   display: block flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--token-form-control-padding);
 
   min-inline-size: 0;
   margin-block: 0;
@@ -31,10 +42,12 @@
   line-height: var(--token-typography-body-300-line-height);
   color: var(--token-form-legend-color);
 
+  /* Ark tags the legend with data-disabled (verified in the live DOM). The
+   * disabled cue does not rest on color alone — the native <fieldset> disabled
+   * attribute conveys the state to assistive technology and the cursor — so the
+   * muted foreground-faint token (matching Field's disabled label) is used for
+   * the visual de-emphasis. */
   &[data-disabled] {
-    /* foreground-disabled (#8c909c) fails axe AA on white; use foreground-faint
-   * (#656a76, 5.74:1) which passes. Disabled state is conveyed via cursor +
-   * the native fieldset disabled attribute, not just color. */
     color: var(--token-color-foreground-faint);
   }
 }
@@ -45,7 +58,9 @@
   line-height: var(--token-typography-body-100-line-height);
   color: var(--token-form-helper-text-color);
 
-  &[data-disabled] {
+  /* Ark does NOT emit data-disabled on helper-text; reach it from the disabled
+   * Root so the muted treatment actually renders. */
+  [data-scope='fieldset'][data-part='root'][data-disabled] & {
     color: var(--token-color-foreground-faint);
   }
 }
@@ -56,7 +71,9 @@
   line-height: var(--token-typography-body-100-line-height);
   color: var(--token-form-error-color);
 
-  &[data-disabled] {
+  /* Ark does NOT emit data-disabled on error-text; reach it from the disabled
+   * Root. */
+  [data-scope='fieldset'][data-part='root'][data-disabled] & {
     color: var(--token-color-foreground-faint);
   }
 }

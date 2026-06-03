@@ -1,11 +1,19 @@
 /* Styling targets Ark's data-scope/data-part attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
- * motion suppressed via BOTH the prefers-reduced-motion media query AND the
- * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
- * selector getting its OWN reduced-motion reset (stylelint a11y rule matches
- * per-selector, so comma-grouped resets fail). */
+ * --token-color-palette-*.
+ *
+ * Focus ring: Ark's FloatingPanel emits NO data-focus-visible attribute on any
+ * part (verified against mcp__ark-ui__styling_guide). Trigger, StageTrigger and
+ * CloseTrigger each render a native <button> (get_component_props →
+ * HTMLButtonElement), so the keyboard focus ring is drawn with the native
+ * :focus-visible pseudo-class — a [data-focus-visible] selector would be dead
+ * and the WCAG 2.4.7 focus ring would never render.
+ *
+ * Reduced motion suppressed via BOTH the prefers-reduced-motion media query AND
+ * the [data-reduced-motion='reduce'] attribute (Storybook toolbar), each
+ * animated selector getting its OWN reduced-motion reset (stylelint a11y rule
+ * matches per-selector, so comma-grouped resets fail). */
 
 /* Trigger button — opens the floating panel */
 [data-scope='floating-panel'][data-part='trigger'] {
@@ -21,7 +29,9 @@
 
   background: var(--token-color-surface-primary);
 
-  &[data-focus-visible] {
+  /* Native :focus-visible — Trigger is a native <button>; Ark emits no
+   * data-focus-visible attribute. Keyboard focus only. */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -51,9 +61,12 @@
   outline: none;
   box-shadow: var(--token-elevation-overlay-box-shadow);
 
+  /* Enter animation uses the form-toggle transition tokens (0.2s) — the
+   * tabs-indicator tokens are 0.6s, far too slow for an overlay reveal. There
+   * is no --token-floating-panel-* family in the Helios token set. */
   &[data-state='open'] {
-    animation: floating-panel-in var(--token-tabs-indicator-transition-duration)
-      var(--token-tabs-indicator-transition-function);
+    animation: floating-panel-in var(--token-form-toggle-transition-duration)
+      var(--token-form-toggle-transition-timing-function);
 
     @media screen and (prefers-reduced-motion: reduce) {
       animation: none;
@@ -73,8 +86,8 @@
 }
 
 [data-scope='floating-panel'][data-part='content'][data-state='closed'] {
-  animation: floating-panel-out var(--token-tabs-indicator-transition-duration)
-    var(--token-tabs-indicator-transition-function);
+  animation: floating-panel-out var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
 
   [data-reduced-motion='reduce'] & {
     animation: none;
@@ -134,6 +147,8 @@
 /* Stage triggers (minimize/maximize/restore) and close trigger */
 [data-scope='floating-panel'][data-part='stage-trigger'],
 [data-scope='floating-panel'][data-part='close-trigger'] {
+  cursor: pointer;
+
   display: inline flex;
   align-items: center;
   justify-content: center;
@@ -151,8 +166,10 @@
   background: var(--token-color-surface-primary);
 }
 
-[data-scope='floating-panel'][data-part='stage-trigger'][data-focus-visible],
-[data-scope='floating-panel'][data-part='close-trigger'][data-focus-visible] {
+/* Native :focus-visible — StageTrigger and CloseTrigger are native <button>s;
+ * Ark emits no data-focus-visible attribute. Keyboard focus only. */
+[data-scope='floating-panel'][data-part='stage-trigger']:focus-visible,
+[data-scope='floating-panel'][data-part='close-trigger']:focus-visible {
   outline: none;
   box-shadow: var(--token-focus-ring-action-box-shadow);
 }

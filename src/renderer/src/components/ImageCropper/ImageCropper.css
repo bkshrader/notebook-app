@@ -1,10 +1,13 @@
 /* Styling targets Ark's data-scope/data-part attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios --token-* custom property. No raw literals, no
- * --token-color-palette-*. Focus ring ONLY on data-focus-visible. Reduced
- * motion suppressed via BOTH the prefers-reduced-motion media query AND the
- * [data-reduced-motion='reduce'] attribute (Storybook toolbar), each animated
- * selector getting its OWN reduced-motion reset. */
+ * --token-color-palette-*. The Selection is a native focusable element
+ * (role="slider", tabindex="0"); its keyboard focus ring is drawn via the
+ * native :focus-visible pseudo-class — Ark does NOT emit a data-focus-visible
+ * attribute on any ImageCropper part (verified against the live DOM and Ark's
+ * styling guide). Reduced motion suppressed via BOTH the prefers-reduced-motion
+ * media query AND the [data-reduced-motion='reduce'] attribute (Storybook
+ * toolbar), each animated selector getting its OWN reduced-motion reset. */
 
 [data-scope='image-cropper'][data-part='root'] {
   position: relative;
@@ -61,7 +64,10 @@
     border-color: var(--token-color-border-faint);
   }
 
-  &[data-focus-visible] {
+  /* Keyboard focus ring. Selection is a real focusable slider, so the native
+     :focus-visible pseudo is the source of truth — there is no Ark
+     data-focus-visible attribute to hook (it is never emitted). */
+  &:focus-visible {
     outline: none;
     box-shadow: var(--token-focus-ring-action-box-shadow);
   }
@@ -116,8 +122,12 @@
 
   opacity: 0;
 
-  transition: opacity var(--token-form-radiocard-transition-duration)
-    var(--token-tabs-indicator-transition-function);
+  /* Fade the rule-of-thirds grid in/out on drag. A short interaction-grade
+     transition (0.2s) — not the slow 0.6s tabs-indicator function previously
+     borrowed here. The form-toggle family is the closest self-contained
+     interaction transition in Helios. */
+  transition: opacity var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
 
   [data-reduced-motion='reduce'] & {
     transition: none;

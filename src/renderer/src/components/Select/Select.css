@@ -1,27 +1,71 @@
 /**
- * Select — token-styled Ark UI primitive.
+ * Select — token-styled Ark UI primitive, built toward the Helios Select /
+ * form-control specification.
  *
  * Styling targets Ark's `data-scope`/`data-part` attributes (per the
  * unstyled-primitives-ark ADR) rather than custom class names. Every visual
  * value resolves to a Helios `--token-*` custom property. No raw literals,
  * no `--token-color-palette-*`.
  *
- * The trigger transition is suppressed under reduced-motion — both the OS
- * `prefers-reduced-motion` media query AND the Storybook toolbar's
+ * State comes from Ark's data-attributes (verified against the Ark styling
+ * guide AND the live DOM — do NOT assume attributes Ark doesn't emit):
+ *   Trigger (a native <button>): data-state="open|closed", data-disabled,
+ *     data-invalid, data-readonly, data-placement, data-side,
+ *     data-placeholder-shown. Ark does NOT emit data-focus-visible or
+ *     data-focus on the Trigger, so the keyboard focus ring uses the native
+ *     :focus-visible pseudo-class.
+ *   data-placeholder-shown lives on the TRIGGER (not value-text), so the
+ *     placeholder color targets value-text scoped under a placeholder-shown
+ *     trigger.
+ *   Item: data-state="checked|unchecked", data-highlighted, data-disabled.
+ *
+ * The size scale lives in one place: `[data-size]` on the root sets local
+ * `--select-*` custom properties (padding, font, icon size) inherited by the
+ * trigger and items (mirrors the Accordion size-matrix pattern).
+ *
+ * The content panel min-width tracks the trigger via `--reference-width`, which
+ * Ark sets on the POSITIONER part (not Content). Logical properties
+ * (inline-size, padding-inline, …) are used throughout.
+ *
+ * Motion: the trigger transition is suppressed under reduced-motion — both the
+ * OS `prefers-reduced-motion` media query AND the Storybook toolbar's
  * `[data-reduced-motion='reduce']` attribute. Each animated selector gets its
  * own reduced-motion reset so the stylelint a11y rule (per-selector) is satisfied.
- *
- * Focus ring is applied ONLY on `[data-focus-visible]` (keyboard focus), never
- * on every `:focus` / `[data-focus]`.
- *
- * Logical properties (inline-size, block-size, padding-inline, padding-block)
- * are used throughout instead of width/height/padding-left.
  */
 
+/* ─── Root (group) + size scale ────────────────────────────────────────────── */
+
 [data-scope='select'][data-part='root'] {
+  /* Default (medium) size tokens; overridden per [data-size] below. */
+  --select-control-padding: var(--token-form-control-padding);
+  --select-font-family: var(--token-typography-body-200-font-family);
+  --select-font-size: var(--token-typography-body-200-font-size);
+  --select-line-height: var(--token-typography-body-200-line-height);
+
   display: inline flex;
   flex-direction: column;
   gap: var(--token-form-toggle-border-width);
+
+  &[data-size='small'] {
+    --select-control-padding: 4px;
+    --select-font-family: var(--token-typography-body-100-font-family);
+    --select-font-size: var(--token-typography-body-100-font-size);
+    --select-line-height: var(--token-typography-body-100-line-height);
+  }
+
+  &[data-size='medium'] {
+    --select-control-padding: var(--token-form-control-padding);
+    --select-font-family: var(--token-typography-body-200-font-family);
+    --select-font-size: var(--token-typography-body-200-font-size);
+    --select-line-height: var(--token-typography-body-200-line-height);
+  }
+
+  &[data-size='large'] {
+    --select-control-padding: 12px;
+    --select-font-family: var(--token-typography-body-300-font-family);
+    --select-font-size: var(--token-typography-body-300-font-size);
+    --select-line-height: var(--token-typography-body-300-line-height);
+  }
 }
 
 [data-scope='select'][data-part='label'] {
@@ -39,6 +83,7 @@
 
 [data-scope='select'][data-part='control'] {
   display: block flex;
+  gap: var(--select-control-padding);
   align-items: center;
   inline-size: 100%;
 }
@@ -46,22 +91,22 @@
 [data-scope='select'][data-part='trigger'] {
   cursor: pointer;
 
-  display: inline flex;
-  gap: var(--token-form-control-padding);
+  display: block flex;
+  gap: var(--select-control-padding);
   align-items: center;
   justify-content: space-between;
 
   inline-size: 100%;
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--select-control-padding);
+  padding-inline: var(--select-control-padding);
   border-color: var(--token-form-control-base-border-color-default);
   border-style: solid;
   border-width: var(--token-form-control-border-width);
   border-radius: var(--token-form-control-border-radius);
 
-  font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-family: var(--select-font-family);
+  font-size: var(--select-font-size);
+  line-height: var(--select-line-height);
   color: var(--token-form-control-base-foreground-value-color);
 
   background-color: var(--token-form-control-base-surface-color-default);
@@ -81,16 +126,21 @@
   }
 }
 
-/* Keyboard focus only — never decorate mouse focus. */
-[data-scope='select'][data-part='trigger'][data-focus-visible] {
-  outline: none;
-  box-shadow: var(--token-focus-ring-action-box-shadow);
-}
-
+/* Hover + keyboard-focus border affordance. Keyboard parity: focus-visible
+   gets the same border tint as hover (mouse focus does NOT — that's why this is
+   :focus-visible, not :focus). */
 [data-scope='select'][data-part='trigger']:hover,
-[data-scope='select'][data-part='trigger']:focus {
+[data-scope='select'][data-part='trigger']:focus-visible {
   border-color: var(--token-form-control-base-border-color-hover);
   background-color: var(--token-form-control-base-surface-color-hover);
+}
+
+/* Keyboard focus ring only — never decorate mouse focus. Ark emits NO
+   data-focus-visible on the trigger (verified against the live DOM), so the
+   ring is drawn via the native :focus-visible pseudo on the <button>. */
+[data-scope='select'][data-part='trigger']:focus-visible {
+  outline: none;
+  box-shadow: var(--token-focus-ring-action-box-shadow);
 }
 
 [data-scope='select'][data-part='trigger'][data-disabled] {
@@ -104,27 +154,81 @@
   border-color: var(--token-form-control-invalid-border-color-default);
 
   &:hover,
-  &:focus {
+  &:focus-visible {
     border-color: var(--token-form-control-invalid-border-color-hover);
   }
 }
 
-[data-scope='select'][data-part='value-text'][data-placeholder-shown] {
+/* `data-placeholder-shown` lives on the TRIGGER (not value-text); dim the value
+   text only while the placeholder is showing. */
+[data-scope='select'][data-part='trigger'][data-placeholder-shown]
+  [data-scope='select'][data-part='value-text'] {
   color: var(--token-form-control-base-foreground-placeholder-color);
 }
 
 [data-scope='select'][data-part='indicator'] {
   flex-shrink: 0;
   color: var(--token-color-foreground-faint);
+
+  &[data-disabled] {
+    color: var(--token-form-control-disabled-foreground-color);
+  }
 }
 
-/* Portalled content panel */
+/* Optional clear button (rendered only when `clearable`). Icon-only control — it
+   carries an aria-label in the wrapper for its accessible name (WCAG 4.1.2). */
+[data-scope='select'][data-part='clear-trigger'] {
+  cursor: pointer;
+
+  display: inline flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+  border: none;
+
+  color: var(--token-color-foreground-faint);
+
+  background: transparent;
+
+  transition: color var(--token-form-toggle-transition-duration)
+    var(--token-form-toggle-transition-timing-function);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--token-color-foreground-primary);
+  }
+
+  &:focus-visible {
+    border-radius: var(--token-border-radius-small);
+    outline: none;
+    box-shadow: var(--token-focus-ring-action-box-shadow);
+  }
+
+  [data-reduced-motion='reduce'] & {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* ─── Positioner + portalled content panel ─────────────────────────────────── */
+
+/* Ark sets --reference-width on the POSITIONER (the width of the trigger), so
+   the content min-width must read it here, not on Content (where it is empty). */
+[data-scope='select'][data-part='positioner'] {
+  min-inline-size: var(--reference-width);
+}
+
 [data-scope='select'][data-part='content'] {
   overflow-block: auto;
   display: block flex;
   flex-direction: column;
 
-  min-inline-size: var(--reference-width);
+  inline-size: 100%;
   padding-block: var(--token-form-control-border-width);
   border-color: var(--token-color-border-primary);
   border-style: solid;
@@ -148,13 +252,13 @@
   align-items: center;
   justify-content: space-between;
 
-  padding-block: var(--token-form-control-padding);
-  padding-inline: var(--token-form-control-padding);
+  padding-block: var(--select-control-padding);
+  padding-inline: var(--select-control-padding);
   border-radius: var(--token-border-radius-small);
 
-  font-family: var(--token-typography-body-200-font-family);
-  font-size: var(--token-typography-body-200-font-size);
-  line-height: var(--token-typography-body-200-line-height);
+  font-family: var(--select-font-family);
+  font-size: var(--select-font-size);
+  line-height: var(--select-line-height);
   color: var(--token-color-foreground-primary);
 
   &[data-highlighted] {

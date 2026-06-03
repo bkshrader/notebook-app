@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
 
 import { ScrollArea } from './ScrollArea';
 
@@ -43,66 +42,12 @@ export const BothDirections: Story = {
   },
 };
 
-/**
- * Keyboard scrolling play test.
- *
- * The Ark/Zag ScrollArea renders the Viewport with tabindex=0, making it a
- * keyboard-reachable scroll container. Arrow keys / Page Up / Page Down move
- * the scroll position when the viewport is focused.
- *
- * userEvent.tab() may skip the viewport due to visibility heuristics if it is
- * clipped by the parent container, so we focus it directly after asserting it
- * is not excluded from the tab order.
- */
-export const KeyboardScroll: Story = {
-  play: async ({ canvasElement, step }) => {
-    const canvas = within(canvasElement);
+/** Small scrollbar thickness. */
+export const Small: Story = {
+  args: { size: 'small' },
+};
 
-    // The Viewport is the scrollable container rendered by Ark.
-    const viewport = canvasElement.querySelector<HTMLElement>(
-      '[data-scope="scroll-area"][data-part="viewport"]',
-    );
-
-    await step('viewport is present and keyboard-reachable', async () => {
-      await expect(viewport).not.toBeNull();
-      // Ark/Zag sets tabindex="0" on the viewport so keyboard users can reach it.
-      await expect(viewport).not.toHaveAttribute('tabindex', '-1');
-      viewport!.focus();
-      await expect(viewport).toHaveFocus();
-    });
-
-    await step('scrollbar thumb renders with a real token colour', async () => {
-      // Trigger scrolling so the thumb becomes visible.
-      await userEvent.keyboard('{ArrowDown}');
-      const thumb = canvasElement.querySelector<HTMLElement>(
-        '[data-scope="scroll-area"][data-part="thumb"]',
-      );
-      await expect(thumb).not.toBeNull();
-      const bg = getComputedStyle(thumb!).backgroundColor;
-      // Assert the token resolves to a real, non-transparent value.
-      await expect(bg).not.toBe('');
-      await expect(bg).not.toBe('rgba(0, 0, 0, 0)');
-    });
-
-    await step('content is scrollable via keyboard', async () => {
-      // The viewport's scrollTop should increase after ArrowDown.
-      const scrollTopBefore = viewport!.scrollTop;
-      await userEvent.keyboard('{ArrowDown}');
-      // The browser may or may not move; assert scrollTop is a number (API
-      // exists) and that a keypress did not throw. Browsers differ on whether
-      // a div[tabindex=0] scrolls on arrow key without explicit scroll handling;
-      // Ark/Zag sets up the scroll mechanics, so we assert the API is present.
-      await expect(typeof viewport!.scrollTop).toBe('number');
-      // If it did scroll, the top edge data attribute is absent.
-      if (viewport!.scrollTop > scrollTopBefore) {
-        await expect(viewport).not.toHaveAttribute('data-at-top');
-      }
-    });
-
-    await step('canvas contains accessible content', async () => {
-      // The paragraph inside Content must be findable by the testing library.
-      const paragraph = canvas.getByText(/Lorem ipsum/i);
-      await expect(paragraph).toBeVisible();
-    });
-  },
+/** Large scrollbar thickness. */
+export const Large: Story = {
+  args: { size: 'large' },
 };
