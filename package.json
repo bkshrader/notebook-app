@@ -20,7 +20,7 @@
     "audit:fallow": "fallow audit",
     "contrast:matrix": "node scripts/contrast-matrix.mjs",
     "test-storybook:coverage": "vitest --project=storybook --run --coverage",
-    "audit:fallow:cov": "pnpm test-storybook:coverage && fallow audit --coverage ./coverage/coverage-final.json",
+    "audit:fallow:cov": "pnpm test-storybook:coverage && fallow audit --coverage ./coverage/coverage-final.json --coverage-root .",
     "package": "electron-vite build && electron-builder --dir",
     "dist": "electron-vite build && electron-builder",
     "storybook": "storybook dev -p 6006",

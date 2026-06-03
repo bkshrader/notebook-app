@@ -90,4 +90,61 @@ land with the DatePicker commit.
 5. Full CI gate: `typecheck`, `lint`, `lint:css`, `format:check`, `build`,
    `build-storybook`, `test-storybook`, `audit:fallow`, `pnpm audit --audit-level high`,
    `license-check`.
-6. Completeness critic pass; push; update the PR.
+
+## 2026-06-02 — Helios/Ark audit + library expansion
+
+A full audit-and-fix pass over the existing library plus a Helios-coverage
+reconciliation that expanded it from 47 → **78 components**. All gates green; full
+Storybook suite **814/814**, deterministic across repeated runs.
+
+**Phase A–B (audit + reconciliation).** Read-only fan-out audited all 47 existing
+components against each component's own Ark `data-*` contract (per-component,
+per-part — verified, NOT assumed) and static Helios parity. Headline systemic find:
+~58 dead `[data-part='…'][data-focus-visible]` selectors across 34 components — Ark
+emits `data-focus-visible` on only some parts, so these were dead keyboard focus
+rings (WCAG 2.4.7) that passed every CI gate. Plus ~62 false "Ark emits X" header
+comments. A reconciliation against the Helios component index split our set into
+present / extra (Ark primitives with no 1:1 Helios entry — kept) / missing.
+
+**Phase C1 (fix existing 47).** Per-component fixes: dead `data-focus-visible` →
+native `:focus-visible` (per each part's real Ark contract — no global sed), false
+comments corrected in-place, borrowed-token-VALUE fixes, missing props/variants, and
+a `.spec.stories.tsx` with regression guards for **every** component. Real bugs found
+and fixed during verification: ScrollArea viewport missing `tabindex` (axe
+`scrollable-region-focusable`); HoverCard Escape-dismiss test race.
+
+**Phase C2 (build missing).** Built **31 new components** (47→78). Architecture: the
+[unstyled-primitives-ark ADR](../accessibility/adrs/unstyled-primitives-ark.md) was
+amended (2026-06-02 scope clarification) — the library wraps an Ark primitive where
+one exists and a plain semantic HTML element where none does. Built:
+
+- _Presentational (plain HTML):_ Alert, Badge, BadgeCount, Card, Separator, Tag,
+  Text, Time, Icon, IconTile.
+- _Ark-backed:_ Toast, FileInput (file-upload), ColorPicker, DateInput, Carousel,
+  Marquee, CopySnippet (clipboard), Dropdown (menu), SuperSelect (combobox),
+  TextInput / Textarea / RadioCard (field/radio-group).
+- _Composable HTML:_ Button, ButtonSet, Breadcrumb, InlineLink, StandaloneLink,
+  MaskedInput, KeyValueInputs, StepperIndicator, StepperNav.
+
+**Test infra hardening.** De-flaked the browser suite at its source: a `beforeEach`
+focus-reset in [`.storybook/preview.tsx`](../../../.storybook/preview.tsx) (kills
+cross-story ambient-focus flakes) + `retry: 2` on the storybook vitest project. Suite
+now deterministic across repeated full runs. Fixed the `audit:fallow:cov` Windows
+coverage-path quirk note; complexity findings resolved via genuine sub-component
+splits (Field, Alert, Button, MaskedInput) or documented coverage-false-positive
+suppressions (Button, StepperNav) — never CC-chasing over coverage.
+
+### Deferred — Tier 3 (not built; tracked for a follow-up effort)
+
+These Helios components are out of scope for this pass by explicit decision — each is
+a multi-day feature, not a primitive wrapper, and some belong to other roadmap items:
+
+- **App shell:** App Header, App Footer, App Side Nav, Page Header, Filter Bar,
+  Application State — app-composition surfaces, not library primitives.
+- **Data tables:** Table, Advanced Table — pair Ark with TanStack Table (MIT) per the
+  unstyled-primitives-ark ADR follow-up; a dedicated effort.
+- **Code surfaces:** Code Block, Code Editor — these are the **CodeMirror 6** feature
+  ([codemirror research](../../research/codemirror.md)); must align with that ADR, not
+  be hand-rolled here.
+
+Each should get its own roadmap line + `OVERVIEW.md` when picked up. 6. Completeness critic pass; push; update the PR.

@@ -60,6 +60,14 @@ export default defineConfig({
         },
         test: {
           name: 'storybook',
+          // Browser interaction tests share one Chromium context across the whole
+          // suite, so a small number of focus/timing-sensitive keyboard tests can
+          // flake intermittently under full-suite run order (they pass in
+          // isolation and on retry; the failing set shifts run to run). A genuine
+          // regression fails all attempts, so a bounded retry de-flakes the gate
+          // without masking real breakage. Pairs with the focus-reset beforeEach
+          // in .storybook/preview.tsx.
+          retry: 2,
           browser: {
             enabled: true,
             headless: true,

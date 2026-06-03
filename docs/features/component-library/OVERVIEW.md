@@ -4,8 +4,12 @@
 
 The **Component Library** is our in-repo set of accessible React UI primitives — the
 building blocks every interactive surface of the app is assembled from. Each primitive
-is a thin, token-styled wrapper over an [Ark UI](https://ark-ui.com/) headless component,
-documented and tested in Storybook.
+is a thin, token-styled wrapper over an [Ark UI](https://ark-ui.com/) headless component
+**where one exists, and over a plain semantic HTML element where none does** (e.g. Badge,
+Card, Tag, Text, Separator) — see the [scope clarification in the unstyled-primitives-ark
+ADR](../accessibility/adrs/unstyled-primitives-ark.md). Interactive/stateful components
+MUST wrap Ark; presentational/static ones may wrap plain HTML. Either way they are
+documented and tested in Storybook under the same per-component contract.
 
 > **Terminology:** "Component Library" here is the developer-facing UI toolkit (React
 > components under `src/renderer/src/components/`). It is **not** the user-facing

@@ -4,6 +4,19 @@ import '../src/renderer/src/styles/app.css';
 import { withThemeByDataAttribute } from '@storybook/addon-themes';
 
 const preview: Preview = {
+  // Reset focus to a known state before every story's play function. The
+  // storybook test runner reuses ONE jsdom/Chromium document across all stories
+  // in a file (and the project runs them in a shared browser context), so a
+  // prior story can leave focus on some element; an interaction test that does
+  // `userEvent.tab()` from that ambient focus then lands on the wrong element
+  // and fails intermittently. Blurring to <body> first makes each test's first
+  // Tab deterministic regardless of run order. (Fixes the cross-story
+  // "Keyboard Navigation"/focus-ring flakes.)
+  beforeEach: () => {
+    if (typeof document === 'undefined') return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) active.blur();
+  },
   parameters: {
     backgrounds: { disable: true },
     controls: {
